@@ -1,0 +1,2 @@
+"""AI package for Featuresmith."""
+

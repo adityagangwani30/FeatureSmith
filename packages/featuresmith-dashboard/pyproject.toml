@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "featuresmith-dashboard"
+version = "0.1.0"
+description = "Thin dashboard surface for Featuresmith."
+requires-python = ">=3.11"
+dependencies = [
+  "featuresmith-core>=0.1.0",
+]
+
+[tool.uv.sources]
+featuresmith-core = { workspace = true }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["featuresmith_dashboard*"]

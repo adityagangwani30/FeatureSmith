@@ -1,0 +1,2 @@
+"""Featuresmith dashboard package."""
+
