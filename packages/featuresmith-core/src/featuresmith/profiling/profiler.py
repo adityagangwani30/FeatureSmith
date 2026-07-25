@@ -54,11 +54,30 @@ def profile_dataset(
     """Orchestrate deterministic profiling of a dataset.
 
     Args:
-        dataset: The normalized dataset to profile.
-        max_correlation_columns: Limit correlation computations to prevent combinatorial blowup.
+        dataset: The normalized Dataset object to profile.
+        max_correlation_columns: Limit correlation computations to prevent
+            combinatorial blowup (default 100).
 
     Returns:
-        A strongly-typed ProfileResult containing structured summaries.
+        ProfileResult: A strongly-typed statistical profile containing dataset-wide
+            summaries, column-level profiles, missingness summaries, duplicate
+            statistics, and a Pearson correlation matrix.
+
+    Notes:
+        Logical type classification uses a heuristic mapping columns into
+        "numeric", "categorical", "datetime", or "text". Pearson correlation
+        matrix is computed for numeric columns only and is capped to the first
+        `max_correlation_columns` numeric columns to prevent performance degradation.
+
+    Examples:
+        >>> import pandas as pd
+        >>> from featuresmith.core.dataset import Dataset
+        >>> from featuresmith.profiling.profiler import profile_dataset
+        >>> df = pd.DataFrame({"a": [1, 2, 3]})
+        >>> ds = Dataset.from_dataframe(df, backend="pandas")
+        >>> prof = profile_dataset(ds)
+        >>> prof.dataset_summary.row_count
+        3
     """
     start_time_iso = datetime.now(UTC).isoformat()
     start_perf = time.perf_counter()
@@ -166,7 +185,7 @@ def profile_dataset(
     execution_metadata = ExecutionMetadata(
         start_time=start_time_iso,
         duration_seconds=elapsed_time,
-        featuresmith_version="0.1.0",
+        featuresmith_version="0.0.4-dev",
     )
 
     return ProfileResult(

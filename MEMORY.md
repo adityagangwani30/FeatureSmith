@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-- Current Version: 0.1.0-dev
+- Current Version: 0.0.4-dev
 - Current Phase: Phase 1 — SDK + CLI MVP
 - Current Sprint: Sprint 5 — CLI MVP
 - Repository: `D:\FeatureSmith`
@@ -289,6 +289,14 @@ primitives.
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-07-25 — Sprint 4 Quality & Release Preparation Pass
+
+- Updated workspace and package versions across all `pyproject.toml` and metadata structures to `0.0.4-dev` pre-release.
+- Completed comprehensive review of public SDK APIs (`fs.load()`, `fs.profile()`, `fs.analyze()`) to ensure consistent Google Style Docstrings with type hints, raises, parameter details, examples, and notes.
+- Refined public API signatures by introducing and passing through `max_correlation_columns` parameter in `fs.profile()` and `fs.analyze()`.
+- Standardized class, attribute, and method documentation across core models (`Dataset`, `ProfileResult`, `RuleResult`, `RuleFinding`) and base interfaces (`BaseConnector`, `BaseRule`, `RuleEngine`).
+- Verified code formatting, linting, typing, and import boundary rules; verified tests on both pandas and Polars.
 
 ### 2026-07-25 — Sprint 4
 

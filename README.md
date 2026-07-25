@@ -2,6 +2,8 @@
 
 Featuresmith is an AI-powered feature engineering and EDA platform organized as one reusable Python core with thin client surfaces.
 
+**Current Version:** `v0.0.4-dev`
+
 ## Project Overview
 
 The repository is structured as a uv workspace with three installable Python distributions:
@@ -165,6 +167,17 @@ ruff check
 mypy .
 ```
 
+## Project Roadmap
+
+Featuresmith is being built incrementally. See [Phases.md](./docs/Phases.md) for the detailed execution plan:
+
+*   **Phase 0 (Foundations):** Workspace, packages, CI/CD, and schema definitions. (Completed)
+*   **Phase 1 (SDK & CLI MVP):** Local data connectors, statistical profiling, and rule engine. (In Progress)
+*   **Phase 2 (AI Narration):** Grounded dataset summary and explainable recommendations.
+*   **Phase 3 (Interactive AI Chat):** Contextual natural-language exploration of findings.
+*   **Phase 4 (Export Layer):** Production-grade pipeline code generation (scikit-learn).
+*   **Phase 5 (Dashboard):** Streamlit interactive UI.
+
 ## Contributing
 
 1. Create a branch.
@@ -174,3 +187,4 @@ mypy .
 
 Before contributing, read [MEMORY.md](./MEMORY.md) and the project documents in
 [`docs/`](./docs/).
+

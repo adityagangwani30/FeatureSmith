@@ -235,7 +235,7 @@ def test_correlation_capping() -> None:
     data = {f"col_{i}": list(range(5)) for i in range(10)}
     df = pd.DataFrame(data)
 
-    # Cap at 5 columns
+    # 1. Test via internal profile_dataset
     dataset = fs.load(df)
     res = profile_dataset(dataset, max_correlation_columns=5)
 
@@ -243,6 +243,20 @@ def test_correlation_capping() -> None:
     assert "col_0" in res.correlation_summary.pearson
     assert "col_4" in res.correlation_summary.pearson
     assert "col_5" not in res.correlation_summary.pearson
+
+    # 2. Test via public SDK fs.profile()
+    res_profile = fs.profile(df, max_correlation_columns=3)
+    assert len(res_profile.correlation_summary.pearson) == 3
+    assert "col_0" in res_profile.correlation_summary.pearson
+    assert "col_2" in res_profile.correlation_summary.pearson
+    assert "col_3" not in res_profile.correlation_summary.pearson
+
+    # 3. Test via public SDK fs.analyze()
+    res_analyze = fs.analyze(df, max_correlation_columns=2)
+    assert len(res_analyze.profile.correlation_summary.pearson) == 2
+    assert "col_0" in res_analyze.profile.correlation_summary.pearson
+    assert "col_1" in res_analyze.profile.correlation_summary.pearson
+    assert "col_2" not in res_analyze.profile.correlation_summary.pearson
 
 
 def test_empty_dataset() -> None:

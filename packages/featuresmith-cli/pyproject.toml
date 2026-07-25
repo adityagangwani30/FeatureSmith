@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "featuresmith-cli"
-version = "0.1.0"
+version = "0.0.4-dev"
 description = "Thin CLI surface for Featuresmith."
 requires-python = ">=3.11"
 dependencies = [
-  "featuresmith-core>=0.1.0",
+  "featuresmith-core>=0.0.4-dev",
 ]
 
 [tool.uv.sources]
