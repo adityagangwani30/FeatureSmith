@@ -32,12 +32,61 @@ print(dataset.schema.names)
 print(dataset.preview())
 ```
 
-Every supported source returns the same lightweight `Dataset` object. It
-exposes `dataframe`, `backend`, `schema`, `metadata`, `row_count`,
-`column_count`, `dtypes`, `source`, `file_size`, and `preview()`.
+## Profile a Dataset
 
-No profiling, rules, AI, exports, dashboard behavior, or feature engineering
-is included in this loading API.
+Sprint 3 provides the deterministic profiling engine. The `profile()` function
+accepts the same sources as `load()` — a file path, an in-memory dataframe,
+or a pre-loaded `Dataset` — and returns a strongly-typed `ProfileResult`:
+
+```python
+import featuresmith as fs
+
+# From a file path
+profile = fs.profile("customers.csv")
+
+# From an in-memory dataframe
+import pandas as pd
+df = pd.read_csv("customers.csv")
+profile = fs.profile(df)
+
+# Explore the results
+print(profile.dataset_summary.row_count)
+print(profile.dataset_summary.num_numeric_columns)
+print(profile.numeric_profiles["age"].mean)
+print(profile.numeric_profiles["age"].std_dev)
+print(profile.categorical_profiles["country"].top_values)
+print(profile.categorical_profiles["country"].entropy)
+print(profile.missing_value_summary.dataset_missing_percentage)
+print(profile.duplicate_summary.duplicate_rows_count)
+print(profile.correlation_summary.pearson["age"]["income"])
+
+# Full serialization
+import json
+data = profile.to_dict()
+print(json.dumps(data, indent=2, default=str))
+```
+
+### ProfileResult structure at a glance
+
+```
+ProfileResult
+├── dataset_summary         → row/column counts, type counts, missing/duplicate rates
+├── column_profiles         → per-column logical type, missing count, constant/empty flags
+├── numeric_profiles        → mean, median, std, quartiles, skewness, kurtosis, …
+├── categorical_profiles    → cardinality, frequency table, entropy, top/bottom values
+├── datetime_profiles       → min date, max date, range in days
+├── text_profiles           → avg/min/max length, word count, empty/whitespace counts
+├── missing_value_summary   → per-column and dataset-wide missing analysis
+├── duplicate_summary       → duplicate rows, constant columns, fully empty columns
+├── correlation_summary     → Pearson matrix (Spearman/Kendall reserved for future)
+├── dataset_metadata        → source path, file size, backend
+└── execution_metadata      → start time, duration, version
+```
+
+`ProfileResult` is the canonical interface between the Profiling Engine and
+every downstream module: the Rule Engine (Sprint 4), the AI Layer (Phase 2),
+the Recommendation Engine, and the Exporters all consume only this object —
+never the raw dataframe.
 
 ## Workspace Structure
 
@@ -45,16 +94,21 @@ is included in this loading API.
 /
 ├── packages/
 │   ├── featuresmith-core/
+│   │   └── src/featuresmith/
+│   │       ├── core/           # Dataset, schemas, ProfileResult
+│   │       ├── connectors/     # CSV, Excel, Parquet, DataFrame connectors
+│   │       ├── profiling/      # Deterministic profiling engine (Sprint 3)
+│   │       └── api.py          # Public SDK: fs.load(), fs.profile()
 │   ├── featuresmith-cli/
 │   └── featuresmith-dashboard/
 ├── tests/
+│   ├── connectors/
+│   ├── core/
+│   └── profiling/
 ├── docs/
 ├── examples/
 ├── .github/workflows/
 ├── pyproject.toml
-├── .pre-commit-config.yaml
-├── .gitignore
-├── LICENSE
 └── README.md
 ```
 
@@ -69,6 +123,8 @@ pre-commit install
 
 ```bash
 pytest
+# or verbose
+pytest -v
 ```
 
 ## Formatting
