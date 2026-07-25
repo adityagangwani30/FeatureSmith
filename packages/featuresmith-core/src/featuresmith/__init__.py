@@ -1,5 +1,5 @@
 """Featuresmith core package."""
 
-from featuresmith.api import load, profile
+from featuresmith.api import analyze, load, profile
 
-__all__ = ["load", "profile"]
+__all__ = ["analyze", "load", "profile"]

@@ -16,6 +16,8 @@ from featuresmith.core.profile_result import (
     ProfileResult,
     TextProfile,
 )
+from featuresmith.core.rule_finding import RuleFinding
+from featuresmith.core.rule_result import RuleResult
 from featuresmith.core.schema import ColumnSchema, DatasetSchema
 
 __all__ = [
@@ -35,4 +37,6 @@ __all__ = [
     "NumericProfile",
     "ProfileResult",
     "TextProfile",
+    "RuleFinding",
+    "RuleResult",
 ]

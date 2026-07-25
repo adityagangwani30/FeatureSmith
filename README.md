@@ -32,63 +32,79 @@ print(dataset.schema.names)
 print(dataset.preview())
 ```
 
-## Profile a Dataset
+## Analyze a Dataset (Rule Engine)
 
-Sprint 3 provides the deterministic profiling engine. The `profile()` function
-accepts the same sources as `load()` — a file path, an in-memory dataframe,
-or a pre-loaded `Dataset` — and returns a strongly-typed `ProfileResult`:
+Sprint 4 provides the deterministic Rule Engine. The `analyze()` function
+accepts the same sources as `load()` and `profile()`, runs the full pipeline
+(`load → profile → rule_engine.run()`), and returns a strongly-typed
+`RuleResult`:
 
 ```python
 import featuresmith as fs
 
 # From a file path
-profile = fs.profile("customers.csv")
+result = fs.analyze("customers.csv")
 
 # From an in-memory dataframe
 import pandas as pd
 
 df = pd.read_csv("customers.csv")
-profile = fs.profile(df)
+result = fs.analyze(df)
 
-# Explore the results
-print(profile.dataset_summary.row_count)
-print(profile.dataset_summary.num_numeric_columns)
-print(profile.numeric_profiles["age"].mean)
-print(profile.numeric_profiles["age"].std_dev)
-print(profile.categorical_profiles["country"].top_values)
-print(profile.categorical_profiles["country"].entropy)
-print(profile.missing_value_summary.dataset_missing_percentage)
-print(profile.duplicate_summary.duplicate_rows_count)
-print(profile.correlation_summary.pearson["age"]["income"])
+# With a target column for leakage detection
+result = fs.analyze(df, target_column="churn")
+
+# Inspect findings
+for finding in result.findings:
+    print(f"[{finding.severity.upper()}] {finding.title}")
+    print(f"  Column : {finding.column_name}")
+    print(f"  Rule   : {finding.rule_id}")
+    print(f"  Detail : {finding.description}")
+
+# Execution metadata
+print(f"Rules executed : {result.executed_rules}")
+print(f"Execution time : {result.execution_time_ms:.1f} ms")
 
 # Full serialization
 import json
 
-data = profile.to_dict()
+data = result.to_dict()
 print(json.dumps(data, indent=2, default=str))
 ```
 
-### ProfileResult structure at a glance
+### Rules implemented
+
+| Rule ID | Category | Default severity | Description |
+|---|---|---|---|
+| `quality.missing_value_threshold` | quality | warning | Flags columns > 20% missing (configurable) |
+| `quality.duplicate_rows` | quality | warning | Flags datasets with > 10% duplicate rows (configurable) |
+| `quality.constant_columns` | quality | warning | Flags columns with exactly one unique non-null value |
+| `quality.fully_empty_columns` | quality | critical | Flags columns with only null values |
+| `statistical.high_cardinality` | statistical | warning | Flags categorical columns with unusually high unique ratios |
+| `statistical.outliers` | statistical | warning | Detects numeric outliers via IQR method |
+| `statistical.high_correlation` | statistical | warning | Flags numeric feature pairs with Pearson correlation ≥ 0.90 |
+| `leakage.potential_leakage` | leakage | critical | Flags features with correlation ≥ 0.99 to the target column |
+
+### Full pipeline
 
 ```
-ProfileResult
-├── dataset_summary         → row/column counts, type counts, missing/duplicate rates
-├── column_profiles         → per-column logical type, missing count, constant/empty flags
-├── numeric_profiles        → mean, median, std, quartiles, skewness, kurtosis, …
-├── categorical_profiles    → cardinality, frequency table, entropy, top/bottom values
-├── datetime_profiles       → min date, max date, range in days
-├── text_profiles           → avg/min/max length, word count, empty/whitespace counts
-├── missing_value_summary   → per-column and dataset-wide missing analysis
-├── duplicate_summary       → duplicate rows, constant columns, fully empty columns
-├── correlation_summary     → Pearson matrix (Spearman/Kendall reserved for future)
-├── dataset_metadata        → source path, file size, backend
-└── execution_metadata      → start time, duration, version
+Raw Data
+   │
+   ▼
+[Connector] → Dataset
+                │
+                ▼
+         [Profiler] → ProfileResult
+                          │
+                          ▼
+                   [Rule Engine] → RuleResult
+                    (8 seed rules)     │
+                                       ▼
+                      findings: list[RuleFinding]
+                                       │
+                                       ▼
+                   [Future Recommendation Engine]
 ```
-
-`ProfileResult` is the canonical interface between the Profiling Engine and
-every downstream module: the Rule Engine (Sprint 4), the AI Layer (Phase 2),
-the Recommendation Engine, and the Exporters all consume only this object —
-never the raw dataframe.
 
 ## Workspace Structure
 
@@ -97,16 +113,18 @@ never the raw dataframe.
 ├── packages/
 │   ├── featuresmith-core/
 │   │   └── src/featuresmith/
-│   │       ├── core/           # Dataset, schemas, ProfileResult
+│   │       ├── core/           # Dataset, schemas, ProfileResult, RuleFinding, RuleResult
 │   │       ├── connectors/     # CSV, Excel, Parquet, DataFrame connectors
 │   │       ├── profiling/      # Deterministic profiling engine (Sprint 3)
-│   │       └── api.py          # Public SDK: fs.load(), fs.profile()
+│   │       ├── rules/          # Rule Engine + 8 seed rules (Sprint 4)
+│   │       └── api.py          # Public SDK: fs.load(), fs.profile(), fs.analyze()
 │   ├── featuresmith-cli/
 │   └── featuresmith-dashboard/
 ├── tests/
 │   ├── connectors/
 │   ├── core/
-│   └── profiling/
+│   ├── profiling/
+│   └── rules/                  # Rule Engine tests (Sprint 4)
 ├── docs/
 ├── examples/
 ├── .github/workflows/

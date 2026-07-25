@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-- Current Version: 0.0.3-dev
+- Current Version: 0.1.0-dev
 - Current Phase: Phase 1 — SDK + CLI MVP
-- Current Sprint: Sprint 4 — Rule Engine
+- Current Sprint: Sprint 5 — CLI MVP
 - Repository: `D:\FeatureSmith`
 - Last Updated: 2026-07-25
 
@@ -17,7 +17,8 @@
 | Sprint 1 — Foundations | Completed | 2026-07-25 |
 | Sprint 2 — Dataset Foundation and Connector System | Completed | 2026-07-25 |
 | Sprint 3 — Deterministic Data Profiling Engine | Completed | 2026-07-25 |
-| Sprint 4 — Deterministic Rule Engine | In Progress | — |
+| Sprint 4 — Deterministic Rule Engine | Completed | 2026-07-25 |
+| Sprint 5 — CLI MVP | Current | — |
 
 -------------------------------------------------
 
@@ -118,6 +119,87 @@
     (`Architecture.md §17`) is deferred to a later sprint once the rule engine
     is in place.
 
+### Sprint 4 — Deterministic Rule Engine
+
+- Objective: Build a production-grade, deterministic Rule Engine that consumes
+  `ProfileResult` and produces a typed `RuleResult` containing `RuleFinding[]`.
+  No AI. No recommendations. No natural language generation.
+- Major Deliverables:
+  - `featuresmith/core/rule_finding.py` — strongly-typed frozen `RuleFinding`
+    dataclass with `rule_id`, `rule_name`, `category`, `severity`,
+    `column_name`, `title`, `description`, `evidence`, `confidence`, `id`,
+    and `metadata`.
+  - `featuresmith/core/rule_result.py` — `RuleResult` dataclass carrying
+    the `ProfileResult`, findings list, executed rule IDs, execution time, and
+    any failed rules with their tracebacks.
+  - `featuresmith/rules/base.py` — `BaseRule` abstract class with abstract
+    properties (`id`, `name`, `description`, `category`, `severity`,
+    `enabled_by_default`) and method `evaluate(profile) -> list[RuleFinding]`.
+  - `featuresmith/rules/registry.py` — `RuleRegistry` with `register`,
+    `unregister`, `list_rules`; `default_registry()` factory pre-loading all
+    8 seed rules.
+  - `featuresmith/rules/engine.py` — `RuleEngine` orchestrator with
+    configurable rule enabling/disabling, per-rule config injection, error
+    isolation, and execution timing.
+  - `featuresmith/rules/missing.py` — `MissingValueThresholdRule`
+    (`quality.missing_value_threshold`, default threshold 20%).
+  - `featuresmith/rules/duplicates.py` — `DuplicateRowsRule`
+    (`quality.duplicate_rows`, default threshold 10%).
+  - `featuresmith/rules/constants.py` — `ConstantColumnsRule`
+    (`quality.constant_columns`) and `FullyEmptyColumnsRule`
+    (`quality.fully_empty_columns`).
+  - `featuresmith/rules/cardinality.py` — `HighCardinalityRule`
+    (`statistical.high_cardinality`, default unique ratio > 50% with
+    min_cardinality=20).
+  - `featuresmith/rules/outliers.py` — `OutlierDetectionRule`
+    (`statistical.outliers`, IQR factor=1.5).
+  - `featuresmith/rules/correlation.py` — `HighCorrelationRule`
+    (`statistical.high_correlation`, default Pearson threshold 0.90).
+  - `featuresmith/rules/leakage.py` — `LeakageRuleTargetCorrelation`
+    (`leakage.potential_leakage`, default Pearson threshold 0.99 with
+    explicit `target_column`; skips silently if no target provided — no target
+    inference per design).
+  - `featuresmith/rules/README.md` — module documentation and contributor guide.
+  - `tests/rules/test_rules.py` — 12 comprehensive test scenarios covering all
+    8 rules (positive and negative cases), engine error isolation, rule
+    disabling/enabling, empty datasets, single-column datasets, and mixed
+    Polars/pandas fixtures.
+  - `tests/rules/__init__.py` — test package init.
+  - `README.md` — updated with `fs.analyze()` usage, full pipeline diagram,
+    and rules table.
+  - Public API: `fs.analyze(source, target_column, enabled_rules, rule_config)`
+    added to `api.py` and exported from the package root.
+- Files Modified: `featuresmith/api.py`; `featuresmith/__init__.py`;
+  `featuresmith/core/__init__.py`; `featuresmith/rules/__init__.py`.
+- Important Decisions:
+  - `RuleFinding` and `RuleResult` are `frozen=True` dataclasses (consistent
+    with all other core schemas) — serializable via `asdict()` / `to_dict()`.
+  - `RuleEngine` isolates individual rule failures in `failed_rules` dict so a
+    single crashing rule never aborts the entire analysis run.
+  - `LeakageRuleTargetCorrelation` requires an explicit `target_column` — no
+    target inference, per the sprint constraint "No AI, No target inference."
+  - Rule configuration is injected by re-instantiating the rule class with
+    keyword arguments (e.g. `MissingValueThresholdRule(threshold=30.0)`);
+    this keeps rules stateless and independently testable.
+  - `HighCardinalityRule` only evaluates columns classified as `"categorical"`
+    by the existing profiling heuristic; columns with > 50% unique ratio and
+    > 10 unique values are classified as `"text"` by the profiler and are
+    intentionally excluded.
+- Lessons Learned: The profiling engine's logical-type heuristic (avg length ≥
+  20 or unique_ratio > 0.5 with > 10 unique values → `text`) means high-
+  cardinality string columns frequently land in `"text"` rather than
+  `"categorical"`. Test fixtures for the cardinality rule must use columns with
+  ≤ 10 unique values repeated over many rows (so the unique-count threshold is
+  not exceeded and the column remains categorical).
+- Known Limitations:
+  - `LeakageRuleTargetCorrelation` requires the target column to be numeric
+    (present in the Pearson correlation matrix). Categorical targets are not
+    yet supported.
+  - Rule severity escalation in `MissingValueThresholdRule` (`> 50%` → critical)
+    is hard-coded; in a future sprint this should be driven by configuration.
+  - No rule configuration persistence (e.g. `.featuresmith.yml` loading) yet —
+    rule configs are passed directly at call time.
+
 -------------------------------------------------
 
 ## Current Architecture Status
@@ -127,7 +209,7 @@
 | Core | In Progress |
 | Connectors | Completed |
 | Profiling | Completed |
-| Rules | In Progress |
+| Rules | Completed |
 | Recommendation Engine | Not Started |
 | AI Layer | Not Started |
 | Exporters | Not Started |
@@ -136,8 +218,8 @@
 | Plugin System | Not Started |
 
 Note: "Core" is marked In Progress because it will continue to grow throughout
-Phase 1 with new modules: `rule_finding.py`, `rule_result.py`, and later
-configuration models, exception types, and additional shared primitives.
+Phase 1 with configuration models, exception types, and additional shared
+primitives.
 
 -------------------------------------------------
 
@@ -146,6 +228,8 @@ configuration models, exception types, and additional shared primitives.
 - `fs.load(source)` — load any supported source into a `Dataset`.
 - `Dataset.preview(rows=5)` — return the first N rows.
 - `fs.profile(source)` — profile any supported source and return a `ProfileResult`.
+- `fs.analyze(source, *, target_column, enabled_rules, rule_config)` — run the
+  full pipeline (load → profile → rule_engine.run()) and return a `RuleResult`.
 - `profile_dataset(dataset, max_correlation_columns=100)` — internal orchestrator,
   importable from `featuresmith.profiling` for advanced callers.
 
@@ -161,6 +245,10 @@ configuration models, exception types, and additional shared primitives.
 | 2026-07-25 | Sprint 3 | Use `frozen=True` dataclasses for `ProfileResult` schemas instead of Pydantic. | Consistent with Sprint 2 core schemas; no extra dependency. |
 | 2026-07-25 | Sprint 3 | Cap correlation columns at `max_correlation_columns=100` by default. | Prevent O(n²) blowup on wide datasets; configurable per call. |
 | 2026-07-25 | Sprint 3 | Logical type heuristic: avg string length ≥ 20 → `text`. | Simple, deterministic; tunable in a later phase if needed. |
+| 2026-07-25 | Sprint 4 | Use `frozen=True` dataclasses for `RuleFinding` and `RuleResult`. | Consistent with all other core schemas; serializable via `asdict()`. |
+| 2026-07-25 | Sprint 4 | Rule configuration injected via re-instantiation (`Rule(**config)`). | Keeps rules stateless and independently testable without a global config object. |
+| 2026-07-25 | Sprint 4 | `LeakageRuleTargetCorrelation` requires explicit `target_column`. | No target inference per design; deterministic heuristic only. |
+| 2026-07-25 | Sprint 4 | `RuleEngine` isolates rule failures in `failed_rules` dict. | One crashing rule must never abort the analysis pipeline. |
 
 -------------------------------------------------
 
@@ -172,31 +260,53 @@ configuration models, exception types, and additional shared primitives.
       `column_profiles[name].missing_count`. Consider unifying in a future refactor.
 - [ ] Spearman and Kendall correlation reserved but not implemented.
 - [ ] Size-tiered profiling execution (`Architecture.md §17`) not yet implemented.
+- [ ] `LeakageRuleTargetCorrelation` only supports numeric target columns (must be
+      in the Pearson matrix). Categorical targets are not yet supported.
+- [ ] Rule severity escalation thresholds are hard-coded in rule classes; should
+      be configurable via `.featuresmith.yml` once the config system is built.
+- [ ] No `.featuresmith.yml` config loading yet — rule configs are passed at call
+      time only.
 
 -------------------------------------------------
 
 ## Upcoming Sprint
 
-- Sprint Number: Sprint 4
-- Objective: Rule Engine — Deterministic data-quality and leakage checks that
-  consume `ProfileResult` and produce `RuleFinding[]`.
+- Sprint Number: Sprint 5
+- Objective: CLI MVP — Expose `featuresmith analyze <source>` as a thin Typer
+  wrapper over `fs.analyze()` so the same analysis is available from the
+  terminal.
 - Major Tasks:
-  - Implement `RuleFinding` and `RuleResult` core models in `featuresmith/core/`.
-  - Implement `BaseRule` interface in `featuresmith/rules/base.py`.
-  - Implement `RuleRegistry` in `featuresmith/rules/registry.py`.
-  - Implement `RuleEngine` orchestrator in `featuresmith/rules/engine.py`.
-  - Implement seed rules: `missing.py`, `duplicates.py`, `constants.py`,
-    `cardinality.py`, `outliers.py`, `correlation.py`, `leakage.py`.
-  - Export `fs.analyze()` as the combined profile + rules public API.
-  - Write comprehensive tests for all rules and the engine.
-  - Update documentation and README.
-- Dependencies: Sprint 3 `ProfileResult`.
-- Expected Deliverables: `RuleFinding[]` typed output; `RuleResult`; `RuleEngine`;
-  seven seed rules; rule tests with positive and negative fixture cases.
+  - Implement `featuresmith analyze <source>` CLI command in `featuresmith-cli`.
+  - Implement human-readable table/rich output for findings.
+  - Implement `--format json` flag for machine-consumption/piping.
+  - Implement `--target` flag for `target_column`.
+  - Surface `exit code 1` when findings above a configured severity threshold.
+  - Write surface-parity tests asserting CLI and SDK produce the same findings.
+- Dependencies: Sprint 4 `RuleResult` / `fs.analyze()`.
+- Expected Deliverables: `featuresmith analyze` CLI command; rich table output;
+  JSON output mode; surface-parity integration test.
 
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-07-25 — Sprint 4
+
+- Added `RuleFinding` dataclass in `core/rule_finding.py`.
+- Added `RuleResult` dataclass in `core/rule_result.py`.
+- Added complete Rule Engine under `featuresmith/rules/`:
+  `base.py`, `registry.py`, `engine.py`, `missing.py`, `duplicates.py`,
+  `constants.py`, `cardinality.py`, `outliers.py`, `correlation.py`,
+  `leakage.py`.
+- Added `fs.analyze()` to the public SDK and package root.
+- Added `tests/rules/test_rules.py` with 12 test scenarios covering all 8 rules
+  (positive + negative cases), engine error isolation, rule configuration,
+  empty datasets, single-column datasets, and mixed Polars/pandas fixtures.
+- Updated `README.md` with `fs.analyze()` usage, full pipeline diagram, and
+  rules table.
+- Added `featuresmith/rules/README.md` module documentation and contributor guide.
+- Updated `featuresmith/core/__init__.py` to export `RuleFinding` and
+  `RuleResult`.
 
 ### 2026-07-25 — Sprint 3
 

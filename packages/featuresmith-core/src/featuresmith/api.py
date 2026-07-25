@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from featuresmith.connectors.registry import default_registry
 from featuresmith.core.dataset import Dataset
 from featuresmith.core.profile_result import ProfileResult
+from featuresmith.core.rule_result import RuleResult
 from featuresmith.profiling import profile_dataset
 
 
@@ -42,3 +45,38 @@ def profile(source: object) -> ProfileResult:
     else:
         dataset = load(source)
     return profile_dataset(dataset)
+
+
+def analyze(
+    source: object,
+    *,
+    target_column: str | None = None,
+    enabled_rules: list[str] | None = None,
+    rule_config: dict[str, Any] | None = None,
+) -> RuleResult:
+    """Analyze a tabular source or Dataset, computing profile stats and running rules.
+
+    Args:
+        source: A Dataset, a local file path, or an in-memory dataframe.
+        target_column: Optional name of the target column.
+        enabled_rules: Optional list of rule IDs to execute.
+        rule_config: Optional dictionary of rule configurations, keyed by rule ID.
+
+    Returns:
+        A RuleResult containing the statistics and all rule findings.
+    """
+    if isinstance(source, Dataset):
+        dataset = source
+    else:
+        dataset = load(source)
+    prof_res = profile(dataset)
+
+    from featuresmith.rules.engine import RuleEngine
+
+    engine = RuleEngine()
+    return engine.run(
+        prof_res,
+        target_column=target_column,
+        enabled_rules=enabled_rules,
+        rule_config=rule_config,
+    )
