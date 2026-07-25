@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-- Current Version: 0.1.0 (development)
+- Current Version: 0.0.3-dev
 - Current Phase: Phase 1 — SDK + CLI MVP
 - Current Sprint: Sprint 4 — Rule Engine
 - Repository: `D:\FeatureSmith`
@@ -17,6 +17,7 @@
 | Sprint 1 — Foundations | Completed | 2026-07-25 |
 | Sprint 2 — Dataset Foundation and Connector System | Completed | 2026-07-25 |
 | Sprint 3 — Deterministic Data Profiling Engine | Completed | 2026-07-25 |
+| Sprint 4 — Deterministic Rule Engine | In Progress | — |
 
 -------------------------------------------------
 
@@ -123,16 +124,20 @@
 
 | Area | Status |
 | --- | --- |
-| Core | Completed |
+| Core | In Progress |
 | Connectors | Completed |
 | Profiling | Completed |
-| Rules | Not Started |
+| Rules | In Progress |
 | Recommendation Engine | Not Started |
 | AI Layer | Not Started |
 | Exporters | Not Started |
 | CLI | Not Started |
 | Dashboard | Not Started |
 | Plugin System | Not Started |
+
+Note: "Core" is marked In Progress because it will continue to grow throughout
+Phase 1 with new modules: `rule_finding.py`, `rule_result.py`, and later
+configuration models, exception types, and additional shared primitives.
 
 -------------------------------------------------
 
@@ -176,15 +181,18 @@
 - Objective: Rule Engine — Deterministic data-quality and leakage checks that
   consume `ProfileResult` and produce `RuleFinding[]`.
 - Major Tasks:
-  - Implement `BaseRule` interface.
-  - Implement seed rules: missingness threshold, constant columns, duplicate
-    rows, high cardinality, basic outlier detection (IQR), naive
-    leakage-by-correlation.
-  - Implement `RuleEngine` that runs registered rules against a `ProfileResult`.
+  - Implement `RuleFinding` and `RuleResult` core models in `featuresmith/core/`.
+  - Implement `BaseRule` interface in `featuresmith/rules/base.py`.
+  - Implement `RuleRegistry` in `featuresmith/rules/registry.py`.
+  - Implement `RuleEngine` orchestrator in `featuresmith/rules/engine.py`.
+  - Implement seed rules: `missing.py`, `duplicates.py`, `constants.py`,
+    `cardinality.py`, `outliers.py`, `correlation.py`, `leakage.py`.
   - Export `fs.analyze()` as the combined profile + rules public API.
+  - Write comprehensive tests for all rules and the engine.
+  - Update documentation and README.
 - Dependencies: Sprint 3 `ProfileResult`.
-- Expected Deliverables: `RuleFinding[]` typed output; `RuleEngine`; seed rule
-  set; rule tests with positive and negative fixture cases.
+- Expected Deliverables: `RuleFinding[]` typed output; `RuleResult`; `RuleEngine`;
+  seven seed rules; rule tests with positive and negative fixture cases.
 
 -------------------------------------------------
 

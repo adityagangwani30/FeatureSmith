@@ -46,6 +46,7 @@ profile = fs.profile("customers.csv")
 
 # From an in-memory dataframe
 import pandas as pd
+
 df = pd.read_csv("customers.csv")
 profile = fs.profile(df)
 
@@ -62,6 +63,7 @@ print(profile.correlation_summary.pearson["age"]["income"])
 
 # Full serialization
 import json
+
 data = profile.to_dict()
 print(json.dumps(data, indent=2, default=str))
 ```

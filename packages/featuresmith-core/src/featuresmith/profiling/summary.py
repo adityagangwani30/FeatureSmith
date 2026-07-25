@@ -36,7 +36,9 @@ def classify_logical_type(dataset: Dataset, col_name: str) -> str:
     # 2. Numeric detection
     if dataset.backend == "pandas":
         series = df[col_name]
-        if pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(series):
+        if pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(
+            series
+        ):
             return "numeric"
     elif dataset.backend == "polars":
         col_type = df.schema[col_name]
@@ -59,7 +61,7 @@ def classify_logical_type(dataset: Dataset, col_name: str) -> str:
         series = df[col_name].dropna()
         if len(series) == 0:
             return "categorical"
-        
+
         # Convert to string to check length
         str_series = series.astype(str)
         total_len = str_series.str.len().sum()
@@ -72,19 +74,29 @@ def classify_logical_type(dataset: Dataset, col_name: str) -> str:
         non_null_count = len(series)
         if non_null_count == 0:
             return "categorical"
-        
+
         # Compute stats in Polars
-        stats = series.select([
-            pl.col(col_name).cast(pl.String).str.len_chars().mean().alias("avg_len"),
-            pl.col(col_name).cast(pl.String).n_unique().alias("unique_count")
-        ])
+        stats = series.select(
+            [
+                pl.col(col_name)
+                .cast(pl.String)
+                .str.len_chars()
+                .mean()
+                .alias("avg_len"),
+                pl.col(col_name).cast(pl.String).n_unique().alias("unique_count"),
+            ]
+        )
         avg_len = stats.get_column("avg_len")[0] or 0.0
         unique_count = stats.get_column("unique_count")[0] or 0
 
     # Heuristic for Text vs Categorical
     if avg_len >= 20:
         return "text"
-    if non_null_count > 0 and (unique_count / non_null_count) > 0.5 and unique_count > 10:
+    if (
+        non_null_count > 0
+        and (unique_count / non_null_count) > 0.5
+        and unique_count > 10
+    ):
         return "text"
 
     return "categorical"

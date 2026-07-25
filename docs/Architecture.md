@@ -151,10 +151,10 @@ The **public SDK surface** that every interface (including itself, from Python c
 ```python
 import featuresmith as fs
 
-profile = fs.analyze("train.csv")            # or fs.analyze(df) on an in-memory dataframe
-answer  = fs.chat(profile, "Why is this feature leakage?")
+profile = fs.analyze("train.csv")  # or fs.analyze(df) on an in-memory dataframe
+answer = fs.chat(profile, "Why is this feature leakage?")
 pipeline = fs.export(profile, target="sklearn")
-delta   = fs.diff(profile_a, profile_b)
+delta = fs.diff(profile_a, profile_b)
 ```
 
 This is the exact function set the CLI (`featuresmith analyze`, `featuresmith chat`, `featuresmith export`, `featuresmith diff`) and the dashboard buttons call — nothing more, nothing surface-specific.
@@ -195,8 +195,12 @@ flowchart TB
 
 ```python
 class AIProvider(Protocol):
-    def narrate(self, profile: ProfileResult, findings: list[RuleFinding]) -> Narrative: ...
-    def rank(self, candidates: list[FeatureSuggestion]) -> list[RankedRecommendation]: ...
+    def narrate(
+        self, profile: ProfileResult, findings: list[RuleFinding]
+    ) -> Narrative: ...
+    def rank(
+        self, candidates: list[FeatureSuggestion]
+    ) -> list[RankedRecommendation]: ...
     def chat(self, session: ChatSession, message: str) -> ChatReply: ...
 ```
 

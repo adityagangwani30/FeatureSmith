@@ -18,38 +18,52 @@ from featuresmith.profiling.summary import classify_logical_type
 @pytest.fixture
 def sample_pandas_df() -> pd.DataFrame:
     """Create a pandas DataFrame with mixed logical types."""
-    return pd.DataFrame({
-        "num_col": [1.0, 2.0, -1.0, 0.0, None],
-        "cat_col": ["apple", "banana", "apple", "cherry", None],
-        "date_col": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", None]),
-        "text_col": [
-            "This is a longer text paragraph that serves as a text column.",
-            "Another sentence in the dataset to make it qualify as text.",
-            "Short text here.",
-            "   ",  # whitespace-only
-            "",     # empty string
-        ]
-    })
+    return pd.DataFrame(
+        {
+            "num_col": [1.0, 2.0, -1.0, 0.0, None],
+            "cat_col": ["apple", "banana", "apple", "cherry", None],
+            "date_col": pd.to_datetime(
+                ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", None]
+            ),
+            "text_col": [
+                "This is a longer text paragraph that serves as a text column.",
+                "Another sentence in the dataset to make it qualify as text.",
+                "Short text here.",
+                "   ",  # whitespace-only
+                "",  # empty string
+            ],
+        }
+    )
 
 
 @pytest.fixture
 def sample_polars_df() -> pl.DataFrame:
     """Create a Polars DataFrame with mixed logical types."""
-    return pl.DataFrame({
-        "num_col": [1.0, 2.0, -1.0, 0.0, None],
-        "cat_col": ["apple", "banana", "apple", "cherry", None],
-        "date_col": [datetime(2026, 1, 1), datetime(2026, 1, 2), datetime(2026, 1, 3), datetime(2026, 1, 4), None],
-        "text_col": [
-            "This is a longer text paragraph that serves as a text column.",
-            "Another sentence in the dataset to make it qualify as text.",
-            "Short text here.",
-            "   ",  # whitespace-only
-            "",     # empty string
-        ]
-    })
+    return pl.DataFrame(
+        {
+            "num_col": [1.0, 2.0, -1.0, 0.0, None],
+            "cat_col": ["apple", "banana", "apple", "cherry", None],
+            "date_col": [
+                datetime(2026, 1, 1),
+                datetime(2026, 1, 2),
+                datetime(2026, 1, 3),
+                datetime(2026, 1, 4),
+                None,
+            ],
+            "text_col": [
+                "This is a longer text paragraph that serves as a text column.",
+                "Another sentence in the dataset to make it qualify as text.",
+                "Short text here.",
+                "   ",  # whitespace-only
+                "",  # empty string
+            ],
+        }
+    )
 
 
-def test_logical_type_classification(sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame) -> None:
+def test_logical_type_classification(
+    sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame
+) -> None:
     """Test logical type classification for both backends."""
     ds_pd = fs.load(sample_pandas_df)
     ds_pl = fs.load(sample_polars_df)
@@ -67,7 +81,9 @@ def test_logical_type_classification(sample_pandas_df: pd.DataFrame, sample_pola
     assert classify_logical_type(ds_pl, "text_col") == "text"
 
 
-def test_numeric_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame) -> None:
+def test_numeric_profiling_parity(
+    sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame
+) -> None:
     """Test that numeric profiling computes correct stats and matches between backends."""
     res_pd = fs.profile(sample_pandas_df)
     res_pl = fs.profile(sample_polars_df)
@@ -92,7 +108,9 @@ def test_numeric_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars_
         assert p.std_dev is not None and math.isclose(p.std_dev, math.sqrt(5.0 / 3))
 
 
-def test_categorical_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame) -> None:
+def test_categorical_profiling_parity(
+    sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame
+) -> None:
     """Test categorical column profiling."""
     res_pd = fs.profile(sample_pandas_df)
     res_pl = fs.profile(sample_polars_df)
@@ -104,13 +122,15 @@ def test_categorical_profiling_parity(sample_pandas_df: pd.DataFrame, sample_pol
         assert p.frequency_table == {"apple": 2, "banana": 1, "cherry": 1}
         assert p.top_values == [("apple", 2), ("banana", 1), ("cherry", 1)]
         assert p.most_common_category == "apple"
-        
+
         # Entropy check: p1 = 0.5, p2 = 0.25, p3 = 0.25
         # - (0.5 * log2(0.5) + 0.25 * log2(0.25) * 2) = - (0.5 * -1 + 0.25 * -2 * 2) = - (-0.5 - 1.0) = 1.5
         assert p.entropy is not None and math.isclose(p.entropy, 1.5)
 
 
-def test_datetime_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame) -> None:
+def test_datetime_profiling_parity(
+    sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame
+) -> None:
     """Test datetime column profiling."""
     res_pd = fs.profile(sample_pandas_df)
     res_pl = fs.profile(sample_polars_df)
@@ -118,12 +138,22 @@ def test_datetime_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars
     for res in (res_pd, res_pl):
         p = res.datetime_profiles["date_col"]
         assert p.missing_count == 1
-        assert p.minimum == "2026-01-01T00:00:00" or p.minimum == "2026-01-01T00:00:00Z" or p.minimum.startswith("2026-01-01")
-        assert p.maximum == "2026-01-04T00:00:00" or p.maximum == "2026-01-04T00:00:00Z" or p.maximum.startswith("2026-01-04")
+        assert (
+            p.minimum == "2026-01-01T00:00:00"
+            or p.minimum == "2026-01-01T00:00:00Z"
+            or p.minimum.startswith("2026-01-01")
+        )
+        assert (
+            p.maximum == "2026-01-04T00:00:00"
+            or p.maximum == "2026-01-04T00:00:00Z"
+            or p.maximum.startswith("2026-01-04")
+        )
         assert p.range_days == 3.0
 
 
-def test_text_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame) -> None:
+def test_text_profiling_parity(
+    sample_pandas_df: pd.DataFrame, sample_polars_df: pl.DataFrame
+) -> None:
     """Test text column profiling."""
     res_pd = fs.profile(sample_pandas_df)
     res_pl = fs.profile(sample_polars_df)
@@ -145,23 +175,29 @@ def test_text_profiling_parity(sample_pandas_df: pd.DataFrame, sample_polars_df:
 
 def test_duplicates_and_constants() -> None:
     """Test duplicate row counts and constant columns detection."""
-    df = pd.DataFrame({
-        "const": [1, 1, 1, 1],
-        "empty": [None, None, None, None],
-        "normal": [1, 2, 1, 2],
-        "val": ["a", "b", "a", "b"]
-    })
+    df = pd.DataFrame(
+        {
+            "const": [1, 1, 1, 1],
+            "empty": [None, None, None, None],
+            "normal": [1, 2, 1, 2],
+            "val": ["a", "b", "a", "b"],
+        }
+    )
 
     # Rows 0 and 2 are identical (1, None, 1, a)
     # Rows 1 and 3 are identical (1, None, 2, b)
     # So duplicate rows = 2
     res_pd = fs.profile(df)
-    res_pl = fs.profile(pl.DataFrame({
-        "const": [1, 1, 1, 1],
-        "empty": [None, None, None, None],
-        "normal": [1, 2, 1, 2],
-        "val": ["a", "b", "a", "b"]
-    }))
+    res_pl = fs.profile(
+        pl.DataFrame(
+            {
+                "const": [1, 1, 1, 1],
+                "empty": [None, None, None, None],
+                "normal": [1, 2, 1, 2],
+                "val": ["a", "b", "a", "b"],
+            }
+        )
+    )
 
     for res in (res_pd, res_pl):
         assert res.duplicate_summary.duplicate_rows_count == 2
@@ -174,12 +210,14 @@ def test_duplicates_and_constants() -> None:
 
 def test_correlations() -> None:
     """Test Pearson correlation matrix."""
-    df = pd.DataFrame({
-        "a": [1.0, 2.0, 3.0, 4.0],
-        "b": [2.0, 4.0, 6.0, 8.0],   # perfectly correlated with a (1.0)
-        "c": [4.0, 3.0, 2.0, 1.0],   # perfectly anti-correlated with a (-1.0)
-        "d": [1.0, 5.0, 2.0, 9.0],
-    })
+    df = pd.DataFrame(
+        {
+            "a": [1.0, 2.0, 3.0, 4.0],
+            "b": [2.0, 4.0, 6.0, 8.0],  # perfectly correlated with a (1.0)
+            "c": [4.0, 3.0, 2.0, 1.0],  # perfectly anti-correlated with a (-1.0)
+            "d": [1.0, 5.0, 2.0, 9.0],
+        }
+    )
 
     res = fs.profile(df)
     pearson = res.correlation_summary.pearson
@@ -197,7 +235,7 @@ def test_correlation_capping() -> None:
     # Cap at 5 columns
     dataset = fs.load(df)
     res = profile_dataset(dataset, max_correlation_columns=5)
-    
+
     assert len(res.correlation_summary.pearson) == 5
     assert "col_0" in res.correlation_summary.pearson
     assert "col_4" in res.correlation_summary.pearson
@@ -228,10 +266,7 @@ def test_single_column_dataset() -> None:
 
 def test_serialize_to_dict() -> None:
     """Test that ProfileResult serializes to a raw dictionary of primitives."""
-    df = pd.DataFrame({
-        "num": [1, 2, None],
-        "cat": ["x", "y", "x"]
-    })
+    df = pd.DataFrame({"num": [1, 2, None], "cat": ["x", "y", "x"]})
     res = fs.profile(df)
     d = res.to_dict()
 

@@ -20,7 +20,10 @@ from featuresmith.profiling.datetime import profile_datetime_column
 from featuresmith.profiling.duplicates import analyze_duplicates
 from featuresmith.profiling.missing import analyze_missing_values
 from featuresmith.profiling.numeric import profile_numeric_column
-from featuresmith.profiling.quality import find_constant_columns, find_fully_empty_columns
+from featuresmith.profiling.quality import (
+    find_constant_columns,
+    find_fully_empty_columns,
+)
 from featuresmith.profiling.summary import build_dataset_metadata, classify_logical_type
 from featuresmith.profiling.text import profile_text_column
 
@@ -45,7 +48,9 @@ def _get_missing_count(dataset: Dataset, col_name: str) -> int:
         return int(df.select(pl.col(col_name).null_count())[0, 0])
 
 
-def profile_dataset(dataset: Dataset, max_correlation_columns: int = 100) -> ProfileResult:
+def profile_dataset(
+    dataset: Dataset, max_correlation_columns: int = 100
+) -> ProfileResult:
     """Orchestrate deterministic profiling of a dataset.
 
     Args:
@@ -75,7 +80,7 @@ def profile_dataset(dataset: Dataset, max_correlation_columns: int = 100) -> Pro
         if logical_type == "numeric":
             num_prof = profile_numeric_column(dataset, col_name)
             numeric_profiles[col_name] = num_prof
-            
+
             missing_count = num_prof.missing_count
             missing_percentage = num_prof.missing_percentage
             is_constant = num_prof.unique_count <= 1
@@ -84,27 +89,35 @@ def profile_dataset(dataset: Dataset, max_correlation_columns: int = 100) -> Pro
         elif logical_type == "categorical":
             cat_prof = profile_categorical_column(dataset, col_name)
             categorical_profiles[col_name] = cat_prof
-            
+
             missing_count = cat_prof.missing_count
-            missing_percentage = float((missing_count / row_count) * 100.0) if row_count > 0 else 0.0
+            missing_percentage = (
+                float((missing_count / row_count) * 100.0) if row_count > 0 else 0.0
+            )
             is_constant = cat_prof.unique_count <= 1
             is_fully_empty = cat_prof.cardinality == 0 and missing_count == row_count
 
         elif logical_type == "datetime":
             dt_prof = profile_datetime_column(dataset, col_name)
             datetime_profiles[col_name] = dt_prof
-            
+
             missing_count = dt_prof.missing_count
-            missing_percentage = float((missing_count / row_count) * 100.0) if row_count > 0 else 0.0
-            is_constant = dt_prof.minimum == dt_prof.maximum or (dt_prof.minimum is None and dt_prof.maximum is None)
+            missing_percentage = (
+                float((missing_count / row_count) * 100.0) if row_count > 0 else 0.0
+            )
+            is_constant = dt_prof.minimum == dt_prof.maximum or (
+                dt_prof.minimum is None and dt_prof.maximum is None
+            )
             is_fully_empty = dt_prof.minimum is None and dt_prof.maximum is None
 
-        else: # logical_type == "text"
+        else:  # logical_type == "text"
             txt_prof = profile_text_column(dataset, col_name)
             text_profiles[col_name] = txt_prof
-            
+
             missing_count = _get_missing_count(dataset, col_name)
-            missing_percentage = float((missing_count / row_count) * 100.0) if row_count > 0 else 0.0
+            missing_percentage = (
+                float((missing_count / row_count) * 100.0) if row_count > 0 else 0.0
+            )
             unique_cnt = _get_non_null_unique_count(dataset, col_name)
             is_constant = unique_cnt <= 1
             is_fully_empty = txt_prof.avg_length is None and missing_count == row_count
@@ -125,11 +138,11 @@ def profile_dataset(dataset: Dataset, max_correlation_columns: int = 100) -> Pro
 
     # 3. Compute summaries
     missing_value_summary = analyze_missing_values(dataset)
-    duplicate_summary = analyze_duplicates(dataset, constant_columns, fully_empty_columns)
+    duplicate_summary = analyze_duplicates(
+        dataset, constant_columns, fully_empty_columns
+    )
     correlation_summary = compute_correlations(
-        dataset,
-        list(numeric_profiles.keys()),
-        max_correlation_columns
+        dataset, list(numeric_profiles.keys()), max_correlation_columns
     )
     dataset_metadata = build_dataset_metadata(dataset)
 

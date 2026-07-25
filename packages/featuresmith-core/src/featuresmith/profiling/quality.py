@@ -14,10 +14,7 @@ def find_constant_columns(column_profiles: dict[str, ColumnProfile]) -> list[str
     Returns:
         List of constant column names.
     """
-    return [
-        name for name, profile in column_profiles.items()
-        if profile.is_constant
-    ]
+    return [name for name, profile in column_profiles.items() if profile.is_constant]
 
 
 def find_fully_empty_columns(column_profiles: dict[str, ColumnProfile]) -> list[str]:
@@ -29,7 +26,4 @@ def find_fully_empty_columns(column_profiles: dict[str, ColumnProfile]) -> list[
     Returns:
         List of fully empty column names.
     """
-    return [
-        name for name, profile in column_profiles.items()
-        if profile.is_fully_empty
-    ]
+    return [name for name, profile in column_profiles.items() if profile.is_fully_empty]

@@ -41,6 +41,7 @@ profile = fs.profile("customers.csv")
 
 # From an in-memory dataframe
 import pandas as pd
+
 df = pd.read_csv("customers.csv")
 profile = fs.profile(df)
 

@@ -49,7 +49,9 @@ def analyze_missing_values(dataset: Dataset) -> MissingValueSummary:
     else:
         # Polars
         # Compute null counts for all columns in a single select
-        null_counts = df.select([pl.col(col).null_count().alias(col) for col in dataset.schema.names])
+        null_counts = df.select(
+            [pl.col(col).null_count().alias(col) for col in dataset.schema.names]
+        )
         for col_name in dataset.schema.names:
             count = int(null_counts.get_column(col_name)[0])
             column_missing_counts[col_name] = count

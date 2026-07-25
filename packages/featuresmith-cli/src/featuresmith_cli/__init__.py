@@ -1,2 +1,1 @@
 """Featuresmith CLI package."""
-

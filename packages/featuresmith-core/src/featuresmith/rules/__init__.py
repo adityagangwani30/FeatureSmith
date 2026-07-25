@@ -1,2 +1,1 @@
 """Rules package for Featuresmith."""
-

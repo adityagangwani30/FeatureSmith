@@ -25,10 +25,10 @@ def profile_datetime_column(dataset: Dataset, col_name: str) -> DatetimeProfile:
     if dataset.backend == "pandas":
         series = df[col_name]
         missing_count = int(series.isna().sum())
-        
+
         min_val = series.min()
         max_val = series.max()
-        
+
         # Check if min_val/max_val are null (NaT)
         if pd.isna(min_val) or pd.isna(max_val):
             return DatetimeProfile(
@@ -40,7 +40,7 @@ def profile_datetime_column(dataset: Dataset, col_name: str) -> DatetimeProfile:
                 earliest_record=None,
                 latest_record=None,
             )
-        
+
         # Handle conversion to standard datetime if they are Timestamp objects
         if hasattr(min_val, "to_pydatetime"):
             min_dt = min_val.to_pydatetime()

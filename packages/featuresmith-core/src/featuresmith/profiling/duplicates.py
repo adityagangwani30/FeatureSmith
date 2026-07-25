@@ -9,9 +9,7 @@ from featuresmith.core.profile_result import DuplicateSummary
 
 
 def analyze_duplicates(
-    dataset: Dataset,
-    constant_columns: list[str],
-    fully_empty_columns: list[str]
+    dataset: Dataset, constant_columns: list[str], fully_empty_columns: list[str]
 ) -> DuplicateSummary:
     """Analyze duplicate rows in the dataset.
 

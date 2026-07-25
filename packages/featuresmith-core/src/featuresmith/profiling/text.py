@@ -42,14 +42,14 @@ def profile_text_column(dataset: Dataset, col_name: str) -> TextProfile:
         avg_length = float(lengths.mean())
         min_length = int(lengths.min())
         max_length = int(lengths.max())
-        
+
         # Count empty strings in the entire series (including any null/nan that might be empty? No, exact matches to "")
         empty_strings = int((series == "").sum())
-        
+
         # Whitespace-only matches: one or more whitespace characters
         whitespace_only = int(non_null_series.str.match(r"^\s+$").sum())
         char_count = int(lengths.sum())
-        
+
         # Word counts: find all non-whitespace chunks and sum their counts
         word_count = int(non_null_series.str.findall(r"\S+").str.len().sum())
 
@@ -59,16 +59,21 @@ def profile_text_column(dataset: Dataset, col_name: str) -> TextProfile:
         non_null_col = col.drop_nulls().cast(pl.String)
 
         # Select all stats in one pass
-        res = df.select([
-            non_null_col.len().alias("count"),
-            non_null_col.str.len_chars().mean().alias("avg_len"),
-            non_null_col.str.len_chars().min().alias("min_len"),
-            non_null_col.str.len_chars().max().alias("max_len"),
-            (col == "").sum().alias("empty_strings"),
-            col.str.contains(r"^\s+$").sum().alias("whitespace_only"),
-            non_null_col.str.len_chars().sum().alias("char_count"),
-            non_null_col.str.extract_all(r"\S+").list.len().sum().alias("word_count"),
-        ])
+        res = df.select(
+            [
+                non_null_col.len().alias("count"),
+                non_null_col.str.len_chars().mean().alias("avg_len"),
+                non_null_col.str.len_chars().min().alias("min_len"),
+                non_null_col.str.len_chars().max().alias("max_len"),
+                (col == "").sum().alias("empty_strings"),
+                col.str.contains(r"^\s+$").sum().alias("whitespace_only"),
+                non_null_col.str.len_chars().sum().alias("char_count"),
+                non_null_col.str.extract_all(r"\S+")
+                .list.len()
+                .sum()
+                .alias("word_count"),
+            ]
+        )
 
         count = int(res.get_column("count")[0])
         empty_strings = int(res.get_column("empty_strings")[0] or 0)

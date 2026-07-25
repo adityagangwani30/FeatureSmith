@@ -45,10 +45,16 @@ def profile_categorical_column(dataset: Dataset, col_name: str) -> CategoricalPr
         non_null_df = df.select(pl.col(col_name).drop_nulls().cast(pl.String))
         if non_null_df.height > 0:
             # Group by and count
-            freq_df = non_null_df.group_by(col_name).len().sort(by=["len", col_name], descending=[True, False])
+            freq_df = (
+                non_null_df.group_by(col_name)
+                .len()
+                .sort(by=["len", col_name], descending=[True, False])
+            )
             categories = freq_df.get_column(col_name).to_list()
             counts = freq_df.get_column("len").to_list()
-            frequency_table = {str(k): int(v) for k, v in zip(categories, counts, strict=True)}
+            frequency_table = {
+                str(k): int(v) for k, v in zip(categories, counts, strict=True)
+            }
 
     cardinality = len(frequency_table)
     unique_count = cardinality
