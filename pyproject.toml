@@ -66,7 +66,11 @@ testpaths = ["tests"]
 addopts = "-ra"
 
 [tool.importlinter]
-root_package = "featuresmith"
+root_packages = [
+  "featuresmith",
+  "featuresmith_cli",
+  "featuresmith_dashboard",
+]
 
 [[tool.importlinter.contracts]]
 name = "Thin clients may only import featuresmith.api"
@@ -76,5 +80,6 @@ source_modules = [
   "featuresmith_dashboard",
 ]
 forbidden_modules = [
-  "featuresmith.**",
+  "featuresmith.core",
+  "featuresmith.profiling",
 ]

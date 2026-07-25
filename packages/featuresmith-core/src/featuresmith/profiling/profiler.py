@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import time
+from datetime import UTC, datetime
+
 import polars as pl
-from typing import Any
 
 from featuresmith.core.dataset import Dataset
 from featuresmith.core.profile_result import (
@@ -60,7 +60,7 @@ def profile_dataset(
     Returns:
         A strongly-typed ProfileResult containing structured summaries.
     """
-    start_time_iso = datetime.now(timezone.utc).isoformat()
+    start_time_iso = datetime.now(UTC).isoformat()
     start_perf = time.perf_counter()
 
     row_count = dataset.row_count

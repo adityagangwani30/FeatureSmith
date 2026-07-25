@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any
-import pandas as pd
+
 import polars as pl
 
 from featuresmith.core.dataset import Dataset
@@ -22,7 +21,6 @@ def profile_categorical_column(dataset: Dataset, col_name: str) -> CategoricalPr
         A CategoricalProfile object.
     """
     df = dataset.dataframe
-    row_count = dataset.row_count
 
     # Calculate missing count first
     if dataset.backend == "pandas":

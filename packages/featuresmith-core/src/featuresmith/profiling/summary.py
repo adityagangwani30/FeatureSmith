@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import pandas as pd
 import polars as pl
-from typing import Any
 
 from featuresmith.core.dataset import Dataset
-from featuresmith.core.profile_result import DatasetMetadata, DatasetSummary
+from featuresmith.core.profile_result import DatasetMetadata
 
 
 def classify_logical_type(dataset: Dataset, col_name: str) -> str:
@@ -20,7 +19,6 @@ def classify_logical_type(dataset: Dataset, col_name: str) -> str:
     Returns:
         One of "numeric", "categorical", "datetime", or "text".
     """
-    dtype_str = dataset.dtypes[col_name]
     df = dataset.dataframe
 
     # 1. Datetime detection

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import math
+
 import pandas as pd
 import polars as pl
+
 from featuresmith.core.dataset import Dataset
 from featuresmith.core.profile_result import CorrelationSummary
 

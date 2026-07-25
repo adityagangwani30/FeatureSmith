@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta
-import numpy as np
+from datetime import datetime
+
 import pandas as pd
 import polars as pl
 import pytest
 
 import featuresmith as fs
-from featuresmith.core.profile_result import ProfileResult
 from featuresmith.profiling import profile_dataset
 from featuresmith.profiling.summary import classify_logical_type
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def sample_pandas_df() -> pd.DataFrame:
     """Create a pandas DataFrame with mixed logical types."""
     return pd.DataFrame(
@@ -36,7 +35,7 @@ def sample_pandas_df() -> pd.DataFrame:
     )
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def sample_polars_df() -> pl.DataFrame:
     """Create a Polars DataFrame with mixed logical types."""
     return pl.DataFrame(
@@ -138,6 +137,8 @@ def test_datetime_profiling_parity(
     for res in (res_pd, res_pl):
         p = res.datetime_profiles["date_col"]
         assert p.missing_count == 1
+        assert p.minimum is not None
+        assert p.maximum is not None
         assert (
             p.minimum == "2026-01-01T00:00:00"
             or p.minimum == "2026-01-01T00:00:00Z"
@@ -222,7 +223,9 @@ def test_correlations() -> None:
     res = fs.profile(df)
     pearson = res.correlation_summary.pearson
 
+    assert pearson["a"]["b"] is not None
     assert math.isclose(pearson["a"]["b"], 1.0)
+    assert pearson["a"]["c"] is not None
     assert math.isclose(pearson["a"]["c"], -1.0)
     assert pearson["a"]["d"] is not None
 

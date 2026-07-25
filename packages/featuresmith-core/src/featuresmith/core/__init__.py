@@ -3,8 +3,8 @@
 from featuresmith.core.dataset import Dataset
 from featuresmith.core.exceptions import ConnectorError
 from featuresmith.core.profile_result import (
-    ColumnProfile,
     CategoricalProfile,
+    ColumnProfile,
     CorrelationSummary,
     DatasetMetadata,
     DatasetSummary,

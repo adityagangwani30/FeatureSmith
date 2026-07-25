@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+
 import pandas as pd
 import polars as pl
 
