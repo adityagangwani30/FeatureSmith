@@ -18,6 +18,27 @@ The CLI and dashboard are intentionally thin clients that depend only on the pub
 uv sync
 ```
 
+## Load a Dataset
+
+Sprint 2 provides the normalized dataset foundation. Load a local CSV, Excel,
+or Parquet file, or pass an in-memory pandas or Polars DataFrame directly:
+
+```python
+import featuresmith as fs
+
+dataset = fs.load("customers.csv")
+print(dataset.row_count)
+print(dataset.schema.names)
+print(dataset.preview())
+```
+
+Every supported source returns the same lightweight `Dataset` object. It
+exposes `dataframe`, `backend`, `schema`, `metadata`, `row_count`,
+`column_count`, `dtypes`, `source`, `file_size`, and `preview()`.
+
+No profiling, rules, AI, exports, dashboard behavior, or feature engineering
+is included in this loading API.
+
 ## Workspace Structure
 
 ```text
@@ -75,3 +96,5 @@ mypy .
 3. Run formatting, linting, type checking, and tests locally.
 4. Open a pull request.
 
+Before contributing, read [MEMORY.md](./MEMORY.md) and the project documents in
+[`docs/`](./docs/).

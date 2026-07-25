@@ -7,6 +7,11 @@ name = "featuresmith-core"
 version = "0.1.0"
 description = "Reusable core package for Featuresmith."
 requires-python = ">=3.11"
+dependencies = [
+  "openpyxl~=3.1",
+  "pandas~=2.2",
+  "polars~=1.30",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -14,4 +19,3 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["featuresmith*"]
-
