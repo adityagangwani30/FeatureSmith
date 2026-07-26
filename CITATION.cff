@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use Featuresmith in your research or projects, please cite it using this metadata."
+type: software
+title: "Featuresmith"
+abstract: >
+  Featuresmith is a deterministic feature engineering and data quality platform
+  for Python. It provides a unified SDK and CLI for loading tabular datasets,
+  profiling them, detecting quality issues, and building reliable preprocessing
+  workflows. Featuresmith is designed as a reusable engine — not a one-shot
+  report generator — with strong typing, an extensible rule engine, and an
+  AI-ready architecture.
+authors:
+  - family-names: "Gangwani"
+    given-names: "Aditya"
+    alias: "adityagangwani30"
+    orcid: ""
+repository-code: "https://github.com/adityagangwani30/FeatureSmith"
+url: "https://github.com/adityagangwani30/FeatureSmith"
+license: Apache-2.0
+version: "0.0.5-dev"
+date-released: "2026-07-26"
+keywords:
+  - feature-engineering
+  - data-quality
+  - eda
+  - exploratory-data-analysis
+  - machine-learning
+  - data-science
+  - profiling
+  - rule-engine
+  - python
+  - polars
+  - pandas
+  - cli

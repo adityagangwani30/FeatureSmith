@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-- Current Version: 0.0.4-dev
-- Current Phase: Phase 1 — SDK + CLI MVP
-- Current Sprint: Sprint 6 — SDK Hardening & Exporter Layer
+- Current Version: 0.0.5-dev
+- Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
+- Current Sprint: Sprint 6 — SDK Hardening & Exporter Layer (next)
 - Repository: `D:\FeatureSmith`
 - Last Updated: 2026-07-26
 
@@ -19,7 +19,8 @@
 | Sprint 3 — Deterministic Data Profiling Engine | Completed | 2026-07-25 |
 | Sprint 4 — Deterministic Rule Engine | Completed | 2026-07-25 |
 | Sprint 5 — CLI MVP | Completed | 2026-07-26 |
-| Sprint 6 — SDK Hardening & Exporter Layer | Current | — |
+| Release Readiness Sprint 1 (RR-1) — Repository Polish | Completed | 2026-07-26 |
+| Sprint 6 — SDK Hardening & Exporter Layer | Next | — |
 
 -------------------------------------------------
 
@@ -225,6 +226,30 @@
   - No interactive chat functionality is supported (deferred to Phase 3).
   - No configuration file resolution for rule threshold overrides (deferred to Sprint 6).
 
+### Release Readiness Sprint 1 (RR-1) — Repository Polish
+
+- Objective: Transform the repository into a professional GitHub project ready for its first public release. No product features implemented.
+- Major Deliverables:
+  - `README.md` — complete rewrite following FastAPI/Polars/Ruff quality bar: badges, Mermaid architecture diagram, SDK + CLI quickstart, rule engine table, project structure, design philosophy, roadmap table, quality tooling table, docs links, contributing guide.
+  - `LICENSE` — updated from MIT to Apache 2.0 per `PRD.md §15` (patent grant matters for enterprise adoption).
+  - `CONTRIBUTING.md` — full contributor guide: dev setup, coding standards, testing, extension points (rules/connectors/exporters/AI providers), PR guidelines, commit convention.
+  - `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1.
+  - `SECURITY.md` — responsible disclosure process, privacy design notes, scope definition.
+  - `CHANGELOG.md` — v0.1.0 upcoming release, full sprint history, upcoming release table.
+  - `CITATION.cff` — placeholder citation metadata for academic use.
+  - `CODEOWNERS` — assigns repository owner to all paths.
+  - `.github/ISSUE_TEMPLATE/bug_report.yml` — structured bug report template.
+  - `.github/ISSUE_TEMPLATE/feature_request.yml` — structured feature request template.
+  - `.github/ISSUE_TEMPLATE/question.yml` — structured question template.
+  - `.github/PULL_REQUEST_TEMPLATE.md` — professional PR template with checklists for general PRs, new rules, and new connectors.
+  - `docs/github_repository.md` — written recommendations for repository description, topics, social preview, labels, Discussions categories, branch protection, and community health.
+- Files Modified: `README.md`, `LICENSE`, `MEMORY.md`.
+- Files Added: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CHANGELOG.md`, `CITATION.cff`, `CODEOWNERS`, `.github/ISSUE_TEMPLATE/bug_report.yml`, `.github/ISSUE_TEMPLATE/feature_request.yml`, `.github/ISSUE_TEMPLATE/question.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/github_repository.md`.
+- Important Decisions:
+  - LICENSE updated from MIT to Apache 2.0 — this was already specified in `PRD.md §15` and the change was flagged and confirmed before execution.
+  - Version bumped to `0.0.5-dev` to reflect post-RR-1 state.
+- Known Limitations: None. This sprint contains no code changes.
+
 -------------------------------------------------
 
 ## Current Architecture Status
@@ -312,13 +337,28 @@ primitives.
   - Add JSON and CSV export helpers to the SDK.
   - Implement `.featuresmith.yml` configuration loading for rule thresholds.
   - Extend SDK sampling strategy for very large datasets.
-- Dependencies: Sprint 5 `featuresmith analyze` CLI; `RuleResult.to_dict()`.
+- Dependencies: Sprint 5 `featuresmith analyze` CLI; `RuleResult.to_dict()`; RR-1 repository polish.
 - Expected Deliverables: `fs.export_json()`, `fs.export_csv()`; YAML config loader;
   size-tiered profiling strategy.
 
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-07-26 — Release Readiness Sprint 1 (RR-1)
+
+- Rewrote `README.md` from scratch: badges, Mermaid diagram, SDK/CLI quickstart, rule engine table, roadmap table, design philosophy, quality tooling table, contributing section.
+- Updated `LICENSE` from MIT to Apache 2.0 per `PRD.md §15`.
+- Added `CONTRIBUTING.md` with full dev setup, coding standards, testing, extension points, and PR guidelines.
+- Added `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
+- Added `SECURITY.md` with responsible disclosure process and privacy design notes.
+- Added `CHANGELOG.md` with v0.1.0 upcoming release and full sprint history.
+- Added `CITATION.cff` with placeholder citation metadata.
+- Added `CODEOWNERS` assigning all paths to repository owner.
+- Added `.github/ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml`, `question.yml`.
+- Added `.github/PULL_REQUEST_TEMPLATE.md`.
+- Added `docs/github_repository.md` with GitHub repository setup recommendations.
+- Version bumped to `0.0.5-dev`.
 
 ### 2026-07-26 — Sprint 5 (CLI MVP)
 

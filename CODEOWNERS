@@ -1,0 +1,27 @@
+# Code Owners — Featuresmith
+#
+# Each line maps a path pattern to one or more GitHub usernames.
+# Code owners are automatically requested for review on PRs that touch
+# their owned files. See:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner — all files
+*                                   @adityagangwani30
+
+# Core library (two-approval requirement per Rules.md §6)
+packages/featuresmith-core/         @adityagangwani30
+
+# Public API surface (most critical — changes ripple to all surfaces)
+packages/featuresmith-core/src/featuresmith/api.py    @adityagangwani30
+packages/featuresmith-core/src/featuresmith/core/     @adityagangwani30
+
+# CLI surface
+packages/featuresmith-cli/          @adityagangwani30
+
+# Documentation
+docs/                               @adityagangwani30
+*.md                                @adityagangwani30
+
+# CI / tooling
+.github/                            @adityagangwani30
+pyproject.toml                      @adityagangwani30

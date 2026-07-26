@@ -1,0 +1,47 @@
+name: "❓ Question"
+description: "Ask a question about usage, architecture, or roadmap."
+title: "question: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, please check:
+        - [README.md](../../README.md) — Quick Start and CLI Usage
+        - [docs/Architecture.md](../../docs/Architecture.md) — System design
+        - [docs/Rules.md](../../docs/Rules.md) — Coding standards and extension points
+        - [docs/Phases.md](../../docs/Phases.md) — Roadmap and planned features
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: "I have checked the documentation"
+      options:
+        - label: "I have read the README and relevant docs and could not find an answer."
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Question category"
+      options:
+        - "Usage — how do I use feature X?"
+        - "Architecture — how does X work internally?"
+        - "Roadmap — when will X be available?"
+        - "Contributing — how do I contribute X?"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: "Your question"
+      description: "Please be as specific as possible. Include code if relevant."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "What have you already tried?"

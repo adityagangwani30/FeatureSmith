@@ -1,0 +1,74 @@
+name: "✨ Feature Request"
+description: "Suggest a new rule, connector, exporter, or other capability."
+title: "feat: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Before submitting, please read the [project roadmap](../../docs/Phases.md) to check if this is already planned.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: "Prerequisites"
+      options:
+        - label: "I searched existing issues and this is not a duplicate."
+          required: true
+        - label: "I have read the roadmap in `docs/Phases.md`."
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "What category does this feature fall under?"
+      options:
+        - "New Rule (quality/leakage/statistical check)"
+        - "New Connector (data source)"
+        - "New Exporter (output target)"
+        - "CLI improvement"
+        - "SDK improvement"
+        - "AI layer (Phase 2+)"
+        - "Dashboard (Phase 5+)"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "What problem does this solve?"
+      description: "Describe the pain point this feature addresses. Be specific."
+      placeholder: "When analyzing a dataset with time-series columns, there is no rule that detects temporal leakage..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "Proposed solution"
+      description: "Describe what you'd like Featuresmith to do. Include example API/CLI usage if possible."
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives considered"
+      description: "Have you considered other approaches? Why are they not sufficient?"
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: "Would you like to contribute this feature?"
+      options:
+        - label: "Yes, I'm interested in implementing this and opening a PR."
+        - label: "I can help with testing/review but not implementation."
+        - label: "I'm just suggesting it for the core team."
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional context"
+      description: "Links, papers, or examples that inform this request."
