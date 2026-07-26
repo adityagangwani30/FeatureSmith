@@ -20,6 +20,9 @@
 | Sprint 4 — Deterministic Rule Engine | Completed | 2026-07-25 |
 | Sprint 5 — CLI MVP | Completed | 2026-07-26 |
 | Release Readiness Sprint 1 (RR-1) — Repository Polish | Completed | 2026-07-26 |
+| Release Readiness Sprint 2 (RR-2) — Documentation Website | Completed | 2026-07-26 |
+| Release Readiness Sprint 3 (RR-3) — Examples & Tutorials | Completed | 2026-07-26 |
+| Release Readiness Sprint 4 (RR-4) — Testing & Benchmarks | Completed | 2026-07-26 |
 | Sprint 6 — SDK Hardening & Exporter Layer | Next | — |
 
 -------------------------------------------------
@@ -202,6 +205,40 @@
   - No rule configuration persistence (e.g. `.featuresmith.yml` loading) yet —
     rule configs are passed directly at call time.
 
+### Release Readiness Sprint 3 (RR-3) — Examples & Tutorials
+
+- Objective: Produce standard examples and tutorial materials demonstrating the full SDK & CLI workflows across common industry patterns.
+- Major Deliverables:
+  - Dataset ingestion and cleanup utilities (`examples/download_datasets.py` and `examples/prepare_datasets.py`) storing processed records in `examples/data/processed/` using high-availability GitHub mirror fallbacks to bypass OpenML time-outs.
+  - Complete SDK runner scripts and descriptive markdown guides under `examples/` (`iris/`, `titanic/`, `california_housing/`, `customer_churn/`, `sales/`).
+  - Four educational Jupyter notebooks (`01_getting_started.ipynb`, `02_exploring_datasets.ipynb`, `03_understanding_rule_findings.ipynb`, `04_data_science_workflows.ipynb`) under `examples/notebooks/`.
+- Files Added: Download and preparation scripts, example runner scripts, dataset READMEs, and Jupyter notebooks under `examples/`.
+- Files Modified: None.
+- Important Decisions:
+  - Use real-world datasets where possible (Iris via scikit-learn, California Housing via scikit-learn, Titanic and Churn via OpenML with mirrors).
+  - Use a simulated transaction log for Sales to model dates and constant column rules without committing multi-megabyte CSVs.
+- Lessons Learned:
+  - Public OpenML services frequently experience gateway timeouts; implementing automatic raw file HTTP fallbacks ensures reproducible examples setup.
+- Known Limitations:
+  - Notebooks are static documents and require the developer to download datasets prior to execution.
+
+### Release Readiness Sprint 4 (RR-4) — Testing, Benchmarks & Performance
+
+- Objective: Implement automated stress tests, integration checks, and a benchmark framework to measure time complexity and peak memory scaling.
+- Major Deliverables:
+  - Benchmark utility `benchmarks/run_benchmarks.py` and final report `docs/benchmarks.md` containing measured speeds and memory profiles across 10K, 100K, and 500K rows.
+  - Stress testing suite `tests/test_stress.py` checking wide datasets (500 columns), tall datasets (100K rows), empty headers, single columns, and backend dataframes.
+  - Integration suite `tests/test_integration.py` verifying SDK/CLI parity, JSON serialization, and error conditions.
+- Files Added: `benchmarks/run_benchmarks.py`, `docs/benchmarks.md`, `tests/test_stress.py`, `tests/test_integration.py`.
+- Files Modified: `frontend/lib/constants.ts` and `frontend/app/docs/[...slug]/page.tsx` (integrated benchmarks/custom rules docs into frontend site).
+- Important Decisions:
+  - Track peak memory allocations using python standard library's `tracemalloc` to keep the dependency footprint cross-platform and light.
+  - Specify CLI `--severity warning` in parity tests to bypass default critical-level gating.
+- Lessons Learned:
+  - Click's standard `CliRunner` fails to inspect Typer modules directly; utilizing `typer.testing.CliRunner` correctly resolves the CLI command wrappers.
+- Known Limitations:
+  - Benchmarks do not cover non-local connectors.
+
 ### Sprint 5 — CLI MVP
 
 - Objective: Build a production-grade CLI wrapper (`featuresmith-cli`) over the existing Featuresmith SDK, following the core-first architecture.
@@ -249,6 +286,21 @@
   - LICENSE updated from MIT to Apache 2.0 — this was already specified in `PRD.md §15` and the change was flagged and confirmed before execution.
   - Version bumped to `0.0.5-dev` to reflect post-RR-1 state.
 - Known Limitations: None. This sprint contains no code changes.
+
+### Release Readiness Sprint 2 (RR-2) — Documentation Website
+
+- Objective: Build the official Featuresmith documentation website and landing page using Next.js, replacing placeholders with repository-driven content.
+- Major Deliverables:
+  - catch-all dynamic docs routing (`frontend/app/docs/[...slug]/page.tsx`) mapping all concepts (Dataset, Profiling, Rules), SDK APIs, and CLI flag settings.
+  - Interactive Examples showcase gallery (`frontend/app/examples/page.tsx`) detailing CI/CD pipeline gating and custom validation rule creation.
+  - Landing page featuring technical attribute highlights, Core-first philosophy, open-source references, and Apache 2.0 license tags.
+  - Sidebar routing systems and option descriptors mapping in `frontend/lib/constants.ts`.
+- Files Added: `frontend/app/docs/[...slug]/page.tsx`, `frontend/app/examples/page.tsx`.
+- Files Modified: `frontend/lib/constants.ts`, `frontend/features/home/hero.tsx`, `frontend/features/home/philosophy-section.tsx`, `frontend/features/home/open-source-section.tsx`, `frontend/components/navbar.tsx`, `frontend/components/footer.tsx`.
+- Important Decisions:
+  - Implement catch-all route mapping in Next.js to dynamically serve structured documentation without heavy page boilerplate.
+  - Add a styled "Under Construction" fallback page in the docs layout for planned features (e.g. plugins, exporters) to provide a premium user experience and clear expectations.
+- Known Limitations: None.
 
 -------------------------------------------------
 
@@ -344,6 +396,28 @@ primitives.
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-07-26 — Release Readiness Sprint 4 (RR-4)
+
+- Added benchmark framework under `benchmarks/run_benchmarks.py` using stdlib `tracemalloc` to track peak memory cross-platform.
+- Executed benchmarks for 10K, 100K, and 500K rows, compiling results inside `docs/benchmarks.md`.
+- Added stress test suite under `tests/test_stress.py` covering wide datasets (500 columns), tall datasets (100K rows), empty headers, single-column data, and pandas/Polars parity.
+- Added integration test suite under `tests/test_integration.py` checking CLI/SDK parity, JSON serialization, and ConnectorError handling.
+- Integrated performance benchmarks table and custom rules guides dynamically into Next.js frontend website.
+
+### 2026-07-26 — Release Readiness Sprint 3 (RR-3)
+
+- Added dataset downloader (`examples/download_datasets.py`) fetching Iris, California Housing, Titanic, and Customer Churn datasets with high-availability GitHub mirror fallbacks for resilience.
+- Added dataset preparer (`examples/prepare_datasets.py`) normalizing raw files, generating synthetic sales logs, and saving cleaned CSVs to `examples/data/processed/`.
+- Created SDK runner examples (`run_sdk.py`) and detailed readme documentation for all 5 example datasets (`iris`, `titanic`, `california_housing`, `customer_churn`, `sales`).
+- Created 4 Jupyter tutorial notebooks under `examples/notebooks/` illustrating getting started, profiling, rule configurations, and target leakage gating.
+
+### 2026-07-26 — Release Readiness Sprint 2 (RR-2)
+
+- Built official Featuresmith dynamic documentation website (`frontend/app/docs/[...slug]/page.tsx`) mapping all concepts (Dataset, Profiling, Rules), SDK APIs, and CLI flag settings.
+- Built interactive Examples gallery (`frontend/app/examples/page.tsx`) detailing automated CI/CD pipeline gating and custom validation rule creation.
+- Rewrote `constants.ts`, `hero.tsx`, `navbar.tsx`, and `footer.tsx` to display true repository-driven features and Apache 2.0 license indicators.
+- Verified Next.js compiler correctness (`pnpm run build`).
 
 ### 2026-07-26 — Release Readiness Sprint 1 (RR-1)
 

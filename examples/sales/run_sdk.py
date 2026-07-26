@@ -1,0 +1,32 @@
+import os
+
+import featuresmith as fs
+
+
+def main():
+    dataset_path = os.path.join("examples", "data", "processed", "sales.csv")
+    print(f"Analyzing Sales dataset: {dataset_path}")
+
+    # Load dataset
+    dataset = fs.load(dataset_path)
+    print(f"Row count: {dataset.row_count}")
+    print(f"Schema columns: {dataset.schema.names}")
+
+    # Run analysis
+    result = fs.analyze(dataset)
+    print(f"\nRule evaluation complete. Total findings: {len(result.findings)}")
+    for finding in result.findings:
+        print(
+            f"[{finding.severity.upper()}] Column: {finding.column_name} - Rule: {finding.rule_id}"
+        )
+        print(f"  Title: {finding.title}")
+        print(f"  Detail: {finding.description}")
+
+    # Print execution metadata
+    print(f"\nExecuted rules: {len(result.executed_rules)}")
+    print(f"Failed rules: {len(result.failed_rules)}")
+    print(f"Execution time: {result.execution_time_ms:.2f} ms")
+
+
+if __name__ == "__main__":
+    main()
