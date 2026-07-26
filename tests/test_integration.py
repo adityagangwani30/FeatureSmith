@@ -14,7 +14,7 @@ from featuresmith_cli.main import app
 def test_integration_sdk_cli_parity() -> None:
     """Verify that SDK analyze result matches CLI --format json output exactly."""
     runner = CliRunner()
-    dataset_path = os.path.join("examples", "data", "processed", "iris.csv")
+    dataset_path = os.path.join("tests", "fixtures", "processed", "iris.csv")
 
     # Load and run via SDK
     dataset = fs.load(dataset_path)
@@ -44,7 +44,7 @@ def test_integration_sdk_cli_parity() -> None:
 
 def test_integration_serialization_roundtrip() -> None:
     """Verify that dataclass serializes cleanly to JSON and remains valid."""
-    dataset_path = os.path.join("examples", "data", "processed", "sales.csv")
+    dataset_path = os.path.join("tests", "fixtures", "processed", "sales.csv")
     dataset = fs.load(dataset_path)
     result = fs.analyze(dataset)
 
@@ -70,7 +70,7 @@ def test_integration_serialization_roundtrip() -> None:
 def test_integration_missing_file_connector_error() -> None:
     """Verify that loading a non-existent file raises a clear ConnectorError."""
     with pytest.raises(ConnectorError) as exc_info:
-        fs.load("examples/data/processed/non_existent_file.csv")
+        fs.load("tests/fixtures/processed/non_existent_file.csv")
 
     assert "does not exist" in str(exc_info.value)
 
@@ -78,7 +78,7 @@ def test_integration_missing_file_connector_error() -> None:
 def test_integration_invalid_target_column_cli_gating() -> None:
     """Verify that running CLI with an invalid target column exits with code 2."""
     runner = CliRunner()
-    dataset_path = os.path.join("examples", "data", "processed", "iris.csv")
+    dataset_path = os.path.join("tests", "fixtures", "processed", "iris.csv")
 
     result = runner.invoke(
         app, ["analyze", dataset_path, "--target", "non_existent_column"]

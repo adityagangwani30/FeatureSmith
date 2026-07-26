@@ -6,10 +6,8 @@ Featuresmith is currently in active development (Phase 1). Security fixes are ap
 
 | Version | Supported |
 |---------|-----------|
-| `0.0.x-dev` (current) | ✅ Active development |
+| `0.1.0` (current) | ✅ Supported |
 | Earlier versions | ❌ Not maintained |
-
-Once v0.1.0 is released, this table will be updated with the full supported version matrix.
 
 ---
 

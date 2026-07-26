@@ -14,13 +14,14 @@ class DuplicateRowsRule(BaseRule):
         """Initialize the duplicate rows rule.
 
         Args:
-            threshold: Duplicate rows percentage threshold (0 to 100).
-                If a value <= 1.0 is passed, it is treated as a ratio and converted to percentage.
+            threshold: Duplicate rows percentage threshold (0.0 to 100.0).
+
+        Raises:
+            ValueError: If threshold is not between 0.0 and 100.0.
         """
-        if 0.0 < threshold <= 1.0:
-            self.threshold = threshold * 100.0
-        else:
-            self.threshold = threshold
+        if not (0.0 <= threshold <= 100.0):
+            raise ValueError("threshold must be a percentage between 0.0 and 100.0.")
+        self.threshold = threshold
 
     @property
     def id(self) -> str:

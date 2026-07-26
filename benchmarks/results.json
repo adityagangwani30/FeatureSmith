@@ -8,55 +8,55 @@
   "benchmarks": {
     "10000": {
       "load": {
-        "time_ms": 698.3,
+        "time_ms": 13.21,
         "memory_mb": 0.01
       },
       "profile": {
-        "time_ms": 2844.8,
-        "memory_mb": 1.22
+        "time_ms": 78.42,
+        "memory_mb": 1.2
       },
       "rules": {
-        "time_ms": 2.51,
+        "time_ms": 0.71,
         "memory_mb": 0.01
       },
       "analyze_e2e": {
-        "time_ms": 416.85,
+        "time_ms": 56.78,
         "memory_mb": 1.2
       }
     },
     "100000": {
       "load": {
-        "time_ms": 231.23,
+        "time_ms": 147.03,
         "memory_mb": 0.01
       },
       "profile": {
-        "time_ms": 2487.63,
+        "time_ms": 562.74,
         "memory_mb": 11.82
       },
       "rules": {
-        "time_ms": 4.36,
+        "time_ms": 0.73,
         "memory_mb": 0.01
       },
       "analyze_e2e": {
-        "time_ms": 2273.64,
+        "time_ms": 514.64,
         "memory_mb": 11.82
       }
     },
     "500000": {
       "load": {
-        "time_ms": 777.78,
+        "time_ms": 499.74,
         "memory_mb": 0.01
       },
       "profile": {
-        "time_ms": 11597.85,
+        "time_ms": 3667.91,
         "memory_mb": 62.01
       },
       "rules": {
-        "time_ms": 8.07,
+        "time_ms": 12.57,
         "memory_mb": 0.01
       },
       "analyze_e2e": {
-        "time_ms": 10806.48,
+        "time_ms": 2331.68,
         "memory_mb": 62.01
       }
     }

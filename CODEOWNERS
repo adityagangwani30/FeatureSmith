@@ -8,7 +8,7 @@
 # Default owner — all files
 *                                   @adityagangwani30
 
-# Core library (two-approval requirement per Rules.md §6)
+# Core library (review required; planned for two approvals once team expands)
 packages/featuresmith-core/         @adityagangwani30
 
 # Public API surface (most critical — changes ripple to all surfaces)

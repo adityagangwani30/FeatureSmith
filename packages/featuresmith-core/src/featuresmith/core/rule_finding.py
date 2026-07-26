@@ -1,8 +1,7 @@
 """Serializable model representing a single rule engine finding."""
 
-from __future__ import annotations
-
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -32,7 +31,14 @@ class RuleFinding:
     column_name: str | None
     title: str
     description: str
-    evidence: dict[str, Any]
+    evidence: Mapping[str, Any]
     confidence: float = 1.0
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        object.__setattr__(self, "evidence", MappingProxyType(dict(self.evidence)))
+        object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))

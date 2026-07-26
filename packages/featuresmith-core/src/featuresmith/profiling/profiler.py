@@ -49,7 +49,9 @@ def _get_missing_count(dataset: Dataset, col_name: str) -> int:
 
 
 def profile_dataset(
-    dataset: Dataset, max_correlation_columns: int = 100
+    dataset: Dataset,
+    max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
 ) -> ProfileResult:
     """Orchestrate deterministic profiling of a dataset.
 
@@ -106,7 +108,9 @@ def profile_dataset(
             is_fully_empty = num_prof.count == 0
 
         elif logical_type == "categorical":
-            cat_prof = profile_categorical_column(dataset, col_name)
+            cat_prof = profile_categorical_column(
+                dataset, col_name, max_frequency_table_size=max_frequency_table_size
+            )
             categorical_profiles[col_name] = cat_prof
 
             missing_count = cat_prof.missing_count

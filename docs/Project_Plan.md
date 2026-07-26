@@ -104,8 +104,8 @@ Full detail, acceptance criteria, and suggested GitHub issues per phase in `Phas
 |---|---|---|
 | Core language | Python 3.11+ | Ecosystem fit for ML audience; non-negotiable for adoption |
 | DataFrame engine | **Polars (primary), Pandas (compat shim only)** | Polars' lazy execution and multi-threaded performance matter directly for the "size-tiered scalability" requirement in `Architecture.md` §17; pandas is kept only as an interop layer since much of the ecosystem (sklearn, some connectors) still expects it |
-| Large-data query engine | **DuckDB** | Zero-infra SQL/analytical engine, exceptional for out-of-core aggregation and works beautifully as a pushdown layer for the SQL/warehouse connectors |
-| Columnar interchange | **Apache Arrow** | Zero-copy interop between Polars, DuckDB, and Parquet — avoids redundant serialization at every layer boundary |
+| Large-data query engine | **DuckDB** (Planned for Phase 8) | Zero-infra SQL/analytical engine, exceptional for out-of-core aggregation and works beautifully as a pushdown layer for the SQL/warehouse connectors |
+| Columnar interchange | **Apache Arrow** | Zero-copy interop between Polars, DuckDB (planned), and Parquet — avoids redundant serialization at every layer boundary |
 | Monorepo/workspace tooling | **uv workspaces** | Manages `featuresmith-core`, `featuresmith-cli`, `featuresmith-dashboard` as independently versioned packages sharing one lockfile-driven dev environment — directly supports the hard package-boundary requirement in `Architecture.md` §4 |
 | API layer (future hosted tier) | **FastAPI** | Type-hint-driven, async-native, pairs naturally with Pydantic schemas already used internally; becomes just another thin surface over `featuresmith.api` |
 | Dashboard (v1) | **Streamlit**, not Next.js | Fastest path to a Python-native, plugin-author-friendly interactive UI during early, fast-iterating phases (`Architecture.md` §14); a Next.js rewrite is explicitly deferred, not rejected — revisit once the product surface stabilizes (Phase 6+) |

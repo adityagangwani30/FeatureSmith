@@ -110,12 +110,14 @@ def render_rich_report(
         findings_displayed += 1
 
         # Severity Column Styling
-        if finding.severity == "critical":
-            sev_str = "[bold red]CRITICAL[/]"
-        elif finding.severity == "warning":
-            sev_str = "[bold yellow]WARNING[/]"
-        else:
-            sev_str = "[bold blue]INFO[/]"
+        severity_styles = {
+            "critical": "[bold red]CRITICAL[/]",
+            "warning": "[bold yellow]WARNING[/]",
+            "info": "[bold blue]INFO[/]",
+        }
+        sev_str = severity_styles.get(
+            finding.severity, f"[bold blue]{finding.severity.upper()}[/]"
+        )
 
         col_name = finding.column_name if finding.column_name else "[dim]Dataset[/]"
 

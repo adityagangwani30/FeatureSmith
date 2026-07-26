@@ -20,26 +20,26 @@ The following table summarizes the actual measured times and peak memory allocat
 
 | Dataset Scale (Rows) | Stage | Execution Time (ms) | Peak Memory Allocated (MB) |
 |---|---|---|---|
-| **10,000** | `fs.load()` | 698.30 | < 0.01 |
-| | `fs.profile()` | 2,844.80 | 1.22 |
-| | Rule Engine | 2.51 | < 0.01 |
-| | **End-to-End `fs.analyze()`** | **416.85** | **1.20** |
-| **100,000** | `fs.load()` | 231.23 | < 0.01 |
-| | `fs.profile()` | 2,487.63 | 11.82 |
-| | Rule Engine | 4.36 | < 0.01 |
-| | **End-to-End `fs.analyze()`** | **2,273.64** | **11.82** |
-| **500,000** | `fs.load()` | 777.78 | < 0.01 |
-| | `fs.profile()` | 11,597.85 | 62.01 |
-| | Rule Engine | 8.07 | < 0.01 |
-| | **End-to-End `fs.analyze()`** | **10,806.48** | **62.01** |
+| **10,000** | `fs.load()` | 13.21 | < 0.01 |
+| | `fs.profile()` | 78.42 | 1.20 |
+| | Rule Engine | 0.71 | < 0.01 |
+| | **End-to-End `fs.analyze()`** | **56.78** | **1.20** |
+| **100,000** | `fs.load()` | 147.03 | < 0.01 |
+| | `fs.profile()` | 562.74 | 11.82 |
+| | Rule Engine | 0.73 | < 0.01 |
+| | **End-to-End `fs.analyze()`** | **514.64** | **11.82** |
+| **500,000** | `fs.load()` | 499.74 | < 0.01 |
+| | `fs.profile()` | 3,667.91 | 62.01 |
+| | Rule Engine | 12.57 | < 0.01 |
+| | **End-to-End `fs.analyze()`** | **2,331.68** | **62.01** |
 
-*Note: Peak Memory tracks heap allocations made during the specific function call. Since `fs.load()` returns a lazy descriptor wrapping Polars or an in-memory view, its memory overhead is minimal (under 0.01 MB). Memory spikes occur during the profiling computations, which allocate arrays for statistics, correlations, and frequency distributions.*
+*Note on Memory Measurement (Caveat)*: Peak memory tracking leverages Python's built-in `tracemalloc` module. Because `tracemalloc` only captures heap allocations made within the Python runtime domain, native memory buffers allocated directly inside Polars' Rust-based query engine or pandas/NumPy C/C++ libraries are not fully accounted for here. Real resident set size (RSS) memory consumption on the host OS will be higher.
 
 ## Interpretation
-- **Linear Complexity**: The Profiling Engine's execution time and memory peak scale linearly with row count:
-  - 10K rows: ~2.8s, 1.2 MB
-  - 100K rows: ~2.5s, 11.8 MB
-  - 500K rows: ~11.5s, 62.0 MB
+- **Linear Complexity**: Isolating JIT warm-up noise demonstrates that the profiling engine's execution time and peak memory footprint scale near-linearly with the dataset row count:
+  - 10K rows: ~78ms, 1.20 MB
+  - 100K rows: ~562ms, 11.82 MB
+  - 500K rows: ~3.67s, 62.01 MB
 - **Rule Engine Efficiency**: Rule audits run extremely fast (under 10ms even on 500K rows) because they evaluate statistics that are already computed and loaded in the `ProfileResult` dataclass, avoiding any repeated data passes.
 - **Minimal Memory Overhead**: Peak memory allocation remains highly constrained (only 62 MB for half a million rows), proving the efficiency of Polars' column-oriented execution.
 

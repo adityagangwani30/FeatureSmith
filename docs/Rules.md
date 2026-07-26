@@ -17,7 +17,7 @@ Every contributor, including AI coding assistants, must follow this document. Wh
 - Every `Base*` interface subclass is named `<Thing><Category>`, e.g. `CsvConnector`, `LeakageRuleTargetCorrelation`, `OpenAIProvider` — no ambiguous names like `Helper` or `Utils2`.
 - Rule IDs are stable, namespaced strings (`quality.missingness.high_null_ratio`), never renamed once released — treat them like a public API.
 - AI provider IDs follow the same rule: `ollama`, `openai`, `anthropic` are stable config values (`ai.provider: <id>`) — never renamed once released.
-- Package names follow the pattern `featuresmith-<surface>` for anything outside core (`featuresmith-cli`, `featuresmith-dashboard`, `featuresmith-vscode`); the core library is published simply as `featuresmith`.
+- Package names follow the pattern `featuresmith-<surface>` for anything outside core (`featuresmith-cli`, `featuresmith-dashboard`, `featuresmith-vscode`); the core library is published as `featuresmith-core` (and imported as `featuresmith`).
 
 ## 3. Folder Rules
 
@@ -68,7 +68,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 
 ## 9. Versioning Strategy
 
-- Semantic Versioning (`MAJOR.MINOR.PATCH`), applied **independently per package** (`featuresmith`, `featuresmith-cli`, `featuresmith-dashboard`) — a CLI patch release must not force a core version bump and vice versa, though `featuresmith-cli`/`featuresmith-dashboard` always declare a minimum compatible `featuresmith-core` version.
+- Semantic Versioning (`MAJOR.MINOR.PATCH`), applied **independently per package** (`featuresmith-core`, `featuresmith-cli`, `featuresmith-dashboard`) — a CLI patch release must not force a core version bump and vice versa, though `featuresmith-cli`/`featuresmith-dashboard` always declare a minimum compatible `featuresmith-core` version.
 - `Base*`/`AIProvider` interface changes are MINOR at most pre-1.0, MAJOR post-1.0.
 - Rule IDs, AI provider IDs, config schema keys, and CLI command names are part of the public API surface — changing them requires a deprecation cycle (warn for one MINOR release before removal).
 
@@ -82,7 +82,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 ## 11. Dependency Rules
 
 - New third-party dependencies require an **Architecture Decision Record** (ADR) in `docs/adr/`, even a short one — justify why, alternatives considered, and whether it's core or optional (`extras`).
-- Heavy/optional deps (Featuretools, cloud SDKs, specific DB drivers, individual AI provider SDKs like `openai`/`anthropic`) go under `pyproject.toml` extras (`pip install featuresmith[openai]`, `pip install featuresmith[sql]`), never core dependencies. `featuresmith` with no extras must remain installable and fully functional (via Ollama + local rules) with zero cloud SDK dependencies.
+- Heavy/optional deps (Featuretools, cloud SDKs, specific DB drivers, individual AI provider SDKs like `openai`/`anthropic`) go under `pyproject.toml` extras (`pip install featuresmith-core[openai]`, `pip install featuresmith-core[sql]`), never core dependencies. `featuresmith-core` with no extras must remain installable and fully functional (via Ollama + local rules) with zero cloud SDK dependencies.
 - Pin direct dependencies with compatible-release specifiers (`~=`); avoid unpinned ranges that can silently break CI.
 
 ## 12. Performance Rules

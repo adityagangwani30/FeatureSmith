@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 import typer
 
 import featuresmith.api as fs
-from featuresmith.api import ConnectorError
+from featuresmith.api import ConnectorError, SourceNotFoundError, SourceParseError
 from featuresmith_cli.output import handle_output
 from featuresmith_cli.utils import SEVERITY_LEVELS, get_version_info
 
@@ -92,13 +92,7 @@ def analyze_command(
             dataset = fs.load(source)
         except ConnectorError as error:
             err_msg = str(error)
-            # Distinguish file-level/parsing failures vs invalid inputs
-            is_loading_fail = (
-                "does not exist" in err_msg
-                or "is not a file" in err_msg
-                or "Could not read" in err_msg
-            )
-            if is_loading_fail:
+            if isinstance(error, (SourceNotFoundError, SourceParseError)):
                 if not quiet:
                     sys.stderr.write(f"Error: {err_msg}\n")
                 raise typer.Exit(code=3) from error

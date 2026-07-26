@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -124,7 +125,7 @@ class CategoricalProfile:
         cardinality: Number of unique non-missing categories.
         unique_count: Number of unique non-missing values.
         missing_count: Total missing count.
-        frequency_table: Mapping of value string representation to count.
+        frequency_table: Mapping of value string representation to count (capped to a maximum size, default 1000).
         top_values: List of (value, count) pairs for top frequent items.
         least_frequent_values: List of (value, count) pairs for least frequent items.
         most_common_category: Name of the most frequent category.
@@ -135,11 +136,23 @@ class CategoricalProfile:
     cardinality: int
     unique_count: int
     missing_count: int
-    frequency_table: dict[str, int]
-    top_values: list[tuple[str, int]]
-    least_frequent_values: list[tuple[str, int]]
+    frequency_table: Mapping[str, int]
+    top_values: Sequence[tuple[str, int]]
+    least_frequent_values: Sequence[tuple[str, int]]
     most_common_category: str | None
     entropy: float | None
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        object.__setattr__(
+            self, "frequency_table", MappingProxyType(dict(self.frequency_table))
+        )
+        object.__setattr__(self, "top_values", tuple(self.top_values))
+        object.__setattr__(
+            self, "least_frequent_values", tuple(self.least_frequent_values)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,10 +214,25 @@ class MissingValueSummary:
         dataset_missing_percentage: Overall dataset-wide missing cell percentage.
     """
 
-    column_missing_counts: dict[str, int]
-    column_missing_percentages: dict[str, float]
+    column_missing_counts: Mapping[str, int]
+    column_missing_percentages: Mapping[str, float]
     total_missing: int
     dataset_missing_percentage: float
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        object.__setattr__(
+            self,
+            "column_missing_counts",
+            MappingProxyType(dict(self.column_missing_counts)),
+        )
+        object.__setattr__(
+            self,
+            "column_missing_percentages",
+            MappingProxyType(dict(self.column_missing_percentages)),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,8 +248,13 @@ class DuplicateSummary:
 
     duplicate_rows_count: int
     duplicate_percentage: float
-    constant_columns: list[str]
-    fully_empty_columns: list[str]
+    constant_columns: Sequence[str]
+    fully_empty_columns: Sequence[str]
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        object.__setattr__(self, "constant_columns", tuple(self.constant_columns))
+        object.__setattr__(self, "fully_empty_columns", tuple(self.fully_empty_columns))
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,9 +267,24 @@ class CorrelationSummary:
         kendall: Reserved for Kendall correlations.
     """
 
-    pearson: dict[str, dict[str, float | None]]
-    spearman: dict[str, dict[str, float | None]] = field(default_factory=dict)
-    kendall: dict[str, dict[str, float | None]] = field(default_factory=dict)
+    pearson: Mapping[str, Mapping[str, float | None]]
+    spearman: Mapping[str, Mapping[str, float | None]] = field(default_factory=dict)
+    kendall: Mapping[str, Mapping[str, float | None]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        pearson_frozen = {k: MappingProxyType(dict(v)) for k, v in self.pearson.items()}
+        object.__setattr__(self, "pearson", MappingProxyType(pearson_frozen))
+
+        spearman_frozen = {
+            k: MappingProxyType(dict(v)) for k, v in self.spearman.items()
+        }
+        object.__setattr__(self, "spearman", MappingProxyType(spearman_frozen))
+
+        kendall_frozen = {k: MappingProxyType(dict(v)) for k, v in self.kendall.items()}
+        object.__setattr__(self, "kendall", MappingProxyType(kendall_frozen))
 
 
 @dataclass(frozen=True, slots=True)
@@ -253,7 +301,15 @@ class DatasetMetadata:
     source: str | None
     file_size: int | None
     backend: str
-    custom_metadata: dict[str, Any] = field(default_factory=dict)
+    custom_metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        object.__setattr__(
+            self, "custom_metadata", MappingProxyType(dict(self.custom_metadata))
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -290,16 +346,42 @@ class ProfileResult:
     """
 
     dataset_summary: DatasetSummary
-    column_profiles: dict[str, ColumnProfile]
-    numeric_profiles: dict[str, NumericProfile]
-    categorical_profiles: dict[str, CategoricalProfile]
-    datetime_profiles: dict[str, DatetimeProfile]
-    text_profiles: dict[str, TextProfile]
+    column_profiles: Mapping[str, ColumnProfile]
+    numeric_profiles: Mapping[str, NumericProfile]
+    categorical_profiles: Mapping[str, CategoricalProfile]
+    datetime_profiles: Mapping[str, DatetimeProfile]
+    text_profiles: Mapping[str, TextProfile]
     missing_value_summary: MissingValueSummary
     duplicate_summary: DuplicateSummary
     correlation_summary: CorrelationSummary
     dataset_metadata: DatasetMetadata
     execution_metadata: ExecutionMetadata
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        object.__setattr__(
+            self, "column_profiles", MappingProxyType(dict(self.column_profiles))
+        )
+        object.__setattr__(
+            self,
+            "numeric_profiles",
+            MappingProxyType(dict(self.numeric_profiles)),
+        )
+        object.__setattr__(
+            self,
+            "categorical_profiles",
+            MappingProxyType(dict(self.categorical_profiles)),
+        )
+        object.__setattr__(
+            self,
+            "datetime_profiles",
+            MappingProxyType(dict(self.datetime_profiles)),
+        )
+        object.__setattr__(
+            self, "text_profiles", MappingProxyType(dict(self.text_profiles))
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the profile result to a dictionary of primitive values.
@@ -307,4 +389,24 @@ class ProfileResult:
         Returns:
             A dictionary representation suitable for JSON serialization.
         """
-        return asdict(self)
+        from typing import cast
+
+        return cast(dict[str, Any], _asdict_custom(self))
+
+
+def _asdict_custom(obj: Any) -> Any:
+    """Recursively convert dataclasses and mapping proxies to standard python primitives."""
+    import dataclasses
+    from types import MappingProxyType
+
+    if dataclasses.is_dataclass(obj):
+        return {
+            f.name: _asdict_custom(getattr(obj, f.name))
+            for f in dataclasses.fields(obj)
+        }
+    elif isinstance(obj, (dict, MappingProxyType)):
+        return {k: _asdict_custom(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_asdict_custom(v) for v in obj]
+    else:
+        return obj

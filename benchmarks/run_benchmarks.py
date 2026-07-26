@@ -157,6 +157,21 @@ def run_benchmark_for_size(num_rows: int) -> dict:
 
 
 def main() -> None:
+    # Warmup engines to isolate JIT/class-loading noise from benchmarks
+    print("Warming up Polars, pandas, and rule engines...")
+    warmup_file = generate_benchmark_data(100)
+    try:
+        warmup_ds = fs.load(warmup_file)
+        warmup_prof = fs.profile(warmup_ds)
+        from featuresmith.rules.engine import RuleEngine
+
+        RuleEngine().run(warmup_prof)
+        fs.analyze(warmup_ds)
+    finally:
+        if os.path.exists(warmup_file):
+            os.remove(warmup_file)
+    print("Warmup completed. Starting benchmarks.")
+
     # Run scales
     scales = [10000, 100000, 500000]
     all_results = {}

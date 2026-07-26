@@ -1,1 +1,1 @@
-"""Featuresmith dashboard package."""
+"""Featuresmith dashboard package (Unreleased / Internal)."""

@@ -33,7 +33,7 @@ const DOCS_MAP: Record<string, DocContent> = {
           <p className="mb-3 text-sm text-muted-foreground">
             Add Featuresmith to your workspace dependencies:
           </p>
-          <CodeBlock code="uv add featuresmith" language="bash" showCopy />
+          <CodeBlock code="uv add featuresmith-core" language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-pip">
@@ -41,7 +41,7 @@ const DOCS_MAP: Record<string, DocContent> = {
           <p className="mb-3 text-sm text-muted-foreground">
             Install the latest version of the core library from PyPI:
           </p>
-          <CodeBlock code="pip install featuresmith" language="bash" showCopy />
+          <CodeBlock code="pip install featuresmith-core" language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-cli">
@@ -49,7 +49,7 @@ const DOCS_MAP: Record<string, DocContent> = {
           <p className="mb-3 text-sm text-muted-foreground">
             To use the command line tool, install the CLI surface wrapper:
           </p>
-          <CodeBlock code="pip install featuresmith featuresmith-cli" language="bash" showCopy />
+          <CodeBlock code="pip install featuresmith-core featuresmith-cli" language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-source">

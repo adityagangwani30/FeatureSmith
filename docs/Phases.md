@@ -58,7 +58,7 @@ timeline
 **Objectives:** add the pluggable AI provider abstraction and the narrative/ranking layer, strictly grounded in Phase 1's outputs.
 **Features:** `AIProvider` interface with Ollama (default), OpenAI, and Anthropic implementations; AI-generated plain-language dataset summary; ranked, explainable feature-engineering recommendations; provider switching via `.featuresmith.yml` only.
 **Technical Milestones:** `AIProvider` protocol finalized (`narrate`, `rank`, plus a `chat` method stubbed for Phase 3); provider entry-point registry (`Architecture.md` §6); versioned Jinja2 prompt templates; grounding tests (mocked provider, asserting no numeric hallucination path exists architecturally); `RecommendationEngine` merging rule findings + AI ranking.
-**Deliverables:** `fs.analyze()` output now includes a narrative section and ranked recommendations, from both SDK and CLI; fallback template-narrator when no provider configured; `pip install featuresmith[openai]` / `featuresmith[anthropic]` extras.
+**Deliverables:** `fs.analyze()` output now includes a narrative section and ranked recommendations, from both SDK and CLI; fallback template-narrator when no provider configured; `pip install featuresmith-core[openai]` / `featuresmith-core[anthropic]` extras.
 **Estimated Difficulty:** Medium-High (prompt design + grounding discipline is the hard part, not the plumbing).
 **Dependencies:** Phase 1.
 **Risks:** prompt drift causing inconsistent tone/quality across providers — mitigate with a shared eval set of prompts + expected-structure tests (not exact-text tests); provider abstraction leaking provider-specific quirks into core — mitigate with the conformance test suite from `Rules.md` §5.

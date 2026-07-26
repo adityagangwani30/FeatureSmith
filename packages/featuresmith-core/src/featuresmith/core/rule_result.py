@@ -1,8 +1,7 @@
 """Serializable model representing the result of a rule engine run."""
 
-from __future__ import annotations
-
-from dataclasses import asdict, dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 from featuresmith.core.profile_result import ProfileResult
@@ -22,10 +21,20 @@ class RuleResult:
     """
 
     profile: ProfileResult
-    findings: list[RuleFinding]
-    executed_rules: list[str]
+    findings: Sequence[RuleFinding]
+    executed_rules: Sequence[str]
     execution_time_ms: float
-    failed_rules: dict[str, str] = field(default_factory=dict)
+    failed_rules: Mapping[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Freeze mutable fields to improve immutability consistency."""
+        from types import MappingProxyType
+
+        object.__setattr__(self, "findings", tuple(self.findings))
+        object.__setattr__(self, "executed_rules", tuple(self.executed_rules))
+        object.__setattr__(
+            self, "failed_rules", MappingProxyType(dict(self.failed_rules))
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the rule result to a dictionary of primitive values.
@@ -33,4 +42,8 @@ class RuleResult:
         Returns:
             A dictionary representation suitable for JSON serialization.
         """
-        return asdict(self)
+        from typing import cast
+
+        from featuresmith.core.profile_result import _asdict_custom
+
+        return cast(dict[str, Any], _asdict_custom(self))

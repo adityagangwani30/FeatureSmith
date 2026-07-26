@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Get started with Featuresmith — the open-source Python library for data profiling and validation.",
 }
 
-const INSTALL_CODE = `pip install featuresmith`
+const INSTALL_CODE = `pip install featuresmith-core`
 
 const QUICKSTART_CODE = `from featuresmith import Dataset
 

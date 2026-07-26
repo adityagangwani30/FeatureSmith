@@ -10,7 +10,7 @@ from featuresmith.connectors.dataframe_connector import DataFrameConnector
 from featuresmith.connectors.excel_connector import ExcelConnector
 from featuresmith.connectors.parquet_connector import ParquetConnector
 from featuresmith.core.dataset import Dataset
-from featuresmith.core.exceptions import ConnectorError
+from featuresmith.core.exceptions import UnsupportedFormatError
 
 
 class ConnectorRegistry:
@@ -37,7 +37,7 @@ class ConnectorRegistry:
         for connector in self._connectors:
             if connector.can_load(source):
                 return connector.load(source)
-        raise ConnectorError(
+        raise UnsupportedFormatError(
             "Unsupported source. Use a CSV, Excel, Parquet, pandas DataFrame, "
             "or Polars DataFrame."
         )

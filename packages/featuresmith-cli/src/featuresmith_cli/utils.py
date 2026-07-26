@@ -36,15 +36,15 @@ def get_version_info() -> str:
     from featuresmith_cli import __version__ as cli_version
 
     try:
-        import featuresmith
+        from importlib.metadata import version
 
-        core_version = featuresmith.__version__
+        core_version = version("featuresmith-core")
     except Exception:
         try:
-            from importlib.metadata import version
+            import featuresmith
 
-            core_version = version("featuresmith-core")
+            core_version = featuresmith.__version__
         except Exception:
-            core_version = "0.1.0"
+            core_version = "unknown"
 
     return f"Featuresmith CLI v{cli_version} (core v{core_version})"

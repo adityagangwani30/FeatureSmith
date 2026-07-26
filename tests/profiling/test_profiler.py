@@ -119,7 +119,7 @@ def test_categorical_profiling_parity(
         assert p.cardinality == 3
         assert p.missing_count == 1
         assert p.frequency_table == {"apple": 2, "banana": 1, "cherry": 1}
-        assert p.top_values == [("apple", 2), ("banana", 1), ("cherry", 1)]
+        assert p.top_values == (("apple", 2), ("banana", 1), ("cherry", 1))
         assert p.most_common_category == "apple"
 
         # Entropy check: p1 = 0.5, p2 = 0.25, p3 = 0.25
@@ -292,3 +292,34 @@ def test_serialize_to_dict() -> None:
     assert d["dataset_summary"]["row_count"] == 3
     assert d["column_profiles"]["num"]["logical_type"] == "numeric"
     assert d["column_profiles"]["cat"]["logical_type"] == "categorical"
+
+
+def test_categorical_frequency_table_capping() -> None:
+    """Test that categorical frequency table size is capped correctly while preserving cardinality/entropy."""
+    import math
+
+    # Create a column with 10 distinct values
+    values = [f"val_{i}" for i in range(10)]
+    df = pd.DataFrame({"cat": values * 10})  # 100 rows, 10 unique categories
+
+    # 1. Profile with default options (default cap is 1000, so all 10 are retained)
+    res_default = fs.profile(df)
+    cat_prof_default = res_default.categorical_profiles["cat"]
+    assert cat_prof_default.cardinality == 10
+    assert len(cat_prof_default.frequency_table) == 10
+    assert cat_prof_default.entropy is not None
+    assert math.isclose(cat_prof_default.entropy, math.log2(10))
+
+    # 2. Profile with max_frequency_table_size = 3
+    res_capped = fs.profile(df, max_frequency_table_size=3)
+    cat_prof_capped = res_capped.categorical_profiles["cat"]
+    assert cat_prof_capped.cardinality == 10  # Full cardinality is preserved!
+    assert len(cat_prof_capped.frequency_table) == 3  # But table is capped to 3!
+    assert cat_prof_capped.entropy is not None
+    assert math.isclose(
+        cat_prof_capped.entropy, math.log2(10)
+    )  # Full entropy is preserved!
+    assert (
+        len(cat_prof_capped.top_values) == 10
+    )  # top_values is still based on full list (up to 10)
+    assert len(cat_prof_capped.least_frequent_values) == 10  # least_frequent_values too

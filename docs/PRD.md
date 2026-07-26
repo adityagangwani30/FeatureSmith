@@ -126,7 +126,7 @@ Wants a plugin architecture with clear extension points (a new connector, a new 
 | Interactive AI Chat re-reads raw data on every question, leaking data or degrading performance | Chat is architecturally scoped to the precomputed `ProfileResult` + `RuleFinding[]` context only — no raw-dataframe tool access by default |
 | Users blindly trust "AI recommendations" in production | Every recommendation ships with a confidence score, rationale, and requires explicit accept; nothing auto-applies silently |
 | Scope creep into "AutoML platform" | Non-goals enforced in PRD and PR review checklist |
-| Performance collapse on large datasets | Polars/DuckDB-first compute layer, sampling strategy for AI layer, explicit size-tiered code paths |
+| Performance collapse on large datasets | Polars-first compute layer (DuckDB planned), sampling strategy for AI layer, explicit size-tiered code paths |
 | Business logic duplicated across CLI/dashboard/extension, causing drift | Architectural rule: only `featuresmith-core` may contain business logic; enforced via import-linter contracts and the "surface parity" success metric above |
 | Plugin architecture (rules, connectors, exporters, AI providers) becomes a maintenance burden | Small, versioned, stable interface contracts; core team owns the interfaces, not every plugin |
 | PII/security exposure when sending data context to a cloud AI provider | Local-first LLM (Ollama) default; cloud LLM opt-in only, with schema/stat-only payloads (and chat context), never raw rows, by default |

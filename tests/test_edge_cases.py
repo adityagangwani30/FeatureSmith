@@ -1,4 +1,4 @@
-"""Stress test suite for Featuresmith profiling and rules engine."""
+"""Edge-case and smoke test suite for Featuresmith profiling and rules engine."""
 
 import numpy as np
 import pandas as pd
@@ -9,8 +9,8 @@ import featuresmith as fs
 from featuresmith.core.exceptions import ConnectorError
 
 
-def test_stress_wide_dataset() -> None:
-    """Stress test with a very wide dataset (500 columns)."""
+def test_edge_wide_dataset() -> None:
+    """Edge-case test with a very wide dataset (500 columns)."""
     np.random.seed(42)
     num_cols = 500
     num_rows = 100
@@ -27,8 +27,8 @@ def test_stress_wide_dataset() -> None:
     assert result.profile.dataset_summary.row_count == num_rows
 
 
-def test_stress_tall_dataset() -> None:
-    """Stress test with a very tall dataset (100K rows)."""
+def test_edge_tall_dataset() -> None:
+    """Edge-case test with a very tall dataset (100K rows)."""
     np.random.seed(42)
     num_rows = 100000
 
@@ -46,8 +46,8 @@ def test_stress_tall_dataset() -> None:
     assert result.profile.dataset_summary.row_count == num_rows
 
 
-def test_stress_empty_dataset() -> None:
-    """Stress test with an empty dataset (0 rows, headers only)."""
+def test_edge_empty_dataset() -> None:
+    """Edge-case test with an empty dataset (0 rows, headers only)."""
     df = pd.DataFrame(columns=["a", "b", "c"])
 
     # Analyze empty dataset should not crash
@@ -57,8 +57,8 @@ def test_stress_empty_dataset() -> None:
     assert result.profile.dataset_summary.column_count == 3
 
 
-def test_stress_single_column() -> None:
-    """Stress test with a single column dataset."""
+def test_edge_single_column() -> None:
+    """Edge-case test with a single column dataset."""
     df = pd.DataFrame({"single": [1, 2, 3, 4, 5]})
     result = fs.analyze(df)
 
@@ -66,8 +66,8 @@ def test_stress_single_column() -> None:
     assert "single" in result.profile.column_profiles
 
 
-def test_stress_missing_heavy() -> None:
-    """Stress test with 100% missing values in some columns."""
+def test_edge_missing_heavy() -> None:
+    """Edge-case test with 100% missing values in some columns."""
     df = pd.DataFrame(
         {
             "all_null": [None] * 100,
@@ -85,8 +85,8 @@ def test_stress_missing_heavy() -> None:
     assert "quality.missing_value_threshold" in findings_rule_ids
 
 
-def test_stress_duplicate_heavy() -> None:
-    """Stress test with extreme duplicates (99% duplicated rows)."""
+def test_edge_duplicate_heavy() -> None:
+    """Edge-case test with extreme duplicates (99% duplicated rows)."""
     df = pd.DataFrame({"a": [1] * 100, "b": [2] * 100})
 
     result = fs.analyze(df)
@@ -96,8 +96,8 @@ def test_stress_duplicate_heavy() -> None:
     assert "quality.constant_columns" in findings_rule_ids
 
 
-def test_stress_mixed_dataframe_backends() -> None:
-    """Stress test mixed pandas/Polars DataFrame loading."""
+def test_edge_mixed_dataframe_backends() -> None:
+    """Edge-case test mixed pandas/Polars DataFrame loading."""
     df_pd = pd.DataFrame({"x": [1, 2, 3]})
     df_pl = pl.DataFrame({"x": [1, 2, 3]})
 
@@ -108,7 +108,7 @@ def test_stress_mixed_dataframe_backends() -> None:
     assert dataset_pl.row_count == 3
 
 
-def test_stress_unsupported_excel_format() -> None:
-    """Stress test invalid file extensions in load connector."""
+def test_edge_unsupported_excel_format() -> None:
+    """Edge-case test invalid file extensions in load connector."""
     with pytest.raises(ConnectorError):
         fs.load("invalid_path.txt")

@@ -211,8 +211,8 @@ for finding in result.findings:
 
 print(f"Executed: {len(result.executed_rules)} rules in {result.execution_time_ms:.1f}ms")`
 
-export const CLI_EXAMPLE_CODE = `# Install featuresmith and featuresmith-cli packages
-pip install featuresmith featuresmith-cli
+export const CLI_EXAMPLE_CODE = `# Install featuresmith-core and featuresmith-cli packages
+pip install featuresmith-core featuresmith-cli
 
 # Run basic analysis (styled Rich terminal tables)
 featuresmith analyze customers.csv

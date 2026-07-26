@@ -68,7 +68,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install featuresmith featuresmith-cli
+          pip install featuresmith-core featuresmith-cli
 
       - name: Audit dataset quality
         run: |

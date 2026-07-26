@@ -10,12 +10,15 @@ from featuresmith.core.dataset import Dataset
 from featuresmith.core.profile_result import CategoricalProfile
 
 
-def profile_categorical_column(dataset: Dataset, col_name: str) -> CategoricalProfile:
+def profile_categorical_column(
+    dataset: Dataset, col_name: str, max_frequency_table_size: int = 1000
+) -> CategoricalProfile:
     """Profile a single categorical column.
 
     Args:
         dataset: The normalized dataset.
         col_name: Name of the column.
+        max_frequency_table_size: Maximum entries to keep in frequency_table (default 1000).
 
     Returns:
         A CategoricalProfile object.
@@ -87,6 +90,10 @@ def profile_categorical_column(dataset: Dataset, col_name: str) -> CategoricalPr
         p = count / total_non_null
         if p > 0:
             entropy -= p * math.log2(p)
+
+    # Cap frequency table size *after* computing cardinality, top/least values, and entropy
+    capped_items = sorted_items[:max_frequency_table_size]
+    frequency_table = dict(capped_items)
 
     return CategoricalProfile(
         column_name=col_name,

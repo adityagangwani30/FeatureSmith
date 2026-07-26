@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-- Current Version: 0.0.5-dev
+- Current Version: 0.1.0
 - Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
 - Current Sprint: Sprint 6 — SDK Hardening & Exporter Layer (next)
 - Repository: `D:\FeatureSmith`

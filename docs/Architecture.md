@@ -3,10 +3,10 @@
 ## 1. Design Principles Behind the Architecture
 
 1. **One core, many thin surfaces.** All business logic — profiling, rules, feature engineering, AI reasoning, chat, export — lives in a single importable Python library, `featuresmith-core`. The CLI, the Streamlit dashboard, and the future VS Code extension are thin clients that call this library and render its output. No surface is permitted to reimplement or fork logic that belongs in core.
-2. **Compute and reasoning are separate layers.** Statistics are computed deterministically (Polars/DuckDB); the AI layer only narrates, ranks, and answers questions grounded in that precomputed output — it never computes a number. This makes the system testable and trustworthy.
+2. **Compute and reasoning are separate layers.** Statistics are computed deterministically (Polars); the AI layer only narrates, ranks, and answers questions grounded in that precomputed output — it never computes a number. This makes the system testable and trustworthy.
 3. **Everything is a plugin.** Connectors, rules, recommenders, exporters, *and AI providers* implement small stable interfaces so the core never needs to know about a specific data source, output format, or LLM vendor.
 4. **Local-first, cloud-optional.** The system must produce full value with zero network calls (Ollama/local LLM, local files). Cloud LLMs and cloud connectors are opt-in, switched entirely through configuration.
-5. **Size-tiered execution.** The same API behaves differently under the hood for a 10K-row CSV vs. a 500M-row Parquet dataset (in-memory vs. lazy/streaming DuckDB execution) — this is invisible to the plugin author and to every surface.
+5. **Size-tiered execution.** The same API behaves differently under the hood for a 10K-row CSV vs. a 500M-row Parquet dataset (in-memory vs. lazy/streaming Polars execution) — this is invisible to the plugin author and to every surface.
 
 ## 2. Overall System Architecture
 
@@ -23,7 +23,7 @@ flowchart TB
 
     subgraph Core["featuresmith-core (Python Library)"]
         CONN[Connector Layer]
-        PROF["Profiling Engine\n(Polars/DuckDB)"]
+        PROF["Profiling Engine\n(Polars)"]
         RULES["Rule Engine\n(Data Quality + Leakage)"]
         FEENG[Feature Engineering Engine]
         AI["AI Layer\n(Provider Interface + Narrator + Chat)"]
@@ -204,7 +204,7 @@ class AIProvider(Protocol):
     def chat(self, session: ChatSession, message: str) -> ChatReply: ...
 ```
 
-- **Ollama is the default provider** — zero network calls, works offline, no API key required. This is what a fresh `pip install featuresmith` gets out of the box.
+- **Ollama is the default provider** — zero network calls, works offline, no API key required. This is what a fresh `pip install featuresmith-core` gets out of the box.
 - **OpenAI and Anthropic are opt-in**, bring-your-own-API-key providers, selected entirely through `.featuresmith.yml`:
   ```yaml
   ai:
@@ -288,8 +288,8 @@ Four extension points, each following the same `base.py` + entry-point pattern: 
 ```mermaid
 flowchart LR
     A[Dataset Size Check] -->|< 100MB| B[In-memory Polars]
-    A -->|100MB - 10GB| C[Lazy Polars / DuckDB streaming]
-    A -->|> 10GB| D[Sampling + DuckDB pushdown\n+ warn user, suggest cloud tier]
+    A -->|100MB - 10GB| C[Lazy/Streaming Polars]
+    A -->|> 10GB| D[Sampling + Polars pushdown/sampling\n+ warn user, suggest cloud tier]
 ```
 
 The same `ProfileResult` schema is produced regardless of tier — size-tiering is an internal execution detail, never a public API difference. This keeps the plugin/rule interface, and every surface built on `fs.analyze()`, stable no matter how large the underlying data gets.

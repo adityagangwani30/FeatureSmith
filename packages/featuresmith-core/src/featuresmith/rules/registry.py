@@ -45,6 +45,17 @@ class RuleRegistry:
         """
         return list(self._rules.values())
 
+    def get(self, rule_id: str) -> BaseRule | None:
+        """Retrieve a registered rule by its ID.
+
+        Args:
+            rule_id: The ID of the rule.
+
+        Returns:
+            The registered BaseRule instance, or None if not found.
+        """
+        return self._rules.get(rule_id)
+
 
 def default_registry() -> RuleRegistry:
     """Return the default RuleRegistry loaded with the 8 seed rules."""

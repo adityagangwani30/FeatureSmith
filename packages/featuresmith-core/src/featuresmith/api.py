@@ -6,7 +6,18 @@ from typing import Any
 
 from featuresmith.connectors.registry import default_registry
 from featuresmith.core.dataset import Dataset as Dataset
-from featuresmith.core.exceptions import ConnectorError as ConnectorError
+from featuresmith.core.exceptions import (
+    ConnectorError as ConnectorError,
+)
+from featuresmith.core.exceptions import (
+    SourceNotFoundError as SourceNotFoundError,
+)
+from featuresmith.core.exceptions import (
+    SourceParseError as SourceParseError,
+)
+from featuresmith.core.exceptions import (
+    UnsupportedFormatError as UnsupportedFormatError,
+)
 from featuresmith.core.profile_result import ProfileResult as ProfileResult
 from featuresmith.core.rule_result import RuleResult as RuleResult
 from featuresmith.profiling import profile_dataset
@@ -44,7 +55,12 @@ def load(source: object) -> Dataset:
     return default_registry().load(source)
 
 
-def profile(source: object, *, max_correlation_columns: int = 100) -> ProfileResult:
+def profile(
+    source: object,
+    *,
+    max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
+) -> ProfileResult:
     """Profile a supported source or Dataset and compute statistical summaries.
 
     Args:
@@ -53,6 +69,7 @@ def profile(source: object, *, max_correlation_columns: int = 100) -> ProfileRes
             Parquet), or an in-memory pandas or Polars DataFrame.
         max_correlation_columns: Limit correlation computations to prevent
             combinatorial blowup (default 100).
+        max_frequency_table_size: Maximum entries to keep in categorical frequency_table (default 1000).
 
     Returns:
         ProfileResult: A strongly-typed statistical profile containing dataset
@@ -81,7 +98,11 @@ def profile(source: object, *, max_correlation_columns: int = 100) -> ProfileRes
         dataset = source
     else:
         dataset = load(source)
-    return profile_dataset(dataset, max_correlation_columns=max_correlation_columns)
+    return profile_dataset(
+        dataset,
+        max_correlation_columns=max_correlation_columns,
+        max_frequency_table_size=max_frequency_table_size,
+    )
 
 
 def analyze(
@@ -91,6 +112,7 @@ def analyze(
     enabled_rules: list[str] | None = None,
     rule_config: dict[str, Any] | None = None,
     max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
 ) -> RuleResult:
     """Analyze a tabular source or Dataset, computing profile stats and running rules.
 
@@ -138,7 +160,11 @@ def analyze(
         dataset = source
     else:
         dataset = load(source)
-    prof_res = profile(dataset, max_correlation_columns=max_correlation_columns)
+    prof_res = profile(
+        dataset,
+        max_correlation_columns=max_correlation_columns,
+        max_frequency_table_size=max_frequency_table_size,
+    )
 
     from featuresmith.rules.engine import RuleEngine
 

@@ -10,7 +10,7 @@ import pandas as pd
 from featuresmith.connectors._paths import validate_file_source
 from featuresmith.connectors.base import BaseConnector
 from featuresmith.core.dataset import Dataset
-from featuresmith.core.exceptions import ConnectorError
+from featuresmith.core.exceptions import SourceParseError
 
 
 class ExcelConnector(BaseConnector):
@@ -35,7 +35,7 @@ class ExcelConnector(BaseConnector):
         try:
             dataframe = pd.read_excel(path)
         except (ImportError, OSError, ValueError, zipfile.BadZipFile) as error:
-            raise ConnectorError(f"Could not read Excel file '{path}'.") from error
+            raise SourceParseError(f"Could not read Excel file '{path}'.") from error
         return Dataset.from_dataframe(
             dataframe,
             backend="pandas",

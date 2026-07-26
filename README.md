@@ -6,7 +6,7 @@
 
 Load tabular datasets, profile them, detect quality issues, and build reliable preprocessing workflows through one unified SDK and CLI.
 
-[![Version](https://img.shields.io/badge/version-0.0.5--dev-blue?style=flat-square)](https://github.com/adityagangwani30/FeatureSmith/releases)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat-square)](https://github.com/adityagangwani30/FeatureSmith/releases)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green?style=flat-square)](./LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/adityagangwani30/FeatureSmith/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/adityagangwani30/FeatureSmith/actions)
@@ -31,7 +31,7 @@ Most EDA tools stop at **description** — a report with charts, a wall of stati
 | Strong typing (`frozen` dataclasses) | — | — | — | ✅ |
 | Surface parity (SDK = CLI = Dashboard) | — | — | — | ✅ |
 | Extensible (rules, connectors, exporters) | — | — | ✓ | ✅ |
-| AI-ready architecture | — | — | — | ✅ |
+| JSON schemas for LLMs (AI-ready) | — | — | — | ✅ |
 | No business logic in CLI/Dashboard | — | — | — | ✅ |
 
 ---
@@ -75,7 +75,7 @@ flowchart TB
 
     subgraph Core["featuresmith-core (all business logic lives here)"]
         CONN["Connector Layer\nCSV · Excel · Parquet · DataFrame"]
-        PROF["Profiling Engine\n(Polars / DuckDB)"]
+        PROF["Profiling Engine\n(Polars)"]
         RULES["Rule Engine\n8 deterministic rules"]
         FUTURE_REC["Recommendation Engine\n(Phase 2+)"]
         FUTURE_AI["AI Layer\n(Phase 2+)"]
@@ -96,13 +96,13 @@ All business logic lives in **`featuresmith-core`**. The CLI and Dashboard are t
 **Using uv (recommended)**
 
 ```bash
-uv add featuresmith
+uv add featuresmith-core
 ```
 
 **Using pip**
 
 ```bash
-pip install featuresmith
+pip install featuresmith-core
 ```
 
 **Editable install from source**
@@ -116,7 +116,7 @@ uv sync
 **Install with CLI**
 
 ```bash
-pip install featuresmith featuresmith-cli
+pip install featuresmith-core featuresmith-cli
 # or from source:
 uv sync --all-packages
 ```
@@ -271,7 +271,7 @@ Featuresmith is built on five principles:
 |---|---|
 | **Core-first** | All business logic lives in `featuresmith-core`. CLI and Dashboard are thin wrappers — no duplicated logic, ever. |
 | **Thin interfaces** | `featuresmith.api` is the only public entrypoint. Every surface calls the same function, gets the same result. |
-| **Deterministic analysis** | Statistics are computed with Polars/DuckDB. Results are reproducible and bit-identical for the same input. |
+| **Deterministic analysis** | Statistics are computed with Polars. Results are reproducible and bit-identical for the same input. |
 | **Strong typing** | All result objects are `frozen` dataclasses with full type annotations. `mypy --strict` is enforced in CI. |
 | **Testability** | Every rule ships with positive and negative fixture tests. The import boundary is enforced by `import-linter`. |
 | **Extensibility** | Connectors, rules, exporters, and AI providers are all plugin categories with stable `Base*` interfaces. |
@@ -325,7 +325,7 @@ uv run pytest              # tests
 | [`docs/Rules.md`](./docs/Rules.md) | Coding standards, testing rules, PR checklist — the development bible |
 | [`docs/Phases.md`](./docs/Phases.md) | Detailed roadmap with acceptance criteria per phase |
 | [`docs/Design.md`](./docs/Design.md) | Product design system, UI principles, color tokens |
-| [`MEMORY.md`](./MEMORY.md) | Implementation journal — every decision, every sprint |
+| [`MEMORY.md`](./MEMORY.md) | **[Developer Log]** Complete implementation journal tracking all design decisions and sprint-by-sprint progress |
 | [`docs/adr/`](./docs/adr/) | Architecture Decision Records |
 
 ---

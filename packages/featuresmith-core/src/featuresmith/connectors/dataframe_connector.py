@@ -7,7 +7,7 @@ import polars as pl
 
 from featuresmith.connectors.base import BaseConnector
 from featuresmith.core.dataset import Dataset
-from featuresmith.core.exceptions import ConnectorError
+from featuresmith.core.exceptions import UnsupportedFormatError
 
 
 class DataFrameConnector(BaseConnector):
@@ -20,7 +20,7 @@ class DataFrameConnector(BaseConnector):
     def validate(self, source: object) -> None:
         """Validate that the source is a pandas or Polars dataframe."""
         if not self.can_load(source):
-            raise ConnectorError("Expected a pandas or Polars DataFrame.")
+            raise UnsupportedFormatError("Expected a pandas or Polars DataFrame.")
 
     def load(self, source: object) -> Dataset:
         """Wrap an in-memory dataframe in the normalized dataset contract."""
@@ -37,4 +37,4 @@ class DataFrameConnector(BaseConnector):
                 backend="polars",
                 metadata={"format": "dataframe"},
             )
-        raise ConnectorError("Expected a pandas or Polars DataFrame.")
+        raise UnsupportedFormatError("Expected a pandas or Polars DataFrame.")

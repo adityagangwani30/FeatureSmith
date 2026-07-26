@@ -6,137 +6,65 @@ import numpy as np
 import pandas as pd
 
 
-def main() -> None:
-    raw_dir = os.path.join("examples", "data", "raw")
-    processed_dir = os.path.join("examples", "data", "processed")
-    os.makedirs(processed_dir, exist_ok=True)
+def generate_iris_dataframe() -> pd.DataFrame:
+    """Load or generate the Iris dataset in a normalized format."""
+    raw_path = os.path.join("examples", "data", "raw", "iris_raw.csv")
+    if os.path.exists(raw_path):
+        df_iris = pd.read_csv(raw_path)
+    else:
+        # Fallback to generate it programmatically if raw files aren't present (e.g. in tests)
+        try:
+            from sklearn.datasets import load_iris
 
-    # 1. Prepare Iris
-    iris_raw_path = os.path.join(raw_dir, "iris_raw.csv")
-    if os.path.exists(iris_raw_path):
-        print("Preparing Iris dataset...")
-        df_iris = pd.read_csv(iris_raw_path)
-        # Rename columns to standard snake_case
-        df_iris.columns = [
-            "sepal_length",
-            "sepal_width",
-            "petal_length",
-            "petal_width",
-            "target",
-        ]
-        # Map target numbers to species names
-        species_map = {0: "setosa", 1: "versicolor", 2: "virginica"}
-        df_iris["species"] = df_iris["target"].map(species_map)
-        df_iris = df_iris.drop(columns=["target"])
-        df_iris.to_csv(os.path.join(processed_dir, "iris.csv"), index=False)
-        print("Iris dataset processed.")
+            iris = load_iris(as_frame=True)
+            df_iris = iris.frame
+        except ImportError:
+            # Synthetic fallback to make it fully dependency-free for core-only tests
+            np.random.seed(42)
+            n_rows = 150
+            df_iris = pd.DataFrame(
+                {
+                    "sepal_length": np.random.uniform(4.3, 7.9, size=n_rows),
+                    "sepal_width": np.random.uniform(2.0, 4.4, size=n_rows),
+                    "petal_length": np.random.uniform(1.0, 6.9, size=n_rows),
+                    "petal_width": np.random.uniform(0.1, 2.5, size=n_rows),
+                    "target": np.random.choice([0, 1, 2], size=n_rows),
+                }
+            )
 
-    # 2. Prepare California Housing
-    cal_raw_path = os.path.join(raw_dir, "california_housing_raw.csv")
-    if os.path.exists(cal_raw_path):
-        print("\nPreparing California Housing dataset...")
-        df_cal = pd.read_csv(cal_raw_path)
-        # Rename to clean snake_case
-        df_cal.columns = [
-            "median_income",
-            "house_age",
-            "average_rooms",
-            "average_bedrooms",
-            "population",
-            "average_occupancy",
-            "latitude",
-            "longitude",
-            "median_house_value",
-        ]
-        # California Housing dataset contains high outlier values in AveOccup, AveRooms, etc.
-        # We leave them intact so OutlierDetectionRule can trigger.
-        df_cal.to_csv(
-            os.path.join(processed_dir, "california_housing.csv"), index=False
-        )
-        print("California Housing processed.")
+    # Rename columns to standard snake_case
+    df_iris.columns = [
+        "sepal_length",
+        "sepal_width",
+        "petal_length",
+        "petal_width",
+        "target",
+    ]
+    # Map target numbers to species names
+    species_map = {0: "setosa", 1: "versicolor", 2: "virginica"}
+    df_iris["species"] = df_iris["target"].map(species_map)
+    df_iris = df_iris.drop(columns=["target"])
+    return df_iris
 
-    # 3. Prepare Titanic
-    titanic_raw_path = os.path.join(raw_dir, "titanic_raw.csv")
-    if os.path.exists(titanic_raw_path):
-        print("\nPreparing Titanic dataset...")
-        df_titanic = pd.read_csv(titanic_raw_path)
-        # Normalize columns
-        df_titanic.columns = [c.replace(".", "_").lower() for c in df_titanic.columns]
-        # Keep missing values in age, cabin, embarked, body, boat, home_dest.
-        # This triggers MissingValueThresholdRule and FullyEmptyColumnsRule.
-        df_titanic.to_csv(os.path.join(processed_dir, "titanic.csv"), index=False)
-        print("Titanic dataset processed.")
 
-    # 4. Prepare Customer Churn
-    churn_raw_path = os.path.join(raw_dir, "customer_churn_raw.csv")
-    if os.path.exists(churn_raw_path):
-        print("\nPreparing Customer Churn dataset...")
-        df_churn = pd.read_csv(churn_raw_path)
-
-        # Clean column names
-        df_churn.columns = [
-            "customer_id",
-            "gender",
-            "senior_citizen",
-            "partner",
-            "dependents",
-            "tenure",
-            "phone_service",
-            "multiple_lines",
-            "internet_service",
-            "online_security",
-            "online_backup",
-            "device_protection",
-            "tech_support",
-            "streaming_tv",
-            "streaming_movies",
-            "contract",
-            "paperless_billing",
-            "payment_method",
-            "monthly_charges",
-            "total_charges",
-            "churn",
-        ]
-
-        # TotalCharges has some missing values represented as empty strings or NaN. Clean them.
-        df_churn["total_charges"] = pd.to_numeric(
-            df_churn["total_charges"], errors="coerce"
-        )
-
-        # Let's introduce a target leakage column: 'customer_status'
-        # Customers who churned will have customer_status = 'Inactive' (100% correlation)
-        # This will trigger LeakageRuleTargetCorrelation.
-        df_churn["customer_status"] = df_churn["churn"].apply(
-            lambda x: "Inactive" if x == "Yes" or x is True else "Active"
-        )
-
-        # Let's map target to numeric churn_label to trigger Pearson target leakage rule
-        df_churn["churn_label"] = df_churn["churn"].apply(
-            lambda x: 1 if x == "Yes" or x is True else 0
-        )
-        # Create a highly correlated column with churn_label (99% correlation)
-        np.random.seed(42)
-        noise = np.random.uniform(-0.01, 0.01, size=len(df_churn))
-        df_churn["leakage_score"] = df_churn["churn_label"] + noise
-
-        df_churn.to_csv(os.path.join(processed_dir, "customer_churn.csv"), index=False)
-        print("Customer Churn dataset processed.")
-
-    # 5. Generate Sales (Synthetic but realistic)
-    print("\nGenerating Sales dataset...")
+def generate_sales_dataframe() -> pd.DataFrame:
+    """Generate the synthetic but realistic Sales dataset."""
     np.random.seed(42)
     n_rows = 1000
 
     order_ids = [f"CA-2026-{100000 + i}" for i in range(n_rows)]
-    # Date generation
+    import datetime
+
     start_date = pd.Timestamp("2026-01-01")
     dates = [
-        start_date + pd.Timedelta(days=int(np.random.randint(0, 180)))
+        start_date + datetime.timedelta(days=int(np.random.randint(0, 180)))
         for _ in range(n_rows)
     ]
     dates_str = [d.strftime("%Y-%m-%d %H:%M:%S") for d in dates]
 
-    customer_ids = [f"US-{10000 + np.random.randint(1, 200)}" for _ in range(n_rows)]
+    customer_ids = [
+        f"US-{10000 + np.random.randint(1, 200)}" for _ in range(n_rows)
+    ]
     categories = np.random.choice(
         ["Furniture", "Office Supplies", "Technology"],
         size=n_rows,
@@ -165,11 +93,16 @@ def main() -> None:
         else:
             discounts.append(
                 round(
-                    np.random.choice([0.0, 0.1, 0.15, 0.2], p=[0.6, 0.2, 0.1, 0.1]), 2
+                    np.random.choice(
+                        [0.0, 0.1, 0.15, 0.2], p=[0.6, 0.2, 0.1, 0.1]
+                    ),
+                    2,
                 )
             )
 
-    regions = np.random.choice(["East", "West", "Central", "South"], size=n_rows)
+    regions = np.random.choice(
+        ["East", "West", "Central", "South"], size=n_rows
+    )
 
     df_sales = pd.DataFrame(
         {
@@ -189,7 +122,103 @@ def main() -> None:
 
     # Add fully empty column to trigger FullyEmptyColumnsRule
     df_sales["return_reason"] = None
+    return df_sales
 
+
+def main() -> None:
+    raw_dir = os.path.join("examples", "data", "raw")
+    processed_dir = os.path.join("examples", "data", "processed")
+    os.makedirs(processed_dir, exist_ok=True)
+
+    # 1. Prepare Iris
+    print("Preparing Iris dataset...")
+    df_iris = generate_iris_dataframe()
+    df_iris.to_csv(os.path.join(processed_dir, "iris.csv"), index=False)
+    print("Iris dataset processed.")
+
+    # 2. Prepare California Housing
+    cal_raw_path = os.path.join(raw_dir, "california_housing_raw.csv")
+    if os.path.exists(cal_raw_path):
+        print("\nPreparing California Housing dataset...")
+        df_cal = pd.read_csv(cal_raw_path)
+        df_cal.columns = [
+            "median_income",
+            "house_age",
+            "average_rooms",
+            "average_bedrooms",
+            "population",
+            "average_occupancy",
+            "latitude",
+            "longitude",
+            "median_house_value",
+        ]
+        df_cal.to_csv(
+            os.path.join(processed_dir, "california_housing.csv"), index=False
+        )
+        print("California Housing processed.")
+
+    # 3. Prepare Titanic
+    titanic_raw_path = os.path.join(raw_dir, "titanic_raw.csv")
+    if os.path.exists(titanic_raw_path):
+        print("\nPreparing Titanic dataset...")
+        df_titanic = pd.read_csv(titanic_raw_path)
+        df_titanic.columns = [
+            c.replace(".", "_").lower() for c in df_titanic.columns
+        ]
+        df_titanic.to_csv(
+            os.path.join(processed_dir, "titanic.csv"), index=False
+        )
+        print("Titanic dataset processed.")
+
+    # 4. Prepare Customer Churn
+    churn_raw_path = os.path.join(raw_dir, "customer_churn_raw.csv")
+    if os.path.exists(churn_raw_path):
+        print("\nPreparing Customer Churn dataset...")
+        df_churn = pd.read_csv(churn_raw_path)
+        df_churn.columns = [
+            "customer_id",
+            "gender",
+            "senior_citizen",
+            "partner",
+            "dependents",
+            "tenure",
+            "phone_service",
+            "multiple_lines",
+            "internet_service",
+            "online_security",
+            "online_backup",
+            "device_protection",
+            "tech_support",
+            "streaming_tv",
+            "streaming_movies",
+            "contract",
+            "paperless_billing",
+            "payment_method",
+            "monthly_charges",
+            "total_charges",
+            "churn",
+        ]
+        df_churn["total_charges"] = pd.to_numeric(
+            df_churn["total_charges"], errors="coerce"
+        )
+        df_churn["customer_status"] = df_churn["churn"].apply(
+            lambda x: "Inactive" if x == "Yes" or x is True else "Active"
+        )
+        df_churn["churn_label"] = df_churn["churn"].apply(
+            lambda x: 1 if x == "Yes" or x is True else 0
+        )
+        np.random.seed(42)
+        noise = np.random.uniform(-0.01, 0.01, size=len(df_churn))
+        df_churn["leakage_score"] = df_churn["churn_label"] + noise
+
+        df_churn.to_csv(
+            os.path.join(processed_dir, "customer_churn.csv"), index=False
+        )
+        print("Customer Churn dataset processed.")
+
+    # 5. Generate Sales
+    print("\nGenerating Sales dataset...")
+    df_sales = generate_sales_dataframe()
     sales_path = os.path.join(processed_dir, "sales.csv")
     df_sales.to_csv(sales_path, index=False)
     print(

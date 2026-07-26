@@ -14,14 +14,16 @@ class HighCardinalityRule(BaseRule):
         """Initialize the high cardinality rule.
 
         Args:
-            threshold: Unique ratio threshold (unique count / non-missing count).
-                If a value > 1.0 is passed, it is treated as a percentage and converted to ratio.
+            threshold: Unique ratio threshold (0.0 to 1.0), defined as
+                unique count / non-missing count.
             min_cardinality: Minimum unique value count required to flag high cardinality.
+
+        Raises:
+            ValueError: If threshold is not between 0.0 and 1.0.
         """
-        if threshold > 1.0:
-            self.threshold = threshold / 100.0
-        else:
-            self.threshold = threshold
+        if not (0.0 <= threshold <= 1.0):
+            raise ValueError("threshold must be a ratio between 0.0 and 1.0.")
+        self.threshold = threshold
         self.min_cardinality = min_cardinality
 
     @property

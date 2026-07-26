@@ -8,7 +8,11 @@ import pytest
 
 import featuresmith as fs
 from featuresmith.connectors import ConnectorRegistry, CsvConnector, DataFrameConnector
-from featuresmith.core.exceptions import ConnectorError
+from featuresmith.core.exceptions import (
+    SourceNotFoundError,
+    SourceParseError,
+    UnsupportedFormatError,
+)
 
 
 def test_loads_csv_file_into_polars_dataset(tmp_path: Path) -> None:
@@ -86,7 +90,7 @@ def test_loads_supported_dataframes_without_copying() -> None:
 
 def test_missing_files_raise_actionable_connector_error() -> None:
     for source in ("missing.csv", "missing.xlsx", "missing.parquet"):
-        with pytest.raises(ConnectorError, match="does not exist"):
+        with pytest.raises(SourceNotFoundError, match="does not exist"):
             fs.load(source)
 
 
@@ -94,7 +98,7 @@ def test_unsupported_file_format_raises_connector_error(tmp_path: Path) -> None:
     source = tmp_path / "customers.json"
     source.write_text("{}", encoding="utf-8")
 
-    with pytest.raises(ConnectorError, match="Unsupported source"):
+    with pytest.raises(UnsupportedFormatError, match="Unsupported source"):
         fs.load(source)
 
 
@@ -103,12 +107,12 @@ def test_corrupted_files_raise_connector_error(tmp_path: Path) -> None:
         source = tmp_path / f"corrupt{suffix}"
         source.write_bytes(b"not a valid tabular file")
 
-        with pytest.raises(ConnectorError, match="Could not read"):
+        with pytest.raises(SourceParseError, match="Could not read"):
             fs.load(source)
 
 
 def test_connector_validation_rejects_wrong_source_type() -> None:
     connector = DataFrameConnector()
 
-    with pytest.raises(ConnectorError, match="pandas or Polars"):
+    with pytest.raises(UnsupportedFormatError, match="pandas or Polars"):
         connector.validate({"value": 1})

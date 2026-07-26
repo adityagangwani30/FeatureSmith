@@ -319,3 +319,63 @@ def test_rule_engine_error_isolation() -> None:
     # The crashing rule should be registered in failed_rules
     assert "test.crashing_rule" in result.failed_rules
     assert "Intentional crash" in result.failed_rules["test.crashing_rule"]
+
+
+def test_rules_invalid_thresholds() -> None:
+    """Verify that rules raise ValueError for invalid configurations."""
+    import pytest
+
+    from featuresmith.rules.cardinality import HighCardinalityRule
+    from featuresmith.rules.duplicates import DuplicateRowsRule
+    from featuresmith.rules.missing import MissingValueThresholdRule
+
+    with pytest.raises(ValueError, match="percentage between 0.0 and 100.0"):
+        MissingValueThresholdRule(threshold=-1.0)
+    with pytest.raises(ValueError, match="percentage between 0.0 and 100.0"):
+        MissingValueThresholdRule(threshold=100.1)
+
+    with pytest.raises(ValueError, match="percentage between 0.0 and 100.0"):
+        DuplicateRowsRule(threshold=-0.1)
+    with pytest.raises(ValueError, match="percentage between 0.0 and 100.0"):
+        DuplicateRowsRule(threshold=150.0)
+
+    with pytest.raises(ValueError, match="ratio between 0.0 and 1.0"):
+        HighCardinalityRule(threshold=-0.01)
+    with pytest.raises(ValueError, match="ratio between 0.0 and 1.0"):
+        HighCardinalityRule(threshold=1.01)
+
+
+def test_rule_engine_eager_validation() -> None:
+    """Verify that RuleEngine raises appropriate exceptions eagerly for invalid configs."""
+    import pytest
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    prof = fs.profile(df)
+    engine = RuleEngine()
+
+    # 1. Unknown rule ID
+    with pytest.raises(ValueError, match="Unknown rule ID in config"):
+        engine.run(prof, rule_config={"non_existent_rule": {}})
+
+    # 2. Typos in config parameter names
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        engine.run(
+            prof,
+            rule_config={"quality.missing_value_threshold": {"threshhold": 30.0}},
+        )
+
+    # 3. Incorrect config parameter types
+    with pytest.raises(TypeError, match="Incorrect type for parameter"):
+        engine.run(
+            prof,
+            rule_config={
+                "quality.missing_value_threshold": {"threshold": "not-a-float"}
+            },
+        )
+
+    # 4. Out of bounds values
+    with pytest.raises(ValueError, match="percentage between 0.0 and 100.0"):
+        engine.run(
+            prof,
+            rule_config={"quality.missing_value_threshold": {"threshold": 120.0}},
+        )

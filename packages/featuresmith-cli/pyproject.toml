@@ -22,6 +22,9 @@ featuresmith-core = { workspace = true }
 [tool.setuptools]
 package-dir = {"" = "src"}
 
+[tool.setuptools.package-data]
+featuresmith_cli = ["py.typed"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["featuresmith_cli*"]
