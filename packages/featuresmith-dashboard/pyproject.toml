@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "featuresmith-dashboard"
-version = "0.0.4-dev"
+version = "0.1.0"
 description = "Thin dashboard surface for Featuresmith."
 requires-python = ">=3.11"
 dependencies = [
-  "featuresmith-core>=0.0.4-dev",
+  "featuresmith-core>=0.1.0",
 ]
 
 [tool.uv.sources]

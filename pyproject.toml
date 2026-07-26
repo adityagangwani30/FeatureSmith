@@ -1,12 +1,12 @@
 [project]
 name = "featuresmith-workspace"
-version = "0.0.4-dev"
+version = "0.1.0"
 description = "Workspace for the Featuresmith core library and thin client surfaces."
 requires-python = ">=3.11"
 dependencies = [
-  "featuresmith-core>=0.0.4-dev",
-  "featuresmith-cli>=0.0.4-dev",
-  "featuresmith-dashboard>=0.0.4-dev",
+  "featuresmith-core>=0.1.0",
+  "featuresmith-cli>=0.1.0",
+  "featuresmith-dashboard>=0.1.0",
   "ruff>=0.12.0",
   "mypy>=1.17.0",
   "pytest>=8.4.0",
@@ -60,6 +60,8 @@ exclude = [
   "^\\.venv/",
   "^build/",
   "^dist/",
+  "^examples/",
+  "^benchmarks/",
 ]
 
 [tool.pytest.ini_options]

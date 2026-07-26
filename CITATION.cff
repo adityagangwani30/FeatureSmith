@@ -17,7 +17,7 @@ authors:
 repository-code: "https://github.com/adityagangwani30/FeatureSmith"
 url: "https://github.com/adityagangwani30/FeatureSmith"
 license: Apache-2.0
-version: "0.0.5-dev"
+version: "0.1.0"
 date-released: "2026-07-26"
 keywords:
   - feature-engineering

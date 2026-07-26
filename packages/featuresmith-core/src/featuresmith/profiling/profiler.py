@@ -182,10 +182,12 @@ def profile_dataset(
 
     elapsed_time = time.perf_counter() - start_perf
 
+    from featuresmith import __version__ as pkg_version
+
     execution_metadata = ExecutionMetadata(
         start_time=start_time_iso,
         duration_seconds=elapsed_time,
-        featuresmith_version="0.0.4-dev",
+        featuresmith_version=pkg_version,
     )
 
     return ProfileResult(
