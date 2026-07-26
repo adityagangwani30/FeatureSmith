@@ -108,6 +108,63 @@ Raw Data
                    [Future Recommendation Engine]
 ```
 
+## Command Line Interface (CLI)
+
+Featuresmith CLI provides a fast, local-first terminal interface for dataset profiling and rule evaluation. It calls the public SDK to perform analysis, ensuring full consistency with programmatic SDK usage.
+
+### Installation
+
+To install the CLI in the workspace development environment:
+```bash
+uv sync --all-packages
+```
+
+### Usage Examples
+
+**1. Basic Analysis (Styled Rich Table)**
+```bash
+uv run featuresmith analyze customers.csv
+```
+
+**2. Target Column for Leakage Detection**
+Specify the target label column to check for potential feature leakage:
+```bash
+uv run featuresmith analyze customers.csv --target churn
+```
+
+**3. Format Outputs as JSON**
+Output a standardized JSON structure for scripting or piping to other utilities:
+```bash
+uv run featuresmith analyze customers.csv --format json
+```
+
+**4. Filtering and Exit Gating by Severity**
+Only display findings at or above a threshold (`info`, `warning`, `critical`). The CLI will return exit code `1` if any findings meet or exceed this threshold:
+```bash
+uv run featuresmith analyze customers.csv --severity warning
+```
+
+**5. Save the Report to a File**
+Save the rendered report to disk. Text reports have ANSI escape sequences stripped automatically; JSON reports are saved as standard JSON:
+```bash
+uv run featuresmith analyze customers.csv --output report.txt
+uv run featuresmith analyze customers.csv --format json --output report.json
+```
+
+**6. Quiet Mode**
+Suppress all console outputs while writing the report directly to a file:
+```bash
+uv run featuresmith analyze customers.csv --output report.txt --quiet
+```
+
+### CLI Exit Codes
+
+- `0` — Success (analysis completed, no findings met or exceeded the severity threshold).
+- `1` — Analysis completed, but quality findings meeting or exceeding the threshold were detected.
+- `2` — Invalid input (e.g. invalid target column name, bad option value).
+- `3` — File loading/parsing failure (e.g. non-existent file, corrupted format).
+- `4` — Unexpected internal error (pass `--verbose` to view full traceback).
+
 ## Workspace Structure
 
 ```text
@@ -172,7 +229,7 @@ mypy .
 Featuresmith is being built incrementally. See [Phases.md](./docs/Phases.md) for the detailed execution plan:
 
 *   **Phase 0 (Foundations):** Workspace, packages, CI/CD, and schema definitions. (Completed)
-*   **Phase 1 (SDK & CLI MVP):** Local data connectors, statistical profiling, and rule engine. (In Progress)
+*   **Phase 1 (SDK & CLI MVP):** Local data connectors, statistical profiling, and rule engine. (Completed)
 *   **Phase 2 (AI Narration):** Grounded dataset summary and explainable recommendations.
 *   **Phase 3 (Interactive AI Chat):** Contextual natural-language exploration of findings.
 *   **Phase 4 (Export Layer):** Production-grade pipeline code generation (scikit-learn).

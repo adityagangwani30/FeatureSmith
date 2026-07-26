@@ -83,3 +83,24 @@ forbidden_modules = [
   "featuresmith.core",
   "featuresmith.profiling",
 ]
+ignore_imports = [
+  # featuresmith.api is the only permitted entrypoint for thin clients.
+  # All edges below are transitive paths that route *through* featuresmith.api;
+  # direct imports from featuresmith_cli into featuresmith.core remain forbidden.
+  "featuresmith.api -> featuresmith.core.dataset",
+  "featuresmith.api -> featuresmith.core.exceptions",
+  "featuresmith.api -> featuresmith.core.profile_result",
+  "featuresmith.api -> featuresmith.core.rule_result",
+  "featuresmith.api -> featuresmith.profiling",
+  "featuresmith.api -> featuresmith.connectors.registry",
+  "featuresmith.api -> featuresmith.rules.engine",
+  "featuresmith.connectors.registry -> featuresmith.core.dataset",
+  "featuresmith.connectors.registry -> featuresmith.core.exceptions",
+  "featuresmith.connectors.registry -> featuresmith.connectors.csv_connector",
+  "featuresmith.connectors.registry -> featuresmith.connectors.excel_connector",
+  "featuresmith.connectors.registry -> featuresmith.connectors.parquet_connector",
+  "featuresmith.connectors.registry -> featuresmith.connectors.dataframe_connector",
+  "featuresmith.rules.engine -> featuresmith.core.profile_result",
+  "featuresmith.rules.engine -> featuresmith.core.rule_result",
+  "featuresmith.rules.engine -> featuresmith.core.rule_finding",
+]

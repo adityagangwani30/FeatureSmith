@@ -4,9 +4,9 @@
 
 - Current Version: 0.0.4-dev
 - Current Phase: Phase 1 — SDK + CLI MVP
-- Current Sprint: Sprint 5 — CLI MVP
+- Current Sprint: Sprint 6 — SDK Hardening & Exporter Layer
 - Repository: `D:\FeatureSmith`
-- Last Updated: 2026-07-25
+- Last Updated: 2026-07-26
 
 -------------------------------------------------
 
@@ -18,7 +18,8 @@
 | Sprint 2 — Dataset Foundation and Connector System | Completed | 2026-07-25 |
 | Sprint 3 — Deterministic Data Profiling Engine | Completed | 2026-07-25 |
 | Sprint 4 — Deterministic Rule Engine | Completed | 2026-07-25 |
-| Sprint 5 — CLI MVP | Current | — |
+| Sprint 5 — CLI MVP | Completed | 2026-07-26 |
+| Sprint 6 — SDK Hardening & Exporter Layer | Current | — |
 
 -------------------------------------------------
 
@@ -200,6 +201,30 @@
   - No rule configuration persistence (e.g. `.featuresmith.yml` loading) yet —
     rule configs are passed directly at call time.
 
+### Sprint 5 — CLI MVP
+
+- Objective: Build a production-grade CLI wrapper (`featuresmith-cli`) over the existing Featuresmith SDK, following the core-first architecture.
+- Major Deliverables:
+  - `featuresmith_cli/main.py` — top-level application wrapper using `typer`.
+  - `featuresmith_cli/commands/analyze.py` — implementation of the main `analyze` command.
+  - `featuresmith_cli/output.py` — dispatcher choosing between styled Rich text and JSON serializers.
+  - `featuresmith_cli/rich_output.py` — human-readable formatting using `rich.table.Table`.
+  - `featuresmith_cli/json_output.py` — machine-readable JSON representation.
+  - `featuresmith_cli/utils.py` — helpers for colors, severity levels, and text processing.
+  - `docs/adr/0002-cli-dependencies.md` — ADR documenting cli dependencies.
+  - `tests/cli/test_cli.py` — integration and surface-parity tests.
+- Files Modified: `featuresmith/api.py`, `pyproject.toml` (workspace-level configuration), `README.md`, `MEMORY.md`.
+- Important Decisions:
+  - All command actions and validation steps invoke `featuresmith.api` rather than duplicate core engine behaviors.
+  - Expose `--severity` to function as both a finding visual filter and exit-code gating threshold.
+  - Console width in the renderer set to 200 to prevent mid-word wrapping and truncations during testing.
+- Lessons Learned:
+  - Custom Click types are deprecated in modern Typer; using standard `Annotated` + `Literal` type hints creates correct options metadata while remaining fully compliant with MyPy.
+  - Direct import contract checks can trigger transitive failures across internal dependencies; configure the `ignore_imports` list under workspace contract definitions to skip transitive edges.
+- Known Limitations:
+  - No interactive chat functionality is supported (deferred to Phase 3).
+  - No configuration file resolution for rule threshold overrides (deferred to Sprint 6).
+
 -------------------------------------------------
 
 ## Current Architecture Status
@@ -213,7 +238,7 @@
 | Recommendation Engine | Not Started |
 | AI Layer | Not Started |
 | Exporters | Not Started |
-| CLI | Not Started |
+| CLI | Completed |
 | Dashboard | Not Started |
 | Plugin System | Not Started |
 
@@ -232,6 +257,10 @@ primitives.
   full pipeline (load → profile → rule_engine.run()) and return a `RuleResult`.
 - `profile_dataset(dataset, max_correlation_columns=100)` — internal orchestrator,
   importable from `featuresmith.profiling` for advanced callers.
+- `featuresmith analyze <source>` — CLI command; thin Typer wrapper over `fs.analyze()`.
+  Flags: `--target`, `--format {table,json}`, `--output`, `--severity {info,warning,critical}`,
+  `--max-correlation-columns`, `--quiet`, `--verbose`, `--version`.
+  Exit codes: 0 (clean), 1 (findings above threshold), 2 (invalid input), 3 (file load failure), 4 (unexpected error).
 
 -------------------------------------------------
 
@@ -249,6 +278,11 @@ primitives.
 | 2026-07-25 | Sprint 4 | Rule configuration injected via re-instantiation (`Rule(**config)`). | Keeps rules stateless and independently testable without a global config object. |
 | 2026-07-25 | Sprint 4 | `LeakageRuleTargetCorrelation` requires explicit `target_column`. | No target inference per design; deterministic heuristic only. |
 | 2026-07-25 | Sprint 4 | `RuleEngine` isolates rule failures in `failed_rules` dict. | One crashing rule must never abort the analysis pipeline. |
+| 2026-07-26 | Sprint 5 | CLI is a thin Typer wrapper — all logic flows through `featuresmith.api`. | Enforce the core-first architecture; no business logic in the CLI package. |
+| 2026-07-26 | Sprint 5 | Use `Annotated` + `Literal` types for constrained options, not `typer.types.Choice`. | Compatible with Typer 0.12+ (installed version) and generates correct type metadata. |
+| 2026-07-26 | Sprint 5 | Use `import-linter` `ignore_imports` for transitive-only paths through `featuresmith.api`. | Prevent false positives from chains that route legitimately through the public API boundary. |
+| 2026-07-26 | Sprint 5 | Set `Console(width=200)` to prevent mid-word Rich text wrapping in test environments. | Ensures rule IDs rendered in table cells are assertable without folding or truncation. |
+| 2026-07-26 | Sprint 5 | Parquet fixture in CLI tests uses Polars `write_parquet()` not pandas. | Pandas Parquet requires pyarrow/fastparquet not installed; Polars writes natively. |
 
 -------------------------------------------------
 
@@ -271,24 +305,50 @@ primitives.
 
 ## Upcoming Sprint
 
-- Sprint Number: Sprint 5
-- Objective: CLI MVP — Expose `featuresmith analyze <source>` as a thin Typer
-  wrapper over `fs.analyze()` so the same analysis is available from the
-  terminal.
+- Sprint Number: Sprint 6
+- Objective: SDK Hardening & Exporter Layer — improve SDK resilience, add JSON/CSV
+  export helpers, and begin configuration loading from `.featuresmith.yml`.
 - Major Tasks:
-  - Implement `featuresmith analyze <source>` CLI command in `featuresmith-cli`.
-  - Implement human-readable table/rich output for findings.
-  - Implement `--format json` flag for machine-consumption/piping.
-  - Implement `--target` flag for `target_column`.
-  - Surface `exit code 1` when findings above a configured severity threshold.
-  - Write surface-parity tests asserting CLI and SDK produce the same findings.
-- Dependencies: Sprint 4 `RuleResult` / `fs.analyze()`.
-- Expected Deliverables: `featuresmith analyze` CLI command; rich table output;
-  JSON output mode; surface-parity integration test.
+  - Add JSON and CSV export helpers to the SDK.
+  - Implement `.featuresmith.yml` configuration loading for rule thresholds.
+  - Extend SDK sampling strategy for very large datasets.
+- Dependencies: Sprint 5 `featuresmith analyze` CLI; `RuleResult.to_dict()`.
+- Expected Deliverables: `fs.export_json()`, `fs.export_csv()`; YAML config loader;
+  size-tiered profiling strategy.
 
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-07-26 — Sprint 5 (CLI MVP)
+
+- Added `featuresmith-cli` package with Typer entrypoint registered as the `featuresmith` script.
+- Added `featuresmith analyze <source>` CLI command — thin wrapper over `fs.analyze()`.
+  - `--target` — target column for leakage rule.
+  - `--format {table,json}` — output format using Literal type annotation.
+  - `--output` — save rendered report to a file (ANSI-stripped for txt; JSON for json).
+  - `--severity {info,warning,critical}` — severity threshold for display and exit-code gating.
+  - `--max-correlation-columns` — configurable correlation cap.
+  - `--quiet` — suppress console output; file output still written.
+  - `--verbose` — print full Python traceback on unexpected error.
+  - `--version` — print version and exit (eager).
+- Added `packages/featuresmith-cli/src/featuresmith_cli/` package tree:
+  `__init__.py`, `main.py`, `commands/__init__.py`, `commands/analyze.py`,
+  `output.py`, `rich_output.py`, `json_output.py`, `utils.py`.
+- Added Rich terminal report with Dataset Overview, Analysis Findings & Issues
+  (including `rule_id` as dim subtitle), and Execution Summary tables.
+- Added JSON output mode using `RuleResult.to_dict()` canonical serialization.
+- Added ANSI strip utility for plain-text file exports.
+- Added `tests/cli/test_cli.py` with 14 integration test scenarios:
+  help display, version, CSV/Excel/Parquet analysis, severity thresholds, JSON format,
+  missing file, unsupported format, invalid target column, file output (txt + JSON),
+  quiet mode, and surface parity with SDK.
+- Updated `featuresmith.api` to re-export `Dataset`, `ProfileResult`, `RuleResult`,
+  and `ConnectorError` as explicit `as X` re-exports for mypy `attr-defined` compliance.
+- Updated `pyproject.toml` `import-linter` contract with `ignore_imports` list
+  to suppress legitimate transitive paths through `featuresmith.api`.
+- Exit codes implemented: 0 (clean), 1 (findings ≥ threshold), 2 (invalid input),
+  3 (file load failure), 4 (unexpected error).
 
 ### 2026-07-25 — Sprint 4 Quality & Release Preparation Pass
 

@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from featuresmith.connectors.registry import default_registry
-from featuresmith.core.dataset import Dataset
-from featuresmith.core.profile_result import ProfileResult
-from featuresmith.core.rule_result import RuleResult
+from featuresmith.core.dataset import Dataset as Dataset
+from featuresmith.core.exceptions import ConnectorError as ConnectorError
+from featuresmith.core.profile_result import ProfileResult as ProfileResult
+from featuresmith.core.rule_result import RuleResult as RuleResult
 from featuresmith.profiling import profile_dataset
 
 
