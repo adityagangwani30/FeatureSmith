@@ -186,7 +186,7 @@ function renderTokens(tokens: Token[]): React.ReactNode {
 
 interface CodeBlockProps {
   code: string
-  language?: "python" | "bash"
+  language?: "python" | "bash" | "yaml"
   filename?: string
   showCopy?: boolean
   className?: string

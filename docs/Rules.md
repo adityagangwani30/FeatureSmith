@@ -68,7 +68,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 
 ## 9. Versioning Strategy
 
-- Semantic Versioning (`MAJOR.MINOR.PATCH`), applied **independently per package** (`featuresmith-core`, `featuresmith-cli`, `featuresmith-dashboard`) — a CLI patch release must not force a core version bump and vice versa, though `featuresmith-cli`/`featuresmith-dashboard` always declare a minimum compatible `featuresmith-core` version.
+- Semantic Versioning (`MAJOR.MINOR.PATCH`), applied **independently per release package** (`featuresmith-core`, `featuresmith-cli`, and future public surfaces). A CLI patch release must not force a core version bump and vice versa, though surface packages always declare a minimum compatible `featuresmith-core` version.
 - `Base*`/`AIProvider` interface changes are MINOR at most pre-1.0, MAJOR post-1.0.
 - Rule IDs, AI provider IDs, config schema keys, and CLI command names are part of the public API surface — changing them requires a deprecation cycle (warn for one MINOR release before removal).
 

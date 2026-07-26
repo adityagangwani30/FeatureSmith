@@ -21,3 +21,4 @@ examples/data/
 FIXES.md
 fixes.txt
 tests/fixtures/processed/
+frontend/tsconfig.tsbuildinfo

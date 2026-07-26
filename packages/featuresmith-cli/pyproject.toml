@@ -1,12 +1,40 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "featuresmith-cli"
 version = "0.1.0"
-description = "Thin CLI surface for Featuresmith."
+description = "Command-line interface for the Featuresmith data quality engine."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Featuresmith contributors" },
+]
+maintainers = [
+  { name = "Featuresmith contributors" },
+]
 requires-python = ">=3.11"
+keywords = [
+  "cli",
+  "data-quality",
+  "feature-engineering",
+  "profiling",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "Typing :: Typed",
+]
 dependencies = [
   "featuresmith-core>=0.1.0",
   "typer~=0.12",
@@ -15,6 +43,13 @@ dependencies = [
 
 [project.scripts]
 featuresmith = "featuresmith_cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/adityagangwani30/FeatureSmith"
+Documentation = "https://github.com/adityagangwani30/FeatureSmith#readme"
+Repository = "https://github.com/adityagangwani30/FeatureSmith"
+Issues = "https://github.com/adityagangwani30/FeatureSmith/issues"
+Changelog = "https://github.com/adityagangwani30/FeatureSmith/blob/main/CHANGELOG.md"
 
 [tool.uv.sources]
 featuresmith-core = { workspace = true }

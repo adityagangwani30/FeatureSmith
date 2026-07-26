@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # NOTE: This is an unreleased, internal-only workspace package.
@@ -10,19 +10,37 @@ name = "featuresmith-dashboard"
 version = "0.1.0"
 description = "Thin dashboard surface for Featuresmith (Unreleased / Internal)."
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Featuresmith contributors" },
+]
+maintainers = [
+  { name = "Featuresmith contributors" },
+]
 requires-python = ">=3.11"
 classifiers = [
-  "Private :: Do Not Upload",
+  "Development Status :: 1 - Planning",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
   "featuresmith-core>=0.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/adityagangwani30/FeatureSmith"
+Repository = "https://github.com/adityagangwani30/FeatureSmith"
+Issues = "https://github.com/adityagangwani30/FeatureSmith/issues"
 
 [tool.uv.sources]
 featuresmith-core = { workspace = true }
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+featuresmith_dashboard = ["py.typed"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

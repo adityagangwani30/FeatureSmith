@@ -69,7 +69,8 @@ def profile(
             Parquet), or an in-memory pandas or Polars DataFrame.
         max_correlation_columns: Limit correlation computations to prevent
             combinatorial blowup (default 100).
-        max_frequency_table_size: Maximum entries to keep in categorical frequency_table (default 1000).
+        max_frequency_table_size: Maximum entries to keep in categorical
+            frequency tables (default 1000).
 
     Returns:
         ProfileResult: A strongly-typed statistical profile containing dataset
@@ -128,6 +129,8 @@ def analyze(
             For example, `{"quality.missing_value_threshold": {"threshold": 15.0}}`.
         max_correlation_columns: Limit correlation computations during profiling to
             prevent combinatorial blowup (default 100).
+        max_frequency_table_size: Maximum entries to keep in categorical
+            frequency tables (default 1000).
 
     Returns:
         RuleResult: The canonical output of the Rule Engine containing the

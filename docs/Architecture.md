@@ -67,7 +67,7 @@ flowchart TB
 | `featuresmith_vscode` | Thin VS Code extension (TypeScript) over the SDK/CLI (Phase 6) | — |
 | `featuresmith.config` | Load/validate `.featuresmith.yml` project config | Pydantic models |
 
-Note the naming convention: everything with business logic lives under the `featuresmith` package itself; every surface package is separately named and separately versioned (`featuresmith-cli`, `featuresmith-dashboard`, `featuresmith-vscode` as distinct, thin PyPI distributions depending on `featuresmith-core`) — this makes the "no logic outside core" rule structurally enforceable, not just documented (see `Rules.md` §10).
+Note the naming convention: everything with business logic lives under the `featuresmith` package itself; every release surface is separately named and separately versioned (`featuresmith-cli` as a public PyPI distribution for v0.1.0, with `featuresmith-dashboard` and `featuresmith-vscode` remaining internal or future surfaces until their release phases) — this makes the "no logic outside core" rule structurally enforceable, not just documented (see `Rules.md` §10).
 
 ## 4. Folder Structure
 
