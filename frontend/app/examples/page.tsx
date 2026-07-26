@@ -1,0 +1,220 @@
+import type { Metadata } from "next"
+import Link from "next/link"
+import { ChevronRight, ArrowRight, Code, Terminal, Settings } from "lucide-react"
+import { Container } from "@/components/ui/container"
+import { CodeBlock } from "@/components/ui/code-block"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+
+export const metadata: Metadata = {
+  title: "Examples | Featuresmith",
+  description: "Explore real-world Python SDK pipelines, CI/CD integrations, and custom rules written for Featuresmith.",
+}
+
+const SDK_EXAMPLE_CODE = `import json
+import featuresmith as fs
+
+def run_featuresmith_pipeline(data_path: str, target: str):
+    # 1. Load data safely into Dataset layer
+    print(f"Loading data from {data_path}...")
+    dataset = fs.load(data_path)
+
+    # 2. Run data audit checks (load → profile → rules evaluation)
+    print("Running rule audit...")
+    result = fs.analyze(
+        dataset,
+        target_column=target,
+        rule_config={
+            "quality.missing_value_threshold": {"threshold": 10.0},
+            "statistical.high_correlation": {"threshold": 0.85}
+        }
+    )
+
+    # 3. Handle rules results
+    print(f"Audit completed. Findings: {len(result.findings)}")
+    for finding in result.findings:
+        print(f"[{finding.severity.upper()}] Column: {finding.column_name}")
+        print(f"  Issue  : {finding.title}")
+        print(f"  Detail : {finding.description}")
+
+    # 4. Serialize result to dictionary/JSON
+    report_dict = result.to_dict()
+    with open("report.json", "w") as f:
+        json.dump(report_dict, f, indent=2, default=str)
+
+if __name__ == "__main__":
+    run_featuresmith_pipeline("customers.csv", target="churn")`
+
+const CICD_EXAMPLE_CODE = `# .github/workflows/data-quality-gate.yml
+name: Data Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *' # Run daily audits
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install featuresmith featuresmith-cli
+
+      - name: Audit dataset quality
+        run: |
+          # Gate CI build: if critical rule violations exist, exit code 1 fails step
+          featuresmith analyze data/incoming_leads.csv --target converted --severity critical --output audit_report.txt
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-audit-report
+          path: audit_report.txt`
+
+const CUSTOM_RULE_CODE = `from typing import Any
+from featuresmith.rules.base import BaseRule
+from featuresmith.core.rule_finding import RuleFinding, RuleSeverity
+from featuresmith.core.profile_result import ProfileResult
+
+class ZeroVarianceRule(BaseRule):
+    """Custom rule to detect columns with zero variance (no statistical variance)."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__()
+        # Allow passing config overrides
+        self.enabled = kwargs.get("enabled", True)
+
+    @property
+    def id(self) -> str:
+        return "statistical.zero_variance"
+
+    @property
+    def name(self) -> str:
+        return "Zero Variance Columns"
+
+    @property
+    def category(self) -> str:
+        return "statistical"
+
+    @property
+    def severity(self) -> RuleSeverity:
+        return RuleSeverity.WARNING
+
+    def evaluate(self, profile: ProfileResult) -> list[RuleFinding]:
+        findings = []
+        
+        # Access numerical columns only
+        for col_name, col_profile in profile.column_profiles.items():
+            numeric_stats = col_profile.numeric_stats
+            if numeric_stats is not None:
+                # If standard deviation is 0.0, the column has zero variance
+                if numeric_stats.std == 0.0:
+                    findings.append(
+                        self.create_finding(
+                            column_name=col_name,
+                            title="Zero Variance Detected",
+                            description=f"Column '{col_name}' has standard deviation of 0.0 (no variance).",
+                            evidence={"std": 0.0}
+                        )
+                    )
+        return findings`
+
+export default function ExamplesPage() {
+  return (
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-background pt-20 pb-24">
+        <Container size="md">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1 text-sm text-muted-foreground">
+            <Link href="/" className="hover:text-foreground">Home</Link>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            <span className="text-foreground">Examples</span>
+          </nav>
+
+          {/* Page header */}
+          <header className="mb-12 border-b border-border pb-8">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Examples
+            </h1>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+              Production-grade implementations demonstrating Featuresmith SDK pipelines,
+              automated CI/CD quality gates, and custom rule design.
+            </p>
+          </header>
+
+          {/* Python SDK Pipeline Example */}
+          <section className="mb-14" aria-labelledby="sdk-pipeline">
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                <Code className="h-4.5 w-4.5" aria-hidden />
+              </div>
+              <h2 id="sdk-pipeline" className="text-xl font-semibold text-foreground">Python SDK Pipeline</h2>
+            </div>
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+              This script illustrates loading a CSV dataset, executing deterministic audits targeting a leakage column, handling rule findings, and writing serialized reports to disk.
+            </p>
+            <CodeBlock code={SDK_EXAMPLE_CODE} language="python" filename="pipeline.py" showCopy />
+          </section>
+
+          {/* CI/CD Quality Gate Example */}
+          <section className="mb-14" aria-labelledby="cicd-gate">
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                <Terminal className="h-4.5 w-4.5" aria-hidden />
+              </div>
+              <h2 id="cicd-gate" className="text-xl font-semibold text-foreground">CI/CD Quality Gate</h2>
+            </div>
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+              Integrate the Featuresmith CLI into your GitHub Actions workflow. Exit code 1 gates the build on critical quality or leakage violations, and uploads the generated text reports.
+            </p>
+            <CodeBlock code={CICD_EXAMPLE_CODE} language="yaml" filename="data-quality-gate.yml" showCopy />
+          </section>
+
+          {/* Custom Rule Design Example */}
+          <section className="mb-14" aria-labelledby="custom-rule">
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                <Settings className="h-4.5 w-4.5" aria-hidden />
+              </div>
+              <h2 id="custom-rule" className="text-xl font-semibold text-foreground">Designing Custom Rules</h2>
+            </div>
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+              Extend the <code>BaseRule</code> abstraction to create your own deterministic validation checks. This example detects numeric columns with zero standard deviation.
+            </p>
+            <CodeBlock code={CUSTOM_RULE_CODE} language="python" filename="zero_variance.py" showCopy />
+          </section>
+
+          {/* CTA Box */}
+          <div className="mt-16 rounded-xl border border-border bg-muted/20 p-6 md:p-8 text-center">
+            <h3 className="text-base font-semibold text-foreground">Ready to deep dive?</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Read our full Python SDK API reference and core conceptual guidelines.
+            </p>
+            <div className="mt-5 flex justify-center gap-4">
+              <Link
+                href="/docs"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary transition-all hover:gap-2"
+              >
+                Explore Documentation
+                <ArrowRight className="h-3 w-3" aria-hidden />
+              </Link>
+            </div>
+          </div>
+        </Container>
+      </div>
+      <Footer />
+    </>
+  )
+}
