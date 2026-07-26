@@ -62,9 +62,7 @@ def generate_sales_dataframe() -> pd.DataFrame:
     ]
     dates_str = [d.strftime("%Y-%m-%d %H:%M:%S") for d in dates]
 
-    customer_ids = [
-        f"US-{10000 + np.random.randint(1, 200)}" for _ in range(n_rows)
-    ]
+    customer_ids = [f"US-{10000 + np.random.randint(1, 200)}" for _ in range(n_rows)]
     categories = np.random.choice(
         ["Furniture", "Office Supplies", "Technology"],
         size=n_rows,
@@ -93,16 +91,12 @@ def generate_sales_dataframe() -> pd.DataFrame:
         else:
             discounts.append(
                 round(
-                    np.random.choice(
-                        [0.0, 0.1, 0.15, 0.2], p=[0.6, 0.2, 0.1, 0.1]
-                    ),
+                    np.random.choice([0.0, 0.1, 0.15, 0.2], p=[0.6, 0.2, 0.1, 0.1]),
                     2,
                 )
             )
 
-    regions = np.random.choice(
-        ["East", "West", "Central", "South"], size=n_rows
-    )
+    regions = np.random.choice(["East", "West", "Central", "South"], size=n_rows)
 
     df_sales = pd.DataFrame(
         {
@@ -162,12 +156,8 @@ def main() -> None:
     if os.path.exists(titanic_raw_path):
         print("\nPreparing Titanic dataset...")
         df_titanic = pd.read_csv(titanic_raw_path)
-        df_titanic.columns = [
-            c.replace(".", "_").lower() for c in df_titanic.columns
-        ]
-        df_titanic.to_csv(
-            os.path.join(processed_dir, "titanic.csv"), index=False
-        )
+        df_titanic.columns = [c.replace(".", "_").lower() for c in df_titanic.columns]
+        df_titanic.to_csv(os.path.join(processed_dir, "titanic.csv"), index=False)
         print("Titanic dataset processed.")
 
     # 4. Prepare Customer Churn
@@ -211,9 +201,7 @@ def main() -> None:
         noise = np.random.uniform(-0.01, 0.01, size=len(df_churn))
         df_churn["leakage_score"] = df_churn["churn_label"] + noise
 
-        df_churn.to_csv(
-            os.path.join(processed_dir, "customer_churn.csv"), index=False
-        )
+        df_churn.to_csv(os.path.join(processed_dir, "customer_churn.csv"), index=False)
         print("Customer Churn dataset processed.")
 
     # 5. Generate Sales

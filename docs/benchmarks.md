@@ -40,7 +40,7 @@ The following table summarizes the actual measured times and peak memory allocat
   - 10K rows: ~78ms, 1.20 MB
   - 100K rows: ~562ms, 11.82 MB
   - 500K rows: ~3.67s, 62.01 MB
-- **Rule Engine Efficiency**: Rule audits run extremely fast (under 10ms even on 500K rows) because they evaluate statistics that are already computed and loaded in the `ProfileResult` dataclass, avoiding any repeated data passes.
+- **Rule Engine Efficiency**: Rule audits run extremely fast (under 15ms even on 500K rows) because they evaluate statistics that are already computed and loaded in the `ProfileResult` dataclass, avoiding any repeated data passes.
 - **Minimal Memory Overhead**: Peak memory allocation remains highly constrained (only 62 MB for half a million rows), proving the efficiency of Polars' column-oriented execution.
 
 ## Known Limitations

@@ -10,14 +10,15 @@ export const metadata: Metadata = {
 
 const INSTALL_CODE = `pip install featuresmith-core`
 
-const QUICKSTART_CODE = `from featuresmith import Dataset
+const QUICKSTART_CODE = `import featuresmith as fs
 
 # Load a CSV file
-ds = Dataset.from_csv("data.csv")
+dataset = fs.load("data.csv")
 
 # Profile your data
-profile = ds.profile()
-print(profile.summary())`
+profile = fs.profile(dataset)
+for name, col in profile.column_profiles.items():
+    print(f"{name}: {col.missing_count} missing values")`
 
 const QUICK_LINKS = [
   {
@@ -105,7 +106,7 @@ export default function DocsPage() {
         </p>
         <CodeBlock code={INSTALL_CODE} language="bash" showCopy />
         <p className="mt-3 text-xs text-muted-foreground">
-          Requires Python 3.9 or higher. Pandas and NumPy are optional but
+          Requires Python 3.11 or higher. Pandas and NumPy are optional but
           recommended for full functionality.
         </p>
       </section>

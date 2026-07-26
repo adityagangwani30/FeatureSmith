@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { ChevronRight, Info, AlertTriangle, AlertCircle, CheckCircle2, Terminal as TerminalIcon } from "lucide-react"
 import { CodeBlock } from "@/components/ui/code-block"
 
@@ -756,6 +756,77 @@ for finding in findings:
         </section>
       </>
     )
+  },
+  "guides/cicd": {
+    title: "CI/CD Integration",
+    subtitle: "Automate data quality and target leakage checks in your deployment pipelines",
+    category: "Guides",
+    seoTitle: "CI/CD Pipeline Integration Guide",
+    seoDescription: "Learn how to integrate Featuresmith into GitHub Actions, GitLab CI, and other automation workflows.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          Data quality issues and target leakage often sneak into production because datasets are updated out-of-band or model retraining runs automatically. Featuresmith is designed to run inside CI/CD pipelines to prevent model degradation by gating deployments on strict rule audits.
+        </p>
+
+        <section className="mb-8" aria-labelledby="cicd-exit-codes">
+          <h3 id="cicd-exit-codes" className="mb-3 text-lg font-semibold text-foreground">Exit-Code Gating</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            The <code>featuresmith analyze</code> command returns deterministic exit codes that shell runners can check to decide whether to block or proceed with the build:
+          </p>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground" role="list">
+            <li><code>0</code>: <strong>Clean run</strong> — no findings detected at or above the requested severity threshold.</li>
+            <li><code>1</code>: <strong>Rule violation(s) detected</strong> — one or more audits failed. This will automatically fail standard CI steps unless ignored.</li>
+            <li><code>2</code>: <strong>Invalid input</strong> — misspelled arguments, target column not in schema, or incorrect options.</li>
+            <li><code>3</code>: <strong>Ingestion/load failure</strong> — database or files could not be read or parsed.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="cicd-github-actions">
+          <h3 id="cicd-github-actions" className="mb-3 text-lg font-semibold text-foreground">GitHub Actions Workflow</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Here is a complete, copy-pasteable GitHub Actions workflow file (<code>.github/workflows/data-audit.yml</code>) that runs Featuresmith on every pull request to check for schema drift and target leakage:
+          </p>
+          <CodeBlock code={`name: Data Quality Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  audit-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Python & uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.11"
+
+      - name: Install Featuresmith
+        run: |
+          uv pip install featuresmith-core featuresmith-cli --system
+
+      - name: Run Data Quality Audit
+        run: |
+          # Gate pipeline on 'warning' and 'critical' severity levels
+          featuresmith analyze data/train.csv --target churn --severity warning`} language="yaml" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="cicd-customization">
+          <h3 id="cicd-customization" className="mb-3 text-lg font-semibold text-foreground">Customizing Gates</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            You can customize the strictness of your CI gate by overriding severity settings in your local <code>.featuresmith.yml</code> configuration file, or by passing the <code>--severity</code> flag to the CLI.
+          </p>
+          <CodeBlock code={`# Only fail builds on critical violations (fully empty columns or target leakage)
+featuresmith analyze data/train.csv --target churn --severity critical`} language="bash" showCopy />
+        </section>
+      </>
+    )
   }
 }
 
@@ -779,6 +850,20 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
 
 export default function DynamicDocPage({ params }: { params: { slug: string[] } }) {
   const slugPath = params.slug.join("/")
+
+  if (slugPath === "concepts") {
+    redirect("/docs/concepts/dataset")
+  }
+  if (slugPath === "sdk") {
+    redirect("/docs/sdk/load")
+  }
+  if (slugPath === "cli") {
+    redirect("/docs/cli/analyze")
+  }
+  if (slugPath === "guides") {
+    redirect("/docs/guides/cicd")
+  }
+
   const doc = DOCS_MAP[slugPath]
 
   // If page does not exist in DOCS_MAP, render a high-quality "Under Construction" page
