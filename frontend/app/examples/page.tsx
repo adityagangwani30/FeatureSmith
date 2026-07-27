@@ -82,18 +82,12 @@ jobs:
           name: data-audit-report
           path: audit_report.txt`
 
-const CUSTOM_RULE_CODE = `from typing import Any
+const CUSTOM_RULE_CODE = `from featuresmith.core.profile_result import ProfileResult
 from featuresmith.rules.base import BaseRule
-from featuresmith.core.rule_finding import RuleFinding, RuleSeverity
-from featuresmith.core.profile_result import ProfileResult
+from featuresmith.core.rule_finding import RuleFinding
 
 class ZeroVarianceRule(BaseRule):
-    """Custom rule to detect columns with zero variance (no statistical variance)."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
-        # Allow passing config overrides
-        self.enabled = kwargs.get("enabled", True)
+    """Detect numeric columns with zero standard deviation."""
 
     @property
     def id(self) -> str:
@@ -104,28 +98,35 @@ class ZeroVarianceRule(BaseRule):
         return "Zero Variance Columns"
 
     @property
+    def description(self) -> str:
+        return "Flags numeric columns with no observed variance."
+
+    @property
     def category(self) -> str:
         return "statistical"
 
     @property
-    def severity(self) -> RuleSeverity:
-        return RuleSeverity.WARNING
+    def severity(self) -> str:
+        return "warning"
+
+    @property
+    def enabled_by_default(self) -> bool:
+        return True
 
     def evaluate(self, profile: ProfileResult) -> list[RuleFinding]:
-        findings = []
-        
-        # Access numerical columns only
-        for col_name, col_profile in profile.column_profiles.items():
-            numeric_stats = col_profile.numeric_stats
-            if numeric_stats is not None:
-                # If standard deviation is 0.0, the column has zero variance
-                if numeric_stats.std == 0.0:
+        findings: list[RuleFinding] = []
+        for col_name, numeric_profile in profile.numeric_profiles.items():
+            if numeric_profile.std_dev == 0.0:
                     findings.append(
-                        self.create_finding(
+                        RuleFinding(
+                            rule_id=self.id,
+                            rule_name=self.name,
+                            category=self.category,
+                            severity=self.severity,
                             column_name=col_name,
                             title="Zero Variance Detected",
                             description=f"Column '{col_name}' has standard deviation of 0.0 (no variance).",
-                            evidence={"std": 0.0}
+                            evidence={"std_dev": numeric_profile.std_dev}
                         )
                     )
         return findings`

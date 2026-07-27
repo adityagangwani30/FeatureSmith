@@ -145,13 +145,17 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "Installation", href: "/docs/installation" },
       { title: "Quick Start", href: "/docs/quickstart" },
       { title: "Benchmarks", href: "/docs/benchmarks" },
+      { title: "Development Setup", href: "/docs/dev-setup" },
+      { title: "Contributing", href: "/docs/contributing" },
     ],
   },
   {
     title: "Core Concepts",
     href: "/docs/concepts",
     items: [
+      { title: "Architecture Overview", href: "/docs/concepts/architecture" },
       { title: "Dataset Layer", href: "/docs/concepts/dataset" },
+      { title: "Connectors", href: "/docs/concepts/connectors" },
       { title: "Profiling Engine", href: "/docs/concepts/profiling" },
       { title: "Rule Engine", href: "/docs/concepts/rules" },
     ],
@@ -163,6 +167,8 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "load()", href: "/docs/sdk/load" },
       { title: "profile()", href: "/docs/sdk/profile" },
       { title: "analyze()", href: "/docs/sdk/analyze" },
+      { title: "Data Models", href: "/docs/sdk/models" },
+      { title: "Exceptions", href: "/docs/sdk/exceptions" },
       { title: "Plugins", href: "/docs/sdk/plugins" },
     ],
   },
@@ -183,7 +189,17 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "Writing Plugins", href: "/docs/guides/plugins" },
     ],
   },
+  {
+    title: "Resources",
+    href: "/docs/resources",
+    items: [
+      { title: "Release Notes", href: "/docs/resources/release" },
+      { title: "FAQ", href: "/docs/resources/faq" },
+      { title: "Troubleshooting", href: "/docs/resources/troubleshooting" },
+    ],
+  },
 ]
+
 
 export const PYTHON_EXAMPLE_CODE = `import featuresmith as fs
 

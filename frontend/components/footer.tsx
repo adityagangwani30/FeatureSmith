@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Container } from "@/components/ui/container"
 function GithubIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -6,7 +7,6 @@ function GithubIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-import { Container } from "@/components/ui/container"
 
 const FOOTER_LINKS = {
   Documentation: [
@@ -22,7 +22,9 @@ const FOOTER_LINKS = {
     { label: "Contributing", href: "https://github.com/adityagangwani30/FeatureSmith/blob/main/CONTRIBUTING.md", external: true },
   ],
   Project: [
-    { label: "Roadmap", href: "/#roadmap" },
+    { label: "Roadmap", href: "/roadmap" },
+    { label: "Release status", href: "/release" },
+    { label: "Benchmarks", href: "/benchmarks" },
     { label: "Changelog", href: "https://github.com/adityagangwani30/FeatureSmith/blob/main/CHANGELOG.md", external: true },
     { label: "Examples", href: "/examples" },
   ],
