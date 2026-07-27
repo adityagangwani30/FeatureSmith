@@ -5,9 +5,17 @@ import { DOCS_MAP } from "./docs-content"
 
 const PLANNED_DOCS = new Set(["sdk/plugins", "guides/plugins"])
 
+export async function generateStaticParams() {
+  const slugs = [...Object.keys(DOCS_MAP), "sdk/plugins", "guides/plugins"]
+  return slugs.map((slug) => ({
+    slug: slug.split("/"),
+  }))
+}
+
 // Generate metadata for each dynamic documentation path
-export async function generateMetadata({ params }: { params: { slug: string[] } }) {
-  const slugPath = params.slug.join("/")
+export async function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }) {
+  const resolvedParams = await params
+  const slugPath = resolvedParams.slug.join("/")
   const doc = DOCS_MAP[slugPath]
 
   if (!doc && PLANNED_DOCS.has(slugPath)) {
@@ -30,8 +38,9 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
   }
 }
 
-export default function DynamicDocPage({ params }: { params: { slug: string[] } }) {
-  const slugPath = params.slug.join("/")
+export default async function DynamicDocPage({ params }: { params: Promise<{ slug: string[] }> }) {
+  const resolvedParams = await params
+  const slugPath = resolvedParams.slug.join("/")
 
   if (slugPath === "concepts") {
     redirect("/docs/concepts/dataset")
