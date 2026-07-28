@@ -3,11 +3,11 @@
 Invoked by the TestPyPI publishing workflow after twine check
 to verify distribution contents match expectations.
 """
-import sys
-import zipfile
-import tarfile
-from pathlib import Path
 
+import sys
+import tarfile
+import zipfile
+from pathlib import Path
 
 PACKAGE_MAP = {
     "featuresmith_core": {
