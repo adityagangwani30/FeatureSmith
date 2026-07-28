@@ -1,6 +1,13 @@
 name: Publish to Production PyPI
 
 on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for running the production publish workflow"
+        required: false
+        default: "Manual production publish"
+
   release:
     types:
       - published
