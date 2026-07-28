@@ -24,7 +24,7 @@ const FOOTER_LINKS = {
   Project: [
     { label: "Roadmap", href: "/roadmap" },
     { label: "Release status", href: "/release" },
-    { label: "Benchmarks", href: "/benchmarks" },
+    { label: "Benchmarks", href: "/docs/benchmarks" },
     { label: "Changelog", href: "https://github.com/adityagangwani30/FeatureSmith/blob/main/CHANGELOG.md", external: true },
     { label: "Examples", href: "/examples" },
   ],

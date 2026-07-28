@@ -21,47 +21,35 @@ export const DOCS_MAP: Record<string, DocContent> = {
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith is built for Python 3.11+. It can be installed directly from source,
-          installed via <code>pip</code> from TestPyPI for pre-release validation, or installed from the public PyPI upon the final v0.1.0 release.
+          Featuresmith is built for Python 3.11+. It can be installed as a library,
+          as a CLI, or built directly from source for local development. We recommend using <code>uv</code> or <code>pip</code>.
         </p>
 
-        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex gap-3">
-          <div className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary">
-            <Info className="h-4 w-4" aria-hidden />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground mb-1 text-xs">Pre-Release Staging Phase</p>
-            <p className="text-xs">
-              Featuresmith v0.1.0 packages are currently undergoing final release staging. During this phase, public PyPI installations are not yet live. Please use the source or TestPyPI commands below to install and validate the pre-release.
-            </p>
-          </div>
-        </div>
-
-        <section className="mb-8" aria-labelledby="install-testpypi">
-          <h3 id="install-testpypi" className="mb-3 text-lg font-semibold text-foreground">From TestPyPI</h3>
+        <section className="mb-8" aria-labelledby="install-pip">
+          <h3 id="install-pip" className="mb-3 text-lg font-semibold text-foreground">Using pip</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Install the staged packages from TestPyPI:
+            Install the latest version of the core library and the CLI from PyPI:
           </p>
-          <CodeBlock code="pip install --index-url https://test.pypi.org/simple/ featuresmith-core featuresmith-cli" language="bash" showCopy />
+          <CodeBlock code="pip install featuresmith-core featuresmith-cli" language="bash" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="install-uv">
+          <h3 id="install-uv" className="mb-3 text-lg font-semibold text-foreground">Using uv (Recommended)</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Add Featuresmith to your workspace dependencies:
+          </p>
+          <CodeBlock code="uv add featuresmith-core featuresmith-cli" language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-source">
-          <h3 id="install-source" className="mb-3 text-lg font-semibold text-foreground">From Source (Development & Staging)</h3>
+          <h3 id="install-source" className="mb-3 text-lg font-semibold text-foreground">From Source (Development)</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Clone the repository and sync the workspace:
+            Clone the repository and sync the workspace for local contribution:
           </p>
           <CodeBlock code={`git clone https://github.com/adityagangwani30/FeatureSmith.git
 cd FeatureSmith
 uv sync
 pre-commit install`} language="bash" showCopy />
-        </section>
-
-        <section className="mb-8" aria-labelledby="install-pypi">
-          <h3 id="install-pypi" className="mb-3 text-lg font-semibold text-foreground">Production PyPI (Upon Release)</h3>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Once v0.1.0 is published, install standard packages directly:
-          </p>
-          <CodeBlock code="pip install featuresmith-core featuresmith-cli" language="bash" showCopy />
         </section>
       </>
     )
