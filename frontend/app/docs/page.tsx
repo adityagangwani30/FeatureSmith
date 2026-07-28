@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Get started with Featuresmith — the open-source Python library for data profiling and validation.",
 }
 
-const INSTALL_CODE = `pip install featuresmith-core`
+const INSTALL_CODE = `pip install --index-url https://test.pypi.org/simple/ featuresmith-core`
 
 const QUICKSTART_CODE = `import featuresmith as fs
 
@@ -102,7 +102,7 @@ export default function DocsPage() {
           Installation
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-          Install Featuresmith from PyPI using pip:
+          During pre-release validation, install Featuresmith from TestPyPI:
         </p>
         <CodeBlock code={INSTALL_CODE} language="bash" showCopy />
         <p className="mt-3 text-xs text-muted-foreground">

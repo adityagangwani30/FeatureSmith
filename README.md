@@ -14,6 +14,10 @@ Load tabular datasets, profile them, detect quality issues, and build reliable p
 [![MyPy](https://img.shields.io/badge/mypy-strict-blueviolet?style=flat-square)](https://mypy-lang.org/)
 [![Tests](https://img.shields.io/badge/tests-pytest-yellow?style=flat-square&logo=pytest)](https://docs.pytest.org/)
 
+<br />
+
+[📖 Documentation Website](https://featuresmith.adityagangwani.me) · [🚀 Quick Start](#quick-start--python-sdk) · [💬 Discussions](https://github.com/adityagangwani30/FeatureSmith/discussions)
+
 </div>
 
 ---
@@ -116,6 +120,10 @@ Once v0.1.0 is published, standard installation commands will be available:
 ```bash
 pip install featuresmith-core featuresmith-cli
 ```
+
+---
+
+For full documentation, tutorials, SDK examples, and configuration guides, visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me).
 
 ---
 
@@ -313,6 +321,10 @@ uv run pytest              # tests
 ---
 
 ## Documentation
+
+Visit the official [Featuresmith Documentation Website](https://featuresmith.adityagangwani.me) for comprehensive guides, quick starts, SDK reference, and CLI instructions.
+
+### Local Repository Documents
 
 | Document | Contents |
 |---|---|

@@ -46,7 +46,7 @@ featuresmith = "featuresmith_cli.main:app"
 
 [project.urls]
 Homepage = "https://github.com/adityagangwani30/FeatureSmith"
-Documentation = "https://github.com/adityagangwani30/FeatureSmith#readme"
+Documentation = "https://featuresmith.adityagangwani.me"
 Repository = "https://github.com/adityagangwani30/FeatureSmith"
 Issues = "https://github.com/adityagangwani30/FeatureSmith/issues"
 Changelog = "https://github.com/adityagangwani30/FeatureSmith/blob/main/CHANGELOG.md"

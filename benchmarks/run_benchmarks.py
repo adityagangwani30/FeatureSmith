@@ -41,6 +41,7 @@ def generate_benchmark_data(num_rows: int, num_cols: int = 15) -> str:
 
     import datetime
     import random
+
     start_date = datetime.datetime(2026, 1, 1)
     data["date_col"] = [
         (start_date + datetime.timedelta(days=random.randint(0, 364))).strftime(

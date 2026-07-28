@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://featuresmith.dev",
+    url: "https://featuresmith.adityagangwani.me",
     siteName: "Featuresmith",
     title: "Featuresmith — Data Profiling & Validation",
     description:
