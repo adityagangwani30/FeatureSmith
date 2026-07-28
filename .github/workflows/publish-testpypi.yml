@@ -52,7 +52,7 @@ jobs:
       # ======================================================
 
       - name: Install Python dependencies
-        run: uv sync --locked --group dev --group test
+        run: uv sync --locked --group dev --group test --group release
 
       # ======================================================
       # Validation Pipeline
@@ -119,11 +119,8 @@ jobs:
       # Distribution Validation (Twine Check)
       # ======================================================
 
-      - name: Install twine
-        run: uv pip install twine
-
       - name: Twine check all distributions
-        run: twine check dist/*
+        run: uv run twine check dist/*
 
       - name: Inspect distribution contents
         run: python .github/scripts/inspect_distributions.py
@@ -148,7 +145,7 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
-          python -m twine upload \
+          uv run python -m twine upload \
             --repository-url https://test.pypi.org/legacy/ \
             dist/featuresmith_core-*
 
@@ -157,6 +154,6 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
-          python -m twine upload \
+          uv run python -m twine upload \
             --repository-url https://test.pypi.org/legacy/ \
             dist/featuresmith_cli-*
