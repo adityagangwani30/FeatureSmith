@@ -18,8 +18,22 @@
 
 ## Before Upload
 
-- [ ] Exclude `featuresmith-dashboard` from v0.1.0 publish jobs.
-- [ ] Run `twine check dist/*` in CI once RR-6 adds publishing dependencies.
-- [ ] Upload first to TestPyPI.
-- [ ] Install from TestPyPI in a clean environment.
-- [ ] Upload `featuresmith-core` and `featuresmith-cli` to PyPI only after TestPyPI validation passes.
+- [x] Exclude `featuresmith-dashboard` from v0.1.0 publish jobs.
+- [x] Run `twine check dist/*` in CI (handled by publish-testpypi.yml).
+
+## TestPyPI Validation
+
+- [ ] Trigger the **Publish to TestPyPI** workflow via `workflow_dispatch`.
+- [ ] Confirm all validation, build, twine check, and publish steps pass.
+- [ ] Visit [test.pypi.org/project/featuresmith-core](https://test.pypi.org/project/featuresmith-core/) and verify metadata.
+- [ ] Visit [test.pypi.org/project/featuresmith-cli](https://test.pypi.org/project/featuresmith-cli/) and verify metadata.
+- [ ] Install from TestPyPI in a clean environment:
+      ```bash
+      pip install --index-url https://test.pypi.org/simple/ featuresmith-core featuresmith-cli
+      ```
+- [ ] Run `featuresmith --help` to confirm CLI entry point works.
+- [ ] Confirm `featuresmith-dashboard` is NOT present on TestPyPI.
+
+## Production Upload
+
+- [ ] Upload `featuresmith-core` and `featuresmith-cli` to PyPI only after TestPyPI validation passes. See `release/TestPyPI_Publishing_Guide.md` for the adaptation checklist.

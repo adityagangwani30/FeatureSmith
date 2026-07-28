@@ -1,0 +1,170 @@
+name: Publish to TestPyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (branch, tag, or SHA) to publish. Defaults to current."
+        required: false
+        default: ""
+  push:
+    branches:
+      - release-testing
+
+concurrency:
+  group: release-testpypi
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+
+    steps:
+      # ======================================================
+      # Environment Setup
+      # ======================================================
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # ======================================================
+      # Dependency Installation
+      # ======================================================
+
+      - name: Install Python dependencies
+        run: uv sync --locked --group dev --group test
+
+      # ======================================================
+      # Validation Pipeline
+      # ======================================================
+
+      - name: Check formatting (ruff format)
+        run: uv run --group dev ruff format --check .
+
+      - name: Lint (ruff check)
+        run: uv run --group dev ruff check .
+
+      - name: Type check (mypy)
+        run: uv run --group dev mypy .
+
+      - name: Run tests (pytest)
+        run: uv run --group test pytest
+
+      # ======================================================
+      # Frontend Validation
+      # ======================================================
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Type-check frontend (tsc)
+        run: pnpm lint
+        working-directory: frontend
+
+      - name: Build frontend (next build)
+        run: pnpm build
+        working-directory: frontend
+
+      # ======================================================
+      # Build Packages
+      # ======================================================
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Build featuresmith-core
+        run: uv build --package featuresmith-core --out-dir dist
+
+      - name: Build featuresmith-cli
+        run: uv build --package featuresmith-cli --out-dir dist
+
+      # Verify only intended packages were built
+      - name: List built distributions
+        run: ls -la dist/
+
+      # ======================================================
+      # Distribution Validation (Twine Check)
+      # ======================================================
+
+      - name: Install twine
+        run: uv pip install twine
+
+      - name: Twine check all distributions
+        run: twine check dist/*
+
+      - name: Inspect distribution contents
+        run: python .github/scripts/inspect_distributions.py
+
+      # ======================================================
+      # Release Artifacts (upload before publish)
+      # ======================================================
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+          retention-days: 30
+
+      # ======================================================
+      # Publish to TestPyPI
+      # ======================================================
+
+      - name: Publish featuresmith-core to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload \
+            --repository-url https://test.pypi.org/legacy/ \
+            dist/featuresmith_core-*
+
+      - name: Publish featuresmith-cli to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload \
+            --repository-url https://test.pypi.org/legacy/ \
+            dist/featuresmith_cli-*
