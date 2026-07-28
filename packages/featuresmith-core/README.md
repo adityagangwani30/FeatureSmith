@@ -9,11 +9,13 @@ It provides:
 - `featuresmith.analyze()` for data quality and leakage rule findings.
 - Typed, serializable result dataclasses and a PEP 561 `py.typed` marker.
 
-Install it with:
+Install the staged pre-release version from TestPyPI:
 
 ```bash
-pip install featuresmith-core
+pip install --index-url https://test.pypi.org/simple/ featuresmith-core
 ```
+
+*(Note: Upon final release, standard installation from public PyPI will be enabled: `pip install featuresmith-core`)*
 
 For source development and full project documentation, see the repository README:
 <https://github.com/adityagangwani30/FeatureSmith>

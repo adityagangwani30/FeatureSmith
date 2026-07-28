@@ -5,11 +5,13 @@
 It exposes the `featuresmith` console command and delegates analysis work to
 `featuresmith-core`.
 
-Install it with:
+Install the staged pre-release versions from TestPyPI:
 
 ```bash
-pip install featuresmith-core featuresmith-cli
+pip install --index-url https://test.pypi.org/simple/ featuresmith-core featuresmith-cli
 ```
+
+*(Note: Upon final release, standard installation from public PyPI will be enabled: `pip install featuresmith-core featuresmith-cli`)*
 
 Run an analysis:
 

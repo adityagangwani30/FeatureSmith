@@ -93,19 +93,15 @@ All business logic lives in **`featuresmith-core`**. The CLI and Dashboard are t
 
 ## Installation
 
-**Using uv (recommended)**
+Featuresmith v0.1.0 packages are currently undergoing final release staging. During this pre-release validation phase, you can install the verified packages from TestPyPI or directly from source.
+
+**From TestPyPI**
 
 ```bash
-uv add featuresmith-core
+pip install --index-url https://test.pypi.org/simple/ featuresmith-core featuresmith-cli
 ```
 
-**Using pip**
-
-```bash
-pip install featuresmith-core
-```
-
-**Editable install from source**
+**From Source (for development and local testing)**
 
 ```bash
 git clone https://github.com/adityagangwani30/FeatureSmith.git
@@ -113,12 +109,12 @@ cd FeatureSmith
 uv sync
 ```
 
-**Install with CLI**
+**Production PyPI (Upon Release)**
+
+Once v0.1.0 is published, standard installation commands will be available:
 
 ```bash
 pip install featuresmith-core featuresmith-cli
-# or from source:
-uv sync --all-packages
 ```
 
 ---

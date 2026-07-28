@@ -8,55 +8,55 @@
   "benchmarks": {
     "10000": {
       "load": {
-        "time_ms": 13.21,
+        "time_ms": 13.74,
         "memory_mb": 0.01
       },
       "profile": {
-        "time_ms": 78.42,
+        "time_ms": 86.79,
         "memory_mb": 1.2
       },
       "rules": {
-        "time_ms": 0.71,
+        "time_ms": 0.74,
         "memory_mb": 0.01
       },
       "analyze_e2e": {
-        "time_ms": 56.78,
+        "time_ms": 65.81,
         "memory_mb": 1.2
       }
     },
     "100000": {
       "load": {
-        "time_ms": 147.03,
+        "time_ms": 34.57,
         "memory_mb": 0.01
       },
       "profile": {
-        "time_ms": 562.74,
+        "time_ms": 415.78,
         "memory_mb": 11.82
       },
       "rules": {
-        "time_ms": 0.73,
+        "time_ms": 0.75,
         "memory_mb": 0.01
       },
       "analyze_e2e": {
-        "time_ms": 514.64,
+        "time_ms": 437.87,
         "memory_mb": 11.82
       }
     },
     "500000": {
       "load": {
-        "time_ms": 499.74,
+        "time_ms": 366.44,
         "memory_mb": 0.01
       },
       "profile": {
-        "time_ms": 3667.91,
+        "time_ms": 3464.5,
         "memory_mb": 62.01
       },
       "rules": {
-        "time_ms": 12.57,
+        "time_ms": 1.74,
         "memory_mb": 0.01
       },
       "analyze_e2e": {
-        "time_ms": 2331.68,
+        "time_ms": 2285.69,
         "memory_mb": 62.01
       }
     }

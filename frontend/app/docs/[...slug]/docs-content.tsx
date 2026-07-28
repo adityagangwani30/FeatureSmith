@@ -21,43 +21,47 @@ export const DOCS_MAP: Record<string, DocContent> = {
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith is built for Python 3.11+. It can be installed as a library,
-          as a CLI, or built directly from source for local development. We recommend using <code>uv</code> for package management.
+          Featuresmith is built for Python 3.11+. It can be installed directly from source,
+          installed via <code>pip</code> from TestPyPI for pre-release validation, or installed from the public PyPI upon the final v0.1.0 release.
         </p>
 
-        <section className="mb-8" aria-labelledby="install-uv">
-          <h3 id="install-uv" className="mb-3 text-lg font-semibold text-foreground">Using uv (Recommended)</h3>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Add Featuresmith to your workspace dependencies:
-          </p>
-          <CodeBlock code="uv add featuresmith-core" language="bash" showCopy />
-        </section>
+        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex gap-3">
+          <div className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary">
+            <Info className="h-4 w-4" aria-hidden />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground mb-1 text-xs">Pre-Release Staging Phase</p>
+            <p className="text-xs">
+              Featuresmith v0.1.0 packages are currently undergoing final release staging. During this phase, public PyPI installations are not yet live. Please use the source or TestPyPI commands below to install and validate the pre-release.
+            </p>
+          </div>
+        </div>
 
-        <section className="mb-8" aria-labelledby="install-pip">
-          <h3 id="install-pip" className="mb-3 text-lg font-semibold text-foreground">Using pip</h3>
+        <section className="mb-8" aria-labelledby="install-testpypi">
+          <h3 id="install-testpypi" className="mb-3 text-lg font-semibold text-foreground">From TestPyPI</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Install the latest version of the core library from PyPI:
+            Install the staged packages from TestPyPI:
           </p>
-          <CodeBlock code="pip install featuresmith-core" language="bash" showCopy />
-        </section>
-
-        <section className="mb-8" aria-labelledby="install-cli">
-          <h3 id="install-cli" className="mb-3 text-lg font-semibold text-foreground">Installing the CLI</h3>
-          <p className="mb-3 text-sm text-muted-foreground">
-            To use the command line tool, install the CLI surface wrapper alongside the core package:
-          </p>
-          <CodeBlock code="pip install featuresmith-core featuresmith-cli" language="bash" showCopy />
+          <CodeBlock code="pip install --index-url https://test.pypi.org/simple/ featuresmith-core featuresmith-cli" language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-source">
-          <h3 id="install-source" className="mb-3 text-lg font-semibold text-foreground">From Source (Development)</h3>
+          <h3 id="install-source" className="mb-3 text-lg font-semibold text-foreground">From Source (Development & Staging)</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            For local contribution or editing:
+            Clone the repository and sync the workspace:
           </p>
           <CodeBlock code={`git clone https://github.com/adityagangwani30/FeatureSmith.git
 cd FeatureSmith
-uv sync --all-packages
+uv sync
 pre-commit install`} language="bash" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="install-pypi">
+          <h3 id="install-pypi" className="mb-3 text-lg font-semibold text-foreground">Production PyPI (Upon Release)</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Once v0.1.0 is published, install standard packages directly:
+          </p>
+          <CodeBlock code="pip install featuresmith-core featuresmith-cli" language="bash" showCopy />
         </section>
       </>
     )
@@ -864,7 +868,8 @@ class RuleFinding:
     description: str
     evidence: Mapping[str, Any]
     confidence: float = 1.0
-    id: str = ...  # Auto-generated UUID string`} language="python" showCopy={false} />
+    id: str = ...  # Auto-generated UUID string
+    metadata: Mapping[str, Any] = ...  # Extra key-value metadata`} language="python" showCopy={false} />
         </section>
 
         <section className="mb-8" aria-labelledby="models-rule-result">
@@ -1012,51 +1017,59 @@ except SourceNotFoundError:
   },
   "cli/config": {
     title: "Configuration",
-    subtitle: "Understanding .featuresmith.yml schema",
+    subtitle: "Configuring the Rule Engine via CLI flags and SDK arguments",
     category: "CLI Reference",
-    seoTitle: "Configuration Schema",
-    seoDescription: "Detailed reference for .featuresmith.yml configurations.",
+    seoTitle: "CLI and SDK Configuration Reference",
+    seoDescription: "Examine options and parameters to configure the Featuresmith Rule Engine in CLI and Python SDK.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith uses a single <code>.featuresmith.yml</code> configuration file placed at your project root to handle settings layering.
+          Featuresmith v0.1.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
         </p>
 
-        <section className="mb-8" aria-labelledby="cfg-schema">
-          <h3 id="cfg-schema" className="mb-3 text-lg font-semibold text-foreground">Example Configuration</h3>
-          <CodeBlock code={`# .featuresmith.yml
-connectors:
-  enabled:
-    - csv
-    - parquet
-    - excel
+        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex gap-3">
+          <div className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary">
+            <Info className="h-4 w-4" aria-hidden />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground mb-1 text-xs">Roadmap Notice: File-Based Config (.featuresmith.yml)</p>
+            <p className="text-xs">
+              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 2+. In the current release, configure rules directly in code or use CLI flags.
+            </p>
+          </div>
+        </div>
 
-rules:
-  enabled:
-    - quality.missing_value_threshold
-    - quality.duplicate_rows
-    - quality.fully_empty_columns
-    - statistical.outliers
-    - leakage.potential_leakage
-  config:
-    quality.missing_value_threshold:
-      threshold: 15.0
-    statistical.high_correlation:
-      threshold: 0.85
+        <section className="mb-8" aria-labelledby="cfg-sdk">
+          <h3 id="cfg-sdk" className="mb-3 text-lg font-semibold text-foreground">1. Python SDK Configuration</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Configure rules programmatically by passing the <code>enabled_rules</code> list and the <code>rule_config</code> dictionary to the <code>fs.analyze()</code> function:
+          </p>
+          <CodeBlock code={`import featuresmith as fs
 
-max_correlation_columns: 100`} language="yaml" showCopy />
+result = fs.analyze(
+    "dataset.csv",
+    target_column="churn",
+    enabled_rules=[
+        "quality.missing_value_threshold",
+        "statistical.high_correlation"
+    ],
+    rule_config={
+        "quality.missing_value_threshold": {"threshold": 15.0},
+        "statistical.high_correlation": {"threshold": 0.85}
+    }
+)`} language="python" showCopy />
         </section>
 
-        <section className="mb-8" aria-labelledby="cfg-precedence">
-          <h3 id="cfg-precedence" className="mb-3 text-lg font-semibold text-foreground">Configuration Precedence</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Configuration parameters resolve with the following precedence order:
+        <section className="mb-8" aria-labelledby="cfg-cli">
+          <h3 id="cfg-cli" className="mb-3 text-lg font-semibold text-foreground">2. CLI Options</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Control CLI analyze parameters using flags (such as filtering by severity or limiting correlation analysis sizes):
           </p>
-          <ol className="list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">
-            <li>CLI command-line flags (highest precedence)</li>
-            <li>Local <code>.featuresmith.yml</code> file settings</li>
-            <li>Package defaults (lowest precedence)</li>
-          </ol>
+          <CodeBlock code={`# Target column and correlation column limits
+featuresmith analyze dataset.csv --target churn --max-correlation-columns 50
+
+# Severity filtering and report generation
+featuresmith analyze dataset.csv --severity warning --output report.txt`} language="bash" showCopy />
         </section>
       </>
     )

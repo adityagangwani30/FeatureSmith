@@ -39,10 +39,11 @@ def generate_benchmark_data(num_rows: int, num_cols: int = 15) -> str:
                 f"CAT-{np.random.randint(0, num_rows // 2)}" for _ in range(num_rows)
             ]
 
-    # 4. Add datetime column
-    start_date = pd.Timestamp("2026-01-01")
+    import datetime
+    import random
+    start_date = datetime.datetime(2026, 1, 1)
     data["date_col"] = [
-        (start_date + pd.Timedelta(days=int(np.random.randint(0, 365)))).strftime(
+        (start_date + datetime.timedelta(days=random.randint(0, 364))).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
         for _ in range(num_rows)
