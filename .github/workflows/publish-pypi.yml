@@ -1,0 +1,158 @@
+name: Publish to Production PyPI
+
+on:
+  release:
+    types:
+      - published
+
+concurrency:
+  group: release-pypi
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://pypi.org/project/featuresmith-core/
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      # ======================================================
+      # Environment Setup
+      # ======================================================
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # ======================================================
+      # Dependency Installation
+      # ======================================================
+
+      - name: Install Python dependencies
+        run: uv sync --locked --group dev --group test --group release
+
+      # ======================================================
+      # Validation Pipeline
+      # ======================================================
+
+      - name: Check formatting (ruff format)
+        run: uv run --group dev ruff format --check .
+
+      - name: Lint (ruff check)
+        run: uv run --group dev ruff check .
+
+      - name: Type check (mypy)
+        run: uv run --group dev mypy .
+
+      - name: Run tests (pytest)
+        run: uv run --group test pytest
+
+      # ======================================================
+      # Frontend Validation
+      # ======================================================
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Type-check frontend (tsc)
+        run: pnpm lint
+        working-directory: frontend
+
+      - name: Build frontend (next build)
+        run: pnpm build
+        working-directory: frontend
+
+      # ======================================================
+      # Build Packages
+      # ======================================================
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Build featuresmith-core
+        run: uv build --package featuresmith-core --out-dir dist
+
+      - name: Build featuresmith-cli
+        run: uv build --package featuresmith-cli --out-dir dist
+
+      # Verify only intended packages were built
+      - name: List built distributions
+        run: ls -la dist/
+
+      # ======================================================
+      # Distribution Validation (Twine Check)
+      # ======================================================
+
+      - name: Twine check all distributions
+        run: uv run twine check dist/*
+
+      - name: Inspect distribution contents
+        run: python .github/scripts/inspect_distributions.py
+
+      # ======================================================
+      # Release Artifacts (upload before publish)
+      # ======================================================
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+          retention-days: 30
+
+      # ======================================================
+      # Publish to Production PyPI
+      # ======================================================
+
+      - name: Prepare featuresmith-core distribution
+        run: |
+          mkdir -p dist-core
+          cp dist/featuresmith_core-* dist-core/
+
+      - name: Publish featuresmith-core to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist-core/
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Prepare featuresmith-cli distribution
+        run: |
+          mkdir -p dist-cli
+          cp dist/featuresmith_cli-* dist-cli/
+
+      - name: Publish featuresmith-cli to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist-cli/
+          password: ${{ secrets.PYPI_API_TOKEN }}

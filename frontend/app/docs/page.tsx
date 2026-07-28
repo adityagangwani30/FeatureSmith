@@ -106,8 +106,8 @@ export default function DocsPage() {
         </p>
         <CodeBlock code={INSTALL_CODE} language="bash" showCopy />
         <p className="mt-3 text-xs text-muted-foreground">
-          Requires Python 3.11 or higher. Pandas and NumPy are optional but
-          recommended for full functionality.
+          Requires Python 3.11 or higher. Featuresmith uses Polars and Pandas
+          under the hood, which are installed automatically.
         </p>
       </section>
 

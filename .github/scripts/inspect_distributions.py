@@ -7,7 +7,7 @@ to verify distribution contents match expectations.
 import sys
 import tarfile
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 PACKAGE_MAP = {
     "featuresmith_core": {
@@ -77,7 +77,8 @@ def check_wheel(path: Path, errors: list[str]) -> None:
         # Forbidden files
         visited_tops = set()
         for name in names:
-            top = name.split("/")[0] + "/"
+            path_obj = PurePosixPath(name)
+            top = path_obj.parts[0] + "/" if path_obj.parts else ""
             if top in visited_tops:
                 continue
             visited_tops.add(top)
@@ -102,8 +103,8 @@ def check_sdist(path: Path, errors: list[str]) -> None:
         # Strip top-level directory from sdist entries
         stripped: list[str] = []
         for name in names:
-            parts = Path(name).parts
-            s = str(Path(*parts[1:])) if len(parts) > 1 else name
+            parts = PurePosixPath(name).parts
+            s = PurePosixPath(*parts[1:]).as_posix() if len(parts) > 1 else name
             stripped.append(s)
             print(f"    {name}")
 
@@ -127,7 +128,8 @@ def check_sdist(path: Path, errors: list[str]) -> None:
         for name in stripped:
             if not name:
                 continue
-            top = name.split("/")[0] + "/"
+            path_obj = PurePosixPath(name)
+            top = path_obj.parts[0] + "/" if path_obj.parts else ""
             if top in visited_tops:
                 continue
             visited_tops.add(top)
