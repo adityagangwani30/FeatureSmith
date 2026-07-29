@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="media/github_banner.png" alt="Featuresmith Banner" width="100%" />
+
 # Featuresmith
 
 **A deterministic feature engineering & data quality platform for Python.**

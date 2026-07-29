@@ -13,6 +13,7 @@ function GithubIcon({ className }: { className?: string }) {
 }
 import { Badge } from "@/components/ui/badge"
 import { Container } from "@/components/ui/container"
+import { AnimatedLogo } from "@/components/brand"
 
 const TERMINAL_LINES = [
   { text: "$ featuresmith analyze customers.csv", type: "command" },
@@ -69,6 +70,16 @@ export function Hero() {
 
       <Container size="md">
         <div className="flex flex-col items-center text-center">
+          {/* Hero Brand Icon */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mb-8 text-primary"
+          >
+            <AnimatedLogo size={80} showWordmark={false} />
+          </motion.div>
+
           {/* Top badge */}
           <motion.div
             {...fadeUp}

@@ -7,6 +7,7 @@ import { Sun, Moon, Menu, X, Star } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { NAV_ITEMS } from "@/lib/constants"
+import { FeaturesmithLogo } from "./brand"
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -21,19 +22,6 @@ function GithubIcon({ className }: { className?: string }) {
   )
 }
 
-function FeaturesmithMark({ className }: { className?: string }) {
-  return (
-    <svg
-      className={cn("h-5 w-5", className)}
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d="M10 1L19 10L10 19L1 10Z" className="fill-primary" />
-      <path d="M10 6L14 10L10 14L6 10Z" fill="white" opacity="0.25" />
-    </svg>
-  )
-}
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -92,10 +80,9 @@ export function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 font-semibold text-foreground transition-opacity hover:opacity-80"
+          className="transition-opacity hover:opacity-80"
         >
-          <FeaturesmithMark />
-          <span className="text-sm tracking-tight">featuresmith</span>
+          <FeaturesmithLogo size={24} />
         </Link>
 
         {/* Desktop nav links */}

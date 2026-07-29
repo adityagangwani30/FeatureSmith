@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Container } from "@/components/ui/container"
+import { FeaturesmithLogo } from "./brand"
 function GithubIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -35,14 +36,6 @@ const FOOTER_LINKS = {
   ],
 }
 
-function FooterMark() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 1L19 10L10 19L1 10Z" className="fill-primary" />
-      <path d="M10 6L14 10L10 14L6 10Z" fill="white" opacity="0.25" />
-    </svg>
-  )
-}
 
 export function Footer() {
   return (
@@ -52,9 +45,8 @@ export function Footer() {
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
             {/* Brand column */}
             <div className="col-span-2 md:col-span-4 lg:col-span-1">
-              <Link href="/" className="flex items-center gap-2 text-sm font-semibold">
-                <FooterMark />
-                <span>featuresmith</span>
+              <Link href="/" className="transition-opacity hover:opacity-80">
+                <FeaturesmithLogo size={20} />
               </Link>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                 Open-source data profiling and validation for Python engineers.
