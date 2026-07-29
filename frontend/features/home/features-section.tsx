@@ -41,13 +41,12 @@ export function FeaturesSection() {
     <Section id="features" className="border-t border-border bg-muted/20">
       <Container>
         <SectionHeader centered>
-          <SectionLabel>Features</SectionLabel>
+          <SectionLabel>Current Capabilities</SectionLabel>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Everything you need to trust your data
+            Available in v0.1.0
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-balance text-base leading-relaxed text-muted-foreground">
-            From raw files to validated feature sets, Featuresmith gives you the
-            primitives to build reliable data pipelines.
+            Featuresmith currently provides a deterministic, Python-native engine for profiling and rule-based validation, running locally via an SDK and CLI client.
           </p>
         </SectionHeader>
 

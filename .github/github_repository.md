@@ -9,7 +9,7 @@ These must be applied manually through the GitHub repository settings UI.
 
 **Suggested description (160 characters max):**
 
-> Deterministic feature engineering & data quality platform for Python. SDK + CLI. Profiling engine, rule engine, AI-ready architecture.
+> Open-source developer-first toolkit for structured data profiling, rules validation, and improvement. Make data quality as routine as code quality. SDK+CLI.
 
 ---
 
@@ -18,21 +18,20 @@ These must be applied manually through the GitHub repository settings UI.
 Apply these topics to make the repository discoverable:
 
 ```
-feature-engineering
 data-quality
-eda
-exploratory-data-analysis
-machine-learning
-data-science
+data-validation
+profiling
+tabular-data
+developer-tools
 python
 polars
 pandas
 cli
 rule-engine
-profiling
-tabular-data
 mlops
 open-source
+data-science
+machine-learning
 ```
 
 **How to apply:** Repository → About (gear icon) → Topics

@@ -4,9 +4,9 @@
 
 # Featuresmith
 
-**A deterministic feature engineering & data quality platform for Python.**
+**Make data quality as routine as code quality.**
 
-Load tabular datasets, profile them, detect quality issues, and build reliable preprocessing workflows through one unified SDK and CLI.
+An open-source, developer-first toolkit for understanding, validating, and improving structured data.
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat-square)](https://github.com/adityagangwani30/FeatureSmith/releases)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
@@ -18,103 +18,66 @@ Load tabular datasets, profile them, detect quality issues, and build reliable p
 
 <br />
 
-[📖 Documentation Website](https://featuresmith.adityagangwani.me) · [🚀 Quick Start](#quick-start--python-sdk) · [💬 Discussions](https://github.com/adityagangwani30/FeatureSmith/discussions)
+[📖 Documentation Website](https://featuresmith.adityagangwani.me) · [🚀 Quick Start](#quick-start) · [💬 Discussions](https://github.com/adityagangwani30/FeatureSmith/discussions)
 
 </div>
 
 ---
 
-## Why Featuresmith?
+## Hero Message
 
-Most EDA tools stop at **description** — a report with charts, a wall of statistics. You still have to interpret them, spot leakage, decide what to do, and write the code yourself. Featuresmith is designed differently: it is a **reusable engine**, not a one-shot report generator.
-
-| | ydata-profiling | sweetviz | Great Expectations | **Featuresmith** |
-|---|:---:|:---:|:---:|:---:|
-| SDK-first (Python import) | ✓ | ✓ | ✓ | ✅ |
-| CLI | — | — | ✓ | ✅ |
-| Deterministic, reproducible results | ✓ | ✓ | ✓ | ✅ |
-| Rule engine (quality + leakage) | — | — | ✓ | ✅ |
-| Strong typing (`frozen` dataclasses) | — | — | — | ✅ |
-| Surface parity (SDK = CLI = Dashboard) | — | — | — | ✅ |
-| Extensible (rules, connectors, exporters) | — | — | ✓ | ✅ |
-| JSON schemas for LLMs (AI-ready) | — | — | — | ✅ |
-| No business logic in CLI/Dashboard | — | — | — | ✅ |
+> **Every dataset deserves a code review.**
+>
+> Make data quality as routine as code quality.
 
 ---
 
-## Features
+## Why Featuresmith Exists
 
-**Implemented (Phase 1 — v0.1)**
+### The problem: engineering discipline stops at the dataset's edge
+Every serious codebase today has Git, pull requests, tests, CI/CD, linters, formatters, and static analysis. Datasets, which are just as load-bearing for a machine learning system as the code around them, get almost none of it. A column can go missing, a categorical can silently leak the target, a distribution can drift — and nothing stops it because no tests are running.
 
-- ✅ Unified `Dataset` abstraction — normalized schema across all sources
-- ✅ CSV connector (Polars)
-- ✅ Excel connector (pandas)
-- ✅ Parquet connector (Polars)
-- ✅ pandas DataFrame connector
-- ✅ Polars DataFrame connector
-- ✅ Profiling Engine — 23-metric numeric profiler, categorical, datetime, text, correlation, missing, duplicates
-- ✅ Rule Engine — 8 deterministic quality + leakage rules
-- ✅ Python SDK — `import featuresmith as fs`
-- ✅ CLI — `featuresmith analyze <source>`
-- ✅ Typed results — `frozen` dataclasses, fully serializable via `.to_dict()`
-- ✅ Exit-code gating for CI pipelines
+Tooling that does exist is fragmented: one tool profiles, another validates, another detects drift, another monitors. None of them talk to each other.
 
-**Planned**
+### Our answer: one toolkit, one loop
+Understanding, validating, and improving a dataset is one continuous engineering workflow, served by one extensible toolkit:
+- **Understand** — profile a dataset's shape, distributions, and relationships.
+- **Validate** — catch data-quality and leakage issues with deterministic, testable rules.
+- **Improve** — turn accepted findings into real, reviewable code.
 
-- 🚧 AI Narration (Phase 2) — plain-language dataset summaries via Ollama/OpenAI/Anthropic
-- 🚧 Interactive AI Chat (Phase 3) — ask questions about findings in natural language
-- 🚧 Export Layer (Phase 4) — sklearn `Pipeline`, Jupyter notebooks, HTML reports
-- 🚧 Streamlit Dashboard (Phase 5)
-- 🚧 Plugin Ecosystem (Phase 6) — community rules, connectors, AI providers
+### Why this is a developer tool, not a dashboard
+Tools that developers adopt look like `ruff`, `pytest`, or `pre-commit` — something you run automatically in CI. Featuresmith is built to be run from your CLI or imported in python. The dashboard and chat exist only to serve the moments a plain CLI check isn't enough, not to replace the check itself.
+
+### Why AI is an assistant here, not the identity
+An LLM is used solely to turn structured findings into plain-language explanations or rationales. It never computes the findings themselves. The deterministic engine runs completely with the AI layer switched off, and raw dataset data is never sent to the network.
 
 ---
 
-## Architecture
+## Current Capabilities (v0.1.0)
 
-```mermaid
-flowchart TB
-    subgraph Interfaces["Interfaces (thin clients — zero business logic)"]
-        SDK["Python SDK\nimport featuresmith as fs"]
-        CLI["CLI\nfeaturesmith analyze ..."]
-        DASH["Streamlit Dashboard\n(Phase 5)"]
-    end
-
-    subgraph Core["featuresmith-core (all business logic lives here)"]
-        CONN["Connector Layer\nCSV · Excel · Parquet · DataFrame"]
-        PROF["Profiling Engine\n(Polars)"]
-        RULES["Rule Engine\n8 deterministic rules"]
-        FUTURE_REC["Recommendation Engine\n(Phase 2+)"]
-        FUTURE_AI["AI Layer\n(Phase 2+)"]
-        FUTURE_EXP["Export Layer\n(Phase 4+)"]
-    end
-
-    CLI --> SDK
-    DASH --> SDK
-    SDK --> CONN --> PROF --> RULES --> FUTURE_REC --> FUTURE_AI --> FUTURE_EXP
-```
-
-All business logic lives in **`featuresmith-core`**. The CLI and Dashboard are thin wrappers over `featuresmith.api` — enforced by `import-linter` in CI. The same call produces identical results from any surface.
+- **Dataset Profiling**: Polars-driven deterministic profiling engine computing 23 numeric metrics, categorical frequencies, text lengths, datetime ranges, and Pearson correlation matrices.
+- **Rule-Based Validation**: Deterministic rule engine running 8 built-in seed quality and leakage rules (missing value thresholds, constant columns, duplicate rows, target leakage).
+- **Python SDK**: A clean, fully type-annotated public API (`fs.load()`, `fs.profile()`, `fs.analyze()`).
+- **Command Line Interface (CLI)**: Thin wrapper client enabling terminal reports (styled Rich tables), JSON output, and exit-code gating for CI/CD integration.
+- **Documentation**: A complete set of engineering guides, ADRs, and API references.
 
 ---
 
 ## Installation
 
-Install the Featuresmith packages directly from PyPI:
+Install Featuresmith from PyPI:
 
 **Using pip**
-
 ```bash
 pip install featuresmith-core featuresmith-cli
 ```
 
 **Using uv**
-
 ```bash
 uv add featuresmith-core featuresmith-cli
 ```
 
-**From Source (for development and local contributions)**
-
+**From Source (Development)**
 ```bash
 git clone https://github.com/adityagangwani30/FeatureSmith.git
 cd FeatureSmith
@@ -123,245 +86,106 @@ uv sync
 
 ---
 
-For full documentation, tutorials, SDK examples, and configuration guides, visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me).
-
----
-
-## Quick Start — Python SDK
+## Quick Start
 
 ```python
 import featuresmith as fs
 
-# ── Load ──────────────────────────────────────────────────────────────────────
-dataset = fs.load("customers.csv")  # CSV, Excel, Parquet, or in-memory DataFrame
-print(dataset.row_count)  # 50000
-print(dataset.schema.names)  # ['id', 'age', 'churn', ...]
+# 1. Load data normalized
+dataset = fs.load("customers.csv")
+print(f"Loaded {dataset.row_count} rows across columns: {dataset.schema.names}")
 
-# ── Profile ───────────────────────────────────────────────────────────────────
+# 2. Run deterministic profiling
 profile = fs.profile("customers.csv")
-for name, col in profile.column_profiles.items():
-    print(f"{name}: {col.missing_count} missing")
+for col_name, col in profile.column_profiles.items():
+    print(f"{col_name}: {col.missing_count} missing values")
 
-# ── Analyze (load → profile → rule engine) ────────────────────────────────────
+# 3. Analyze against rules (with target leakage detection)
 result = fs.analyze("customers.csv", target_column="churn")
-
 for finding in result.findings:
-    print(f"[{finding.severity.upper()}] {finding.title}")
-    print(f"  Column : {finding.column_name}")
-    print(f"  Rule   : {finding.rule_id}")
-    print(f"  Detail : {finding.description}")
-
-# Exit-code-friendly summary
-print(f"Findings : {len(result.findings)}")
-print(f"Executed : {result.executed_rules}")
-print(f"Time     : {result.execution_time_ms:.1f} ms")
-
-# Full serialization
-import json
-
-print(json.dumps(result.to_dict(), indent=2, default=str))
+    print(f"[{finding.severity.upper()}] {finding.title} on column '{finding.column_name}'")
+    print(f"  Details: {finding.description}")
 ```
 
 ---
 
-## CLI Usage
+## Example Usage (CLI)
 
 ```bash
-# Basic analysis — styled Rich table output
+# Basic terminal analysis table
 featuresmith analyze customers.csv
 
-# With target column for leakage detection
-featuresmith analyze customers.csv --target churn
+# Leakage detection targeting churn with exit-code gating for CI
+featuresmith analyze customers.csv --target churn --severity warning
 
-# Machine-readable JSON output
-featuresmith analyze customers.csv --format json
-
-# Filter by severity + CI exit-code gating
-featuresmith analyze customers.csv --severity warning
-
-# Save report to a file
-featuresmith analyze customers.csv --output report.txt
+# Output as machine-readable JSON to a file
 featuresmith analyze customers.csv --format json --output report.json
-
-# Quiet mode (file output only, no console)
-featuresmith analyze customers.csv --output report.txt --quiet
 ```
 
-**Exit codes**
-
+### Exit Codes
 | Code | Meaning |
-|------|---------|
-| `0` | Clean — no findings at or above the severity threshold |
-| `1` | Findings detected at or above the severity threshold |
+|:---:|---|
+| `0` | Clean — no findings detected at or above the severity threshold |
+| `1` | Findings detected at or above the severity threshold (trips CI/CD gate) |
 | `2` | Invalid input (bad flag, missing column) |
 | `3` | File load / parse failure |
-| `4` | Unexpected internal error (`--verbose` for traceback) |
+| `4` | Unexpected internal error |
 
 ---
 
-## Rule Engine
+## Flagship Vision (Future Roadmap)
 
-8 deterministic rules ship in v0.1:
-
-| Rule ID | Category | Severity | Description |
-|---|---|---|---|
-| `quality.missing_value_threshold` | quality | warning | Columns with > 20% missing values |
-| `quality.duplicate_rows` | quality | warning | Datasets with > 10% duplicate rows |
-| `quality.constant_columns` | quality | warning | Columns with exactly one unique non-null value |
-| `quality.fully_empty_columns` | quality | critical | Columns with only null values |
-| `statistical.high_cardinality` | statistical | warning | Categorical columns with unusually high unique ratio |
-| `statistical.outliers` | statistical | warning | Numeric outliers via IQR method |
-| `statistical.high_correlation` | statistical | warning | Numeric pairs with Pearson correlation ≥ 0.90 |
-| `leakage.potential_leakage` | leakage | critical | Features with correlation ≥ 0.99 to the target column |
-
-Rules are independently configurable at call time:
-
-```python
-result = fs.analyze(
-    "train.csv",
-    target_column="label",
-    rule_config={
-        "quality.missing_value_threshold": {"threshold": 30.0},
-        "statistical.high_correlation": {"threshold": 0.85},
-    },
-)
-```
+These defining capabilities do not exist today but represent the future direction of the toolkit:
+- **Dataset Review (`featuresmith review <dataset>`)**: One command executing a comprehensive engineering review of a dataset, ending in actionable transformation code suggestions.
+- **ML Readiness Score**: A single, composite metric (e.g., `ML Readiness: 91/100`) indicating machine learning readiness, backed by schema, quality, and leakage scorecards.
+- **Dataset Diff (`featuresmith diff v1.parquet v2.parquet`)**: Compare two dataset versions side-by-side to highlight schema shifts, distribution drift, or regressions.
+- **Intelligent Leakage Detection**: Advanced pattern recognition to discover label leakage, post-prediction timestamp leakage, or target derivation.
 
 ---
 
-## Project Structure
+## Documentation
 
-```
-featuresmith/
-├── packages/
-│   ├── featuresmith-core/          # ALL business logic
-│   │   └── src/featuresmith/
-│   │       ├── core/               # Dataset, ProfileResult, RuleFinding, RuleResult
-│   │       ├── connectors/         # CSV, Excel, Parquet, DataFrame connectors
-│   │       ├── profiling/          # Deterministic profiling engine
-│   │       ├── rules/              # Rule Engine + 8 seed rules
-│   │       └── api.py              # Public SDK: fs.load(), fs.profile(), fs.analyze()
-│   ├── featuresmith-cli/           # Thin Typer wrapper — imports featuresmith.api only
-│   └── featuresmith-dashboard/     # Thin Streamlit wrapper (Phase 5)
-├── tests/
-│   ├── connectors/
-│   ├── core/
-│   ├── profiling/
-│   ├── rules/
-│   └── cli/
-├── docs/
-│   ├── Architecture.md
-│   ├── PRD.md
-│   ├── Rules.md
-│   ├── Phases.md
-│   ├── Design.md
-│   └── adr/                        # Architecture Decision Records
-├── examples/
-├── .github/
-│   ├── workflows/ci.yml
-│   ├── ISSUE_TEMPLATE/
-│   └── PULL_REQUEST_TEMPLATE.md
-├── pyproject.toml                  # uv workspace root
-└── MEMORY.md                       # Implementation journal
-```
+Visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me) for comprehensive guides.
 
----
-
-## Design Philosophy
-
-Featuresmith is built on five principles:
-
-| Principle | What it means |
-|---|---|
-| **Core-first** | All business logic lives in `featuresmith-core`. CLI and Dashboard are thin wrappers — no duplicated logic, ever. |
-| **Thin interfaces** | `featuresmith.api` is the only public entrypoint. Every surface calls the same function, gets the same result. |
-| **Deterministic analysis** | Statistics are computed with Polars. Results are reproducible and bit-identical for the same input. |
-| **Strong typing** | All result objects are `frozen` dataclasses with full type annotations. `mypy --strict` is enforced in CI. |
-| **Testability** | Every rule ships with positive and negative fixture tests. The import boundary is enforced by `import-linter`. |
-| **Extensibility** | Connectors, rules, exporters, and AI providers are all plugin categories with stable `Base*` interfaces. |
+### Local Documentation Files
+- [`docs/Architecture.md`](./docs/Architecture.md) — System design, JIT scaling constraints, AI providers
+- [`docs/PRD.md`](./docs/PRD.md) — Product requirements, metrics, scope
+- [`docs/Rules.md`](./docs/Rules.md) — Testing requirements, coding standards, and PR guidelines
+- [`docs/Phases.md`](./docs/Phases.md) — Acceptance criteria per phase
+- [`docs/Design.md`](./docs/Design.md) — Design system, typography, accessibility tokens
+- [`docs/Why-Featuresmith-Exists.md`](./docs/Why-Featuresmith-Exists.md) — Detailed philosophy rationale
+- [`docs/Flagship-Capabilities.md`](./docs/Flagship-Capabilities.md) — Deeper future capability specs
 
 ---
 
 ## Roadmap
 
 | Phase | Version | Focus | Status |
-|---|---|---|---|
-| 0 | pre-release | Foundations — workspace, CI, package boundaries | ✅ Complete |
-| 1 | v0.1 | SDK + CLI MVP: profiling, rule engine, 5 connectors | ✅ Complete |
-| 2 | v0.3 | AI Provider Layer + narration (Ollama, OpenAI, Anthropic) | 🔜 Planned |
-| 3 | v0.4 | Interactive AI Chat — grounded Q&A over `ProfileResult` | 🔜 Planned |
-| 4 | v0.5 | Export Layer — sklearn pipelines, notebooks, HTML reports | 🔜 Planned |
-| 5 | v1.0 | Streamlit Dashboard + multi-source connectors (SQL, cloud) | 🔜 Planned |
-| 6 | v2.0 | Plugin Ecosystem — community rules, connectors, AI providers | 🔜 Planned |
-| 7 | v3.0 | VS Code Extension + Feature Store export (Feast) | 🔜 Planned |
-| 8 | v4.0 | Distributed scale — Snowflake, BigQuery, Spark/Ray | 🔜 Planned |
-
-See [`docs/Phases.md`](./docs/Phases.md) for full acceptance criteria and GitHub issue suggestions per phase.
-
----
-
-## Performance & Quality
-
-| Tool | Purpose |
-|---|---|
-| [Ruff](https://github.com/astral-sh/ruff) | Linting and formatting (Black-compatible) |
-| [MyPy](https://mypy-lang.org/) | Static type checking (`--strict` mode) |
-| [pytest](https://docs.pytest.org/) | Unit and integration tests |
-| [import-linter](https://import-linter.readthedocs.io/) | Enforces package boundary (`featuresmith-cli` cannot import `featuresmith.core` directly) |
-| [pre-commit](https://pre-commit.com/) | Git hooks — ruff + mypy run before every commit |
-
-```bash
-uv run ruff format .       # format
-uv run ruff check .        # lint
-uv run mypy .              # type check
-uv run lint-imports        # import boundary
-uv run pytest              # tests
-```
-
----
-
-## Documentation
-
-Visit the official [Featuresmith Documentation Website](https://featuresmith.adityagangwani.me) for comprehensive guides, quick starts, SDK reference, and CLI instructions.
-
-### Local Repository Documents
-
-| Document | Contents |
-|---|---|
-| [`docs/Architecture.md`](./docs/Architecture.md) | System design, module breakdown, plugin system, AI layer |
-| [`docs/PRD.md`](./docs/PRD.md) | Vision, problem statement, personas, goals, success metrics |
-| [`docs/Rules.md`](./docs/Rules.md) | Coding standards, testing rules, PR checklist — the development bible |
-| [`docs/Phases.md`](./docs/Phases.md) | Detailed roadmap with acceptance criteria per phase |
-| [`docs/Design.md`](./docs/Design.md) | Product design system, UI principles, color tokens |
-| [`MEMORY.md`](./MEMORY.md) | **[Developer Log]** Complete implementation journal tracking all design decisions and sprint-by-sprint progress |
-| [`docs/adr/`](./docs/adr/) | Architecture Decision Records |
+|:---:|:---:|---|:---:|
+| **Phase 0** | pre-release | Monorepo foundations, CI/CD, Pydantic schemas, Base interfaces | ✅ Complete |
+| **Phase 1** | v0.1 | EDA & Rule Engine, SDK, CLI, CSV/DataFrame connectors | ✅ Complete |
+| **Phase 2** | v0.2 | Cross-snapshot Dataset Diffing & Drift Detection | 🔜 In Progress |
+| **Phase 3** | v0.4 | Dashboard UI, SQL connectors, plugins registry, GitHub Action | 🔜 Planned |
+| **Phase 4** | v0.5 | Feature transformation engine, sklearn pipeline exporter | 🔜 Planned |
+| **Phase 5** | v1.0 | Observability history, scheduled cron re-profiling, alerts | 🔜 Planned |
+| **Phase 6** | v1.x | Pluggable AI Provider layer, chat Q&A, plain-text narration | 🔜 Planned |
+| **Phase 7** | v2.0 | VS Code extension, Jupyter magic, natural-language commands | 🔜 Planned |
+| **Phase 8** | v3.0+ | Snowflake/BigQuery pushdown compute, Spark/Ray backend, hosted SaaS | 🔜 Planned |
 
 ---
 
 ## Contributing
 
-Featuresmith welcomes contributions. The best starting points are new **rules** and new **connectors** — both are small, independently testable, and well-documented:
+We welcome community contributions. The best entry points are custom rules and connectors, which are completely pluggable.
 
-```bash
-# 1. Clone and set up
-git clone https://github.com/adityagangwani30/FeatureSmith.git
-cd FeatureSmith
-uv sync
-pre-commit install
-
-# 2. Run the full quality suite
-uv run pytest
-uv run ruff check .
-uv run mypy .
-
-# 3. Read the contributor guide
-cat CONTRIBUTING.md
-```
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full guide, including how to add a new rule, connector, or AI provider. See [`docs/Rules.md`](./docs/Rules.md) for coding standards and the PR checklist.
+1. Fork the repo and clone locally.
+2. Run `uv sync` to configure the workspace environment.
+3. Install git hooks: `pre-commit install`.
+4. Ensure tests and formatting pass: `uv run pytest` & `uv run ruff check .`
+5. Refer to [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`docs/Rules.md`](./docs/Rules.md) before opening a PR.
 
 ---
 
 ## License
 
-Apache 2.0 — see [`LICENSE`](./LICENSE).
+Featuresmith is licensed under the Apache 2.0 License. See [`LICENSE`](./LICENSE) for details.

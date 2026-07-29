@@ -1,25 +1,45 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Layers, Wrench, Blocks } from "lucide-react"
+import { Terminal, ShieldAlert, Sparkles, Home, Puzzle, Eye, CheckCircle } from "lucide-react"
 import { Section, SectionHeader, SectionLabel } from "@/components/ui/section"
 import { Container } from "@/components/ui/container"
 
 const PRINCIPLES = [
   {
-    icon: Layers,
-    title: "Correctness over convenience",
-    body: "Data quality decisions should be explicit, not implicit. Featuresmith never silently coerces values or swallows errors. Every operation returns a result you can inspect, log, and act on.",
+    icon: Terminal,
+    title: "Developer-first",
+    body: "Every capability ships as something a developer can call, script, or pipe — first as a Python import, then a CLI command — before it becomes a UI.",
   },
   {
-    icon: Wrench,
-    title: "The right defaults, the right escape hatches",
-    body: "Sensible defaults get you to insights in seconds. But every default is overridable. Validators, loaders, reporters, and thresholds are all configurable — nothing is locked behind an abstraction you can't reach.",
+    icon: ShieldAlert,
+    title: "Engineering over dashboards",
+    body: "Featuresmith is shaped like a check that runs automatically in CI next to your other gates, not a dashboard report you open once and forget.",
   },
   {
-    icon: Blocks,
-    title: "Core-first architecture",
-    body: "All business logic resides in Featuresmith Core. The Python SDK, CLI, Dashboard, and any future extensions are thin wrappers over this unified engine. Zero duplicated logic, identical findings across every surface.",
+    icon: Sparkles,
+    title: "AI assists, never replaces",
+    body: "The deterministic engine works fully with the AI layer switched off. AI narrates and ranks computed facts, but never computes a number itself.",
+  },
+  {
+    icon: Home,
+    title: "Local-first, cloud-optional",
+    body: "Full value with zero network calls using local files and models. Cloud LLMs and connectors are strictly opt-in via configuration.",
+  },
+  {
+    icon: Puzzle,
+    title: "Composable by default",
+    body: "Connectors, rules, exporters, and AI providers are simple plugins behind small, stable interfaces. Core code remains untouched.",
+  },
+  {
+    icon: Eye,
+    title: "Evidence before recommendations",
+    body: "Every recommendation shows the underlying calculated statistic before any narrative or suggested action. Nothing is auto-applied without approval.",
+  },
+  {
+    icon: CheckCircle,
+    title: "Trust over hype",
+    body: "We ship what exists and label what doesn't. Every roadmap phase is clearly marked, and documentation is written to check against actual code.",
   },
 ]
 
@@ -34,7 +54,7 @@ export function PhilosophySection() {
           </h2>
         </SectionHeader>
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {PRINCIPLES.map(({ icon: Icon, title, body }, i) => (
             <motion.div
               key={title}

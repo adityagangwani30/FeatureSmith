@@ -85,7 +85,7 @@ Rationale: a restrained, desaturated neutral base with a single accent blue (ass
 
 ## 10. Component Library Suggestions
 
-- **Dashboard:** build on **shadcn/ui**-equivalent primitives if/when the Next.js migration happens (Phase 6+, unchanged from prior revision — still deliberately deferred); for the v1 Streamlit dashboard, use a small custom component set (finding-card, severity-badge, collapsible-section, **chat-message, chat-input**) kept in `featuresmith_dashboard/components.py` rather than raw Streamlit widgets scattered inline.
+- **Dashboard:** build on **shadcn/ui**-equivalent primitives if/when the Next.js migration happens (Phase 8+, unchanged from prior revision — still deliberately deferred); for the v1 Streamlit dashboard, use a small custom component set (finding-card, severity-badge, collapsible-section, **chat-message, chat-input**) kept in `featuresmith_dashboard/components.py` rather than raw Streamlit widgets scattered inline.
 - **Charts:** Vega-Lite specs (see `Architecture.md` §11) rendered via `altair` in Python surfaces.
 - **Icons:** Lucide icon set — permissively licensed, consistent stroke-based style, wide coverage. Add a `message-circle` icon for the chat entry point across CLI help text and dashboard nav.
 
@@ -134,7 +134,7 @@ Dashboard breakpoints: `<640px` (mobile, single-column, chat panel becomes a ful
 
 ## 19. Future Mobile Support
 
-Explicitly deferred: a true mobile experience (e.g., "review and approve recommendations, or ask chat a question, from your phone") is a Phase 6+ idea, contingent on the hosted dashboard tier existing at all — not a v1-v2 priority.
+Explicitly deferred: a true mobile experience (e.g., "review and approve recommendations, or ask chat a question, from your phone") is a Phase 8+ idea, contingent on the hosted dashboard tier existing at all — not a v1-v2 priority.
 
 ## 20. Dark Mode
 

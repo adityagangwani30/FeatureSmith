@@ -18,7 +18,7 @@ flowchart TB
         SDK["Python SDK\nimport featuresmith as fs"]
         CLI["CLI\nfeaturesmith analyze ..."]
         DASH["Streamlit Dashboard\nfeaturesmith dashboard"]
-        VSC["VS Code Extension\n(future, Phase 6)"]
+        VSC["VS Code Extension\n(future, Phase 7)"]
     end
 
     subgraph Core["featuresmith-core (Python Library)"]
@@ -64,7 +64,7 @@ flowchart TB
 | `featuresmith` (top-level SDK) | Public API surface: `analyze()`, `chat()`, `export()`, `diff()` | — |
 | `featuresmith_cli` | Thin CLI wrapper (Typer) over the SDK | — |
 | `featuresmith_dashboard` | Thin Streamlit wrapper over the SDK | — |
-| `featuresmith_vscode` | Thin VS Code extension (TypeScript) over the SDK/CLI (Phase 6) | — |
+| `featuresmith_vscode` | Thin VS Code extension (TypeScript) over the SDK/CLI (Phase 7) | — |
 | `featuresmith.config` | Load/validate `.featuresmith.yml` project config | Pydantic models |
 
 Note the naming convention: everything with business logic lives under the `featuresmith` package itself; every release surface is separately named and separately versioned (`featuresmith-cli` as a public PyPI distribution for v0.1.0, with `featuresmith-dashboard` and `featuresmith-vscode` remaining internal or future surfaces until their release phases) — this makes the "no logic outside core" rule structurally enforceable, not just documented (see `Rules.md` §10).
@@ -122,7 +122,7 @@ featuresmith/
 │   │   └── src/featuresmith_cli/main.py     # Typer app, imports featuresmith.api only
 │   ├── featuresmith-dashboard/
 │   │   └── src/featuresmith_dashboard/app.py # Streamlit, imports featuresmith.api only
-│   └── featuresmith-vscode/                  # Phase 6
+│   └── featuresmith-vscode/                  # Phase 7
 │       └── src/extension.ts
 ├── plugins/                                  # community plugins (rules/connectors/exporters/providers)
 ├── tests/

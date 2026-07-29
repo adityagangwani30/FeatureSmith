@@ -41,7 +41,7 @@ Featuresmith is designed with several security properties in mind:
 
 ### Data Privacy
 
-- **No raw data ever sent to cloud AI providers by default.** The AI layer (Phase 2+) only receives precomputed, structured `ProfileResult` and `RuleFinding[]` objects — never raw rows, column values, or PII. This is an architectural contract enforced in `Architecture.md §7.2` and tested structurally.
+- **No raw data ever sent to cloud AI providers by default.** The AI layer (Phase 6+) only receives precomputed, structured `ProfileResult` and `RuleFinding[]` objects — never raw rows, column values, or PII. This is an architectural contract enforced in `Architecture.md §7.2` and tested structurally.
 - **Cloud AI is opt-in.** The default is local-only analysis (no network calls required). OpenAI/Anthropic integration requires an explicit `ai.provider: openai` config value.
 - **API keys are never logged or exported.** Keys are read from environment variables referenced by name in `.featuresmith.yml` — never written into config files, reports, or generated notebooks.
 

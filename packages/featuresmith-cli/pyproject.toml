@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "featuresmith-cli"
 version = "0.1.0"
-description = "Command-line interface for the Featuresmith data quality engine."
+description = "Command-line interface for Featuresmith, a toolkit to make data quality as routine as code quality."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -19,6 +19,8 @@ requires-python = ">=3.11"
 keywords = [
   "cli",
   "data-quality",
+  "data-validation",
+  "developer-tools",
   "feature-engineering",
   "profiling",
 ]

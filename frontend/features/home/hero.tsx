@@ -98,20 +98,20 @@ export function Hero() {
             transition={{ duration: 0.4, delay: 0.06 }}
             className="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-[64px]"
           >
-            Profile, Validate, and
+            Every dataset deserves
             <br className="hidden sm:block" />
-            Understand Your Data.
+            a code review.
           </motion.h1>
 
           {/* Subheading */}
           <motion.p
             {...fadeUp}
             transition={{ duration: 0.4, delay: 0.12 }}
-            className="mt-5 max-w-xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg"
+            className="mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
-            Featuresmith is an open-source Python library for dataset profiling,
-            rule-based validation, and intelligent feature analysis. Built for
-            engineers who believe data quality is a first-class concern.
+            Make data quality as routine as code quality. Featuresmith is an
+            open-source, developer-first toolkit for understanding, validating,
+            and improving structured data.
           </motion.p>
 
           {/* CTAs */}

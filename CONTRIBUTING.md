@@ -1,178 +1,151 @@
 # Contributing to Featuresmith
 
-Thank you for your interest in contributing! Featuresmith is built to be a genuinely contributor-friendly codebase — every extension point (rules, connectors, exporters, and AI providers) is designed so a first-time contributor can make a meaningful change without reading the entire codebase.
+Thank you for your interest in contributing to Featuresmith! 
 
----
-
-## Table of Contents
-
-1. [Development Setup](#1-development-setup)
-2. [Project Structure](#2-project-structure)
-3. [Coding Standards](#3-coding-standards)
-4. [Testing](#4-testing)
-5. [Adding an Extension](#5-adding-an-extension)
-6. [Pull Requests](#6-pull-requests)
-7. [Commit Convention](#7-commit-convention)
-8. [Code of Conduct](#8-code-of-conduct)
+We want to make contributing as straightforward and rewarding as possible. Featuresmith is built with a highly modular, pluggable architecture. You can easily add new **rules**, **connectors**, or **exporters** without having to read or modify the core package logic.
 
 ---
 
 ## 1. Development Setup
 
-**Prerequisites:** Python 3.11+, [uv](https://docs.astral.sh/uv/)
+### Prerequisites
+- **Python 3.11+**
+- **uv** (an extremely fast Python package manager). Install it via:
+  ```bash
+  # macOS/Linux
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # Windows (PowerShell)
+  powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+
+### Local Setup
+Clone the repository and sync the workspace environment:
 
 ```bash
 # Clone the repository
 git clone https://github.com/adityagangwani30/FeatureSmith.git
 cd FeatureSmith
 
-# Create the virtual environment and install all workspace packages
+# Sync dependencies and build workspace packages
 uv sync
 
-# Install pre-commit hooks (runs ruff + mypy before every commit)
+# Install git hooks (enforces code checking before commits)
 pre-commit install
-
-# Verify your setup — all checks should pass
-uv run ruff format .
-uv run ruff check .
-uv run mypy .
-uv run lint-imports
-uv run pytest
 ```
 
 ---
 
-## 2. Project Structure
+## 2. Developer Workflow & Core Lifecycle
+
+Featuresmith follows a structured, documentation-centric engineering lifecycle. Work progresses systematically from definitions to validated changes:
+
+```mermaid
+flowchart TD
+    A["Documentation First\n(Update docs/ files)"] --> B["Design & Review\n(Align on API & specs)"]
+    B --> C["Implementation\n(Write clean, modular code)"]
+    C --> D["Testing & Parity\n(Unit, integration & coverage)"]
+    D --> E["Sync & Check\n(Local checks & CI verification)"]
+    E --> F["Review & Approve\n(squash-merge to main)"]
+    F --> G["Independent Release\n(Per-package semver release)"]
+```
+
+### Documentation-First Policy (Mandatory)
+The documentation in `docs/` is the **single source of truth** for Featuresmith. We believe documentation should guide development, not summarize it after the fact.
+
+- **The Rule**: No code change that alters user-facing behavior (e.g., API boundaries, CLI subcommands, rules, connector scopes, or configurations) will be merged unless the documentation files in `docs/` are updated **in the same pull request**.
+- If a new idea arises during development, stop, update the markdown design documents, review them, and only then proceed with the implementation.
+
+---
+
+## 3. Project Structure
 
 ```
 featuresmith/
 ├── packages/
-│   ├── featuresmith-core/       # ALL business logic — rules, connectors, profiling
-│   │   └── src/featuresmith/
-│   │       ├── core/            # Shared data models: Dataset, ProfileResult, RuleFinding
-│   │       ├── connectors/      # Data source connectors
-│   │       ├── profiling/       # Profiling engine
-│   │       ├── rules/           # Rule Engine + seed rules
-│   │       └── api.py           # The only public entrypoint
-│   ├── featuresmith-cli/        # Thin CLI wrapper (Typer) — imports api.py only
-│   └── featuresmith-dashboard/  # Thin Streamlit wrapper — imports api.py only
-├── tests/                       # Mirrors source structure 1:1
-├── docs/                        # Architecture, PRD, Rules, Phases, Design
-└── pyproject.toml               # uv workspace root
+│   ├── featuresmith-core/       # All business logic (profiling, rules, loaders)
+│   ├── featuresmith-cli/        # Thin command-line Typer wrapper
+│   └── featuresmith-dashboard/  # Streamlit browser dashboard interface (Phase 3)
+├── tests/                       # Test suite mirroring package structure 1:1
+├── docs/                        # Architecture specs, PRD, rules, design, phases
+└── pyproject.toml               # uv monorepo workspace configuration
 ```
 
-**The most important rule:** all business logic lives in `featuresmith-core`. The CLI and Dashboard may only import `featuresmith.api`. This boundary is enforced by `import-linter` on every PR. If you add logic to the CLI, the CI will fail.
+> [!IMPORTANT]
+> **No business logic is allowed in surface packages.** The CLI and Dashboard packages may *only* import `featuresmith.api`. This boundary is checked in CI via `import-linter`.
 
 ---
 
-## 3. Coding Standards
+## 4. Coding Standards
 
-See [`docs/Rules.md`](./docs/Rules.md) for the full development bible. Key points:
-
-- **Python 3.11+** only. Type hints are mandatory on all public functions.
-- **Formatting:** `uv run ruff format .` — Black-compatible, no debates.
-- **Linting:** `uv run ruff check .` — shared config in `pyproject.toml`, no per-module overrides.
-- **Type checking:** `uv run mypy .` — `--strict` mode, zero ignored errors.
-- **Docstrings:** Google-style, required on every public class and function.
-- **No bare `except:`** — always catch specific exceptions.
-- **No file over ~400 lines** — split by responsibility.
+- **Strict Type Hints**: All function signatures, variables, and classes must be fully type-hinted. We enforce `--strict` type checking.
+- **Style & Linting**: We use **Ruff** for linting and formatting. Run checks locally before pushing.
+- **Docstrings**: Google-style docstrings are mandatory for all public functions, classes, and modules.
+- **File Length Limit**: Keep code modules focused. No file should exceed ~400 lines; split by responsibility if needed.
 
 ---
 
-## 4. Testing
+## 5. Local Verification Commands
+
+Before pushing your changes, run the full verification suite locally:
 
 ```bash
-# Run all tests
+# Format check
+uv run ruff format --check .
+
+# Lint check
+uv run ruff check .
+
+# Strict type checks
+uv run mypy .
+
+# Package import boundary verification
+uv run lint-imports
+
+# Unit & integration tests
 uv run pytest
-
-# Run with verbose output
-uv run pytest -v
-
-# Run a specific module
-uv run pytest tests/rules/
-
-# Check coverage (85% minimum on core/, rules/, feature_engine/)
-uv run pytest --cov=packages/featuresmith-core/src
 ```
 
-**Testing requirements for new contributions:**
+---
 
-- Every new rule must include at least one positive fixture test (triggers the rule) and one negative test (does not trigger).
-- New connectors must include tests with real fixture files.
-- Tests mirror source structure 1:1: `src/featuresmith/rules/missing.py` → `tests/rules/test_missing.py`.
-- Do not skip or ignore tests without a documented `# TODO(issue-link)` justification.
+## 6. Testing Expectations
+
+Featuresmith is built to be a deterministic, trust-critical tool. Testing is highly prioritized:
+
+- **Minimum Coverage**: We require a minimum of **85% code coverage** on all core layers (`core/`, `rules/`, `profiling/`).
+- **Rule Fixtures**: Every custom rule must include at least one positive fixture test (triggers finding) and one negative fixture test (dataset passes rule check).
+- **Surface Parity Tests**: All outputs from the SDK, CLI, and future dashboard must match identically. We enforce this through integration tests.
+- **Provider Conformance**: Custom extensions (like AI providers or connectors) must pass conformance validation mocks in the test suite to ensure runtime stability.
 
 ---
 
-## 5. Adding an Extension
+## 7. Extending Featuresmith
 
-Featuresmith has four extension points. Each has its own README with a step-by-step walkthrough:
-
-### New Rule
-
-1. Read [`packages/featuresmith-core/src/featuresmith/rules/README.md`](./packages/featuresmith-core/src/featuresmith/rules/README.md)
-2. Subclass `BaseRule` from `featuresmith.rules.base`
-3. Implement `id`, `name`, `description`, `category`, `severity`, `enabled_by_default`, and `evaluate(profile)`
-4. Register in `featuresmith.rules.registry.default_registry()`
-5. Add tests with positive and negative fixtures
-6. Open a PR
-
-### New Connector
-
-1. Read [`packages/featuresmith-core/src/featuresmith/connectors/README.md`](./packages/featuresmith-core/src/featuresmith/connectors/README.md)
-2. Subclass `BaseConnector` from `featuresmith.connectors.base`
-3. Implement `can_handle(source)` and `load(source) -> Dataset`
-4. Register in `featuresmith.connectors.registry`
-5. Add tests with fixture files
-
-### New Exporter (Phase 4+)
-
-See `featuresmith/exporters/README.md` (available from Phase 4).
-
-### New AI Provider (Phase 2+)
-
-See `featuresmith/ai/providers/README.md` (available from Phase 2).
+Featuresmith is built to be easily extended. Walkthrough guides for each extension point are located in the codebase:
+* **Custom Rules**: See the [Rule Engine guide](./packages/featuresmith-core/src/featuresmith/rules/README.md) to add a `BaseRule`.
+* **Custom Connectors**: See the [Connectors guide](./packages/featuresmith-core/src/featuresmith/connectors/README.md) to add a `BaseConnector`.
+* **Custom Exporters**: Available from Phase 4.
+* **Custom AI Providers**: Available from Phase 6.
 
 ---
 
-## 6. Pull Requests
+## 8. Pull Request & Branch Guidelines
 
-- **One logical change per PR.** A new rule + a registry refactor = two PRs.
-- **Fill in the PR template** — describe what changed, why, how you tested it, and which section of `PRD.md`/`Architecture.md` it relates to.
-- **Draft PRs are welcome** for early feedback. Mark ready-for-review only when CI is green.
-- **All PRs require** at least one core-team approval. Changes to `Base*` interfaces or `featuresmith.api` require two approvals.
-- **Branch naming:** `feat/<short-desc>`, `fix/<short-desc>`, `docs/<short-desc>`
-
-**PR checklist (also in the PR template):**
-
-- [ ] Type hints complete; `mypy --strict` passes
-- [ ] Tests added/updated, including a negative case for new rules
-- [ ] Docs updated in the same PR
-- [ ] No new dependency without an ADR in `docs/adr/`
-- [ ] No surface package imports anything beyond `featuresmith.api`
-- [ ] Follows naming conventions and folder rules
-- [ ] Conventional Commit messages
+- **Branch Naming**: Scope your work using standard prefixes:
+  - `feat/<short-desc>` for new capabilities
+  - `fix/<short-desc>` for bugs
+  - `docs/<short-desc>` for pure documentation changes
+- **PR Scope**: Keep PRs focused. Submit **one logical change per PR** (e.g. do not mix a code refactor with a new rule).
+- **Reviews**: All PRs require at least one approval. Interface updates (like core rules or base classes) require two approvals.
+- **Conventional Commits**: Commit messages must follow the [Conventional Commits spec](https://www.conventionalcommits.org/):
+  ```
+  feat(rules): add target leakage detection rule
+  fix(cli): correct exit status on empty data files
+  ```
 
 ---
 
-## 7. Commit Convention
+## 9. Release Workflow
 
-Featuresmith uses [Conventional Commits](https://www.conventionalcommits.org/), scoped by package:
-
-```
-feat(rules): add near-duplicate row detection rule
-fix(cli): correct exit code when target column is invalid
-docs(architecture): clarify AI provider plugin discovery
-test(profiling): add edge case for all-null numeric column
-chore(deps): bump ruff to 0.12.1
-```
-
-Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`
-
-Breaking changes: `feat(core)!: rename ProfileResult.column_stats to column_profiles`
-
----
-
-## 8. Code of Conduct
-
-This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you agree to uphold it. Please report unacceptable behavior to the project maintainers.
+- **Semantic Versioning**: Releases strictly adhere to Semantic Versioning (`MAJOR.MINOR.PATCH`).
+- **Independent Packaging**: Release packages (`featuresmith-core` and `featuresmith-cli`) are versioned and published **independently**. Bumping a version on CLI does not require a core bump.
+- **Deprecation Cycle**: Public changes (such as renaming CLI flags or rule IDs) must be deprecated and trigger warning logs for at least one minor release cycle before removal.

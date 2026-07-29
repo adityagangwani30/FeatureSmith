@@ -390,7 +390,7 @@ test(profiling): add test for datetime timezone offset handling`} language="bash
             <li className="flex gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
               <div>
-                <strong>Compute and reasoning separation:</strong> Numerical algorithms and database scans run deterministically using vectorized backends. AI integrations (planned for Phase 2+) are only ever used for natural-language narration or chat - they never perform computation.
+                <strong>Compute and reasoning separation:</strong> Numerical algorithms and database scans run deterministically using vectorized backends. AI integrations (planned for Phase 6+) are only ever used for natural-language narration or chat - they never perform computation.
               </div>
             </li>
             <li className="flex gap-2">
@@ -1022,7 +1022,7 @@ except SourceNotFoundError:
           <div>
             <p className="font-semibold text-foreground mb-1 text-xs">Roadmap Notice: File-Based Config (.featuresmith.yml)</p>
             <p className="text-xs">
-              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 2+. In the current release, configure rules directly in code or use CLI flags.
+              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 3+. In the current release, configure rules directly in code or use CLI flags.
             </p>
           </div>
         </div>
@@ -1264,7 +1264,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
             <li><code>featuresmith-cli</code>: CLI thin wrapper client.</li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 5) and is not published in <code>v0.1.0</code>.
+            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 3) and is not published in <code>v0.1.0</code>.
           </p>
         </section>
       </>
@@ -1281,7 +1281,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-privacy">
           <h3 id="faq-privacy" className="mb-2 text-base font-semibold text-foreground">Does Featuresmith send my dataset to third-party AI APIs?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <strong>No.</strong> Featuresmith v0.1.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 2+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
+            <strong>No.</strong> Featuresmith v0.1.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 6+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
           </p>
         </section>
 
@@ -1295,7 +1295,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-extend">
           <h3 id="faq-extend" className="mb-2 text-base font-semibold text-foreground">Can I add custom connectors and rules?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Yes! Custom connectors can be registered in <code>featuresmith.connectors.registry</code> and custom rules can be registered in the rule engine directly. Dynamic plugin autoloading via packaging entry points is scheduled for Phase 6.
+            Yes! Custom connectors can be registered in <code>featuresmith.connectors.registry</code> and custom rules can be registered in the rule engine directly. Dynamic plugin autoloading via packaging entry points is scheduled for Phase 3.
           </p>
         </section>
       </>

@@ -42,6 +42,9 @@ jobs:
       - name: MyPy
         run: uv run --group dev mypy .
 
+      - name: Enforce package boundaries (import-linter)
+        run: uv run lint-imports
+
       - name: Pytest
         run: uv run --group test pytest
 

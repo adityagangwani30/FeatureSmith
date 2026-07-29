@@ -28,8 +28,8 @@ body:
         - "New Exporter (output target)"
         - "CLI improvement"
         - "SDK improvement"
-        - "AI layer (Phase 2+)"
-        - "Dashboard (Phase 5+)"
+        - "AI layer (Phase 6+)"
+        - "Dashboard (Phase 3+)"
         - "Other"
     validations:
       required: true

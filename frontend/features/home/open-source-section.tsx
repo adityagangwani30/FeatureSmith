@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { GitFork, Heart, Scale } from "lucide-react"
+import { GitFork, Heart, Scale, BookOpen, Terminal } from "lucide-react"
 import { Section } from "@/components/ui/section"
 import { Container } from "@/components/ui/container"
 
@@ -52,7 +52,7 @@ export function OpenSourceSection() {
           </p>
 
           {/* Stats */}
-          <div className="mb-10 flex flex-wrap items-center justify-center gap-8">
+          <div className="mb-10 flex flex-wrap items-center justify-center gap-8 border-b border-border/60 pb-8">
             {STATS.map(({ Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -64,26 +64,54 @@ export function OpenSourceSection() {
             ))}
           </div>
 
-          {/* CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="https://github.com/adityagangwani30/FeatureSmith"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-all hover:opacity-90"
-            >
-              <GithubIcon className="h-4 w-4" />
-              Star on GitHub
-            </Link>
-            <Link
-              href="https://github.com/adityagangwani30/FeatureSmith/blob/main/CONTRIBUTING.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-accent"
-            >
-              <Heart className="h-4 w-4" />
-              Contribute
-            </Link>
+          {/* 3 Call-To-Action Cards */}
+          <div className="grid gap-4 sm:grid-cols-3 text-left">
+            <div className="rounded-lg border border-border bg-background p-4 flex flex-col justify-between">
+              <div>
+                <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded bg-primary/8 text-primary">
+                  <Terminal className="h-4 w-4" />
+                </div>
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">1. Install</h3>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Add Featuresmith SDK and CLI to your environment.</p>
+              </div>
+              <code className="block bg-muted px-2 py-1 rounded text-[10px] font-mono text-foreground select-all text-center">
+                pip install featuresmith-core
+              </code>
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-4 flex flex-col justify-between">
+              <div>
+                <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded bg-primary/8 text-primary">
+                  <BookOpen className="h-4 w-4" />
+                </div>
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">2. Read Docs</h3>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Dive into installation guides, CLI details, and SDK references.</p>
+              </div>
+              <Link
+                href="/docs"
+                className="block text-center text-xs font-medium bg-primary text-primary-foreground py-1 rounded transition-opacity hover:opacity-90"
+              >
+                Go to Documentation
+              </Link>
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-4 flex flex-col justify-between">
+              <div>
+                <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded bg-primary/8 text-primary">
+                  <Heart className="h-4 w-4" />
+                </div>
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-1">3. Contribute</h3>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Add custom rules or connectors. View guidelines on GitHub.</p>
+              </div>
+              <Link
+                href="https://github.com/adityagangwani30/FeatureSmith/blob/main/CONTRIBUTING.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center text-xs font-medium border border-border text-foreground py-1 rounded hover:bg-accent transition-colors"
+              >
+                View Contributor Guide
+              </Link>
+            </div>
           </div>
         </motion.div>
       </Container>

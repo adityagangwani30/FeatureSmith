@@ -5,12 +5,12 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: {
-    default: "Featuresmith — Data Profiling & Validation",
+    default: "Featuresmith — Make data quality as routine as code quality",
     template: "%s · Featuresmith",
   },
   description:
-    "An open-source Python library for dataset profiling, rule-based validation, and intelligent feature analysis. Built for engineers who believe data quality is a first-class concern.",
-  keywords: ["data profiling", "data validation", "python", "feature engineering", "data quality", "open source"],
+    "An open-source, developer-first toolkit for understanding, validating, and improving structured data. Every dataset deserves a code review.",
+  keywords: ["data profiling", "data validation", "python", "feature engineering", "data quality", "open source", "developer tools", "structured data"],
   authors: [{ name: "Featuresmith Contributors" }],
   creator: "Featuresmith",
   openGraph: {
@@ -18,14 +18,14 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://featuresmith.adityagangwani.me",
     siteName: "Featuresmith",
-    title: "Featuresmith — Data Profiling & Validation",
+    title: "Featuresmith — Make data quality as routine as code quality",
     description:
-      "Profile, validate, and understand your data — in one command. Open-source Python library for data quality.",
+      "An open-source, developer-first toolkit for understanding, validating, and improving structured data. Every dataset deserves a code review.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Featuresmith — Data Profiling & Validation",
-    description: "Profile, validate, and understand your data — in one command.",
+    title: "Featuresmith — Make data quality as routine as code quality",
+    description: "An open-source, developer-first toolkit for understanding, validating, and improving structured data. Every dataset deserves a code review.",
   },
   robots: {
     index: true,

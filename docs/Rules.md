@@ -26,7 +26,20 @@ Every contributor, including AI coding assistants, must follow this document. Wh
 - Test files mirror source structure 1:1: `packages/featuresmith-core/src/featuresmith/rules/quality/missingness.py` → `packages/featuresmith-core/tests/rules/quality/test_missingness.py`.
 - No file should exceed ~400 lines; split by responsibility, not by convenience.
 
-## 4. Documentation Rules
+## 4. Documentation Rules — Documentation-First Development (Mandatory)
+
+The `docs/` folder is the project's source of truth, not the codebase. Any contributor — human or AI coding assistant — should be able to understand the entire project's philosophy, architecture, roadmap, design decisions, and in-flight work by reading the documentation alone, without reading code.
+
+This means a strict Documentation-First workflow for all work on Featuresmith, no exceptions:
+
+1. **Define** the idea or feature.
+2. **Update the relevant documentation** — explain the motivation, describe the user experience, explain how it fits the architecture, update the roadmap in `Phases.md` if it changes, and update any other affected page (`PRD.md`, `Architecture.md`, `Design.md`, `Flagship-Capabilities.md`, CLI/SDK references, etc.).
+3. **Review and refine the design** in the documentation itself, before any implementation exists to anchor the discussion.
+4. **Only then begin implementation.**
+
+Nothing should be implemented unless it already exists in the documentation first. If a new idea arises mid-development, the same sequence applies retroactively: stop, document, review, then resume implementation.
+
+Whenever code changes in a way that affects behavior — a feature, module, CLI command, API, architecture decision, or workflow — the documentation update ships **in the same change**, never a follow-up. Documentation and implementation are never allowed to diverge; this is the concrete workflow enforcement of the "docs updated in the same PR" rule below and the Code Review Checklist (§17).
 
 - Every module directory has a `README.md` explaining its purpose and, if it's an extension point, a "how to add a new X" walkthrough — this now explicitly includes `featuresmith/ai/providers/README.md` ("how to add a new AI provider").
 - Every public-facing behavior change requires a corresponding docs update in the same PR — docs and code are never allowed to drift, enforced via a CI checklist item.

@@ -1,10 +1,12 @@
 # PRD — Featuresmith
 
-> An AI-Powered Feature Engineering & EDA Platform, built around a single reusable Python core.
+> The Developer Toolkit for Trustworthy Structured Data — built around a single reusable Python core.
 
 ## 1. Vision
 
-Every ML project starts the same way: a raw dataset and a blank notebook. Engineers spend 60-80% of project time on EDA, cleaning, and feature engineering — most of it repetitive, undocumented, and re-invented per project. Featuresmith's vision is to become the **reasoning layer between raw data and a modeling-ready dataset** — a tool that doesn't just compute statistics, but *understands* the dataset, explains what it means, answers follow-up questions about it, and produces reviewable, production-grade code to act on that understanding.
+Software engineering has spent decades building discipline into the development loop — tests, linters, formatters, CI gates that catch problems before they reach production. Datasets have never gotten the same treatment, and the cost of that gap is paid quietly, in models trained on leakage or drift nobody caught. Featuresmith's mission is to **make data quality as routine as code quality** — because every dataset deserves a code review, run automatically, the way tests and linters run before every merge. See `Project_Plan.md` §0 for the full philosophy.
+
+Every ML project starts the same way: a raw dataset and a blank notebook. Engineers spend 60-80% of project time on EDA, cleaning, and feature engineering — most of it repetitive, undocumented, and re-invented per project. Featuresmith's vision is to become **the engineering layer between raw datasets and trustworthy machine learning** — a tool that doesn't just compute statistics, but *understands* the dataset, explains what it means, answers follow-up questions about it, and produces reviewable, production-grade code to act on that understanding.
 
 The end state: an engineer connects a dataset — from a Python script, the CLI, a dashboard, or an IDE — gets a structured report of what's wrong and what's promising, asks follow-up questions in natural language, and exports a versioned, testable preprocessing pipeline — not a wall of disconnected charts.
 
@@ -102,7 +104,7 @@ Wants a plugin architecture with clear extension points (a new connector, a new 
 ## 11. Nice-to-Have Features (v2+)
 
 - Dataset diffing/drift detection across snapshots.
-- VS Code / Jupyter extension for inline recommendations and inline AI chat (Phase 6).
+- VS Code / Jupyter extension for inline recommendations and inline AI chat (Phase 7).
 - Data warehouse & cloud storage connectors (Snowflake, BigQuery, S3, GCS).
 - Multi-framework export (PySpark, Polars-native pipelines, Feature Store schemas — Feast).
 - Team dashboard with shareable, versioned reports and shared chat threads per dataset.
