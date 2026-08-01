@@ -57,6 +57,33 @@ def test_cli_review_csv(tmp_path: Path) -> None:
     assert "Featuresmith Dataset Review" in result.stdout
     assert "Rows: 5 | Columns: 2" in result.stdout
     assert "[WARNING] Missing Values (review.quality.missingness)" in result.stdout
+    assert "ML Readiness Score (scoring v0.1.0)" in result.stdout
+    assert "  Missing Values: 85/100 (1 finding(s))" in result.stdout
+    assert "Overall: " in result.stdout
+
+
+def test_cli_review_no_score(tmp_path: Path) -> None:
+    """--no-score omits the score section but keeps the review findings."""
+    runner = CliRunner()
+    result = runner.invoke(app, ["review", str(sample_csv(tmp_path)), "--no-score"])
+
+    assert result.exit_code == 0
+    assert "Featuresmith Dataset Review" in result.stdout
+    assert "[WARNING] Missing Values (review.quality.missingness)" in result.stdout
+    assert "ML Readiness Score" not in result.stdout
+
+
+def test_cli_review_no_score_json(tmp_path: Path) -> None:
+    """--no-score produces JSON with a null score."""
+    runner = CliRunner()
+    result = runner.invoke(
+        app, ["review", str(sample_csv(tmp_path)), "--format", "json", "--no-score"]
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert data["score"] is None
+    assert len(data["sections"]) == 7
 
 
 def test_cli_review_fail_on_warning(tmp_path: Path) -> None:
@@ -86,6 +113,8 @@ def test_cli_review_json_format(tmp_path: Path) -> None:
     assert missingness["severity"] == "warning"
     assert "overall_summary" in data
     assert "dataset_summary" in data
+    assert data["score"]["overall"] == 97.9
+    assert len(data["score"]["dimensions"]) == 7
 
 
 def _strip_finding_ids(payload: dict[str, Any]) -> dict[str, Any]:

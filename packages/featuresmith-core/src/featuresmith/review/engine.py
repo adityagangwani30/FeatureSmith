@@ -14,6 +14,7 @@ from featuresmith.review.base import BaseReviewer
 from featuresmith.review.context import ReviewConfig, ReviewContext
 from featuresmith.review.registry import ReviewerRegistry, default_registry
 from featuresmith.review.schema import ReviewCategory, ReviewResult, ReviewSection
+from featuresmith.review.scoring_adapter import ScoreAdapter
 
 REVIEW_ENGINE_VERSION = "0.1.0"
 
@@ -39,15 +40,19 @@ class ReviewEngine:
         self,
         registry: ReviewerRegistry | None = None,
         aggregator: ResultAggregator | None = None,
+        score_adapter: ScoreAdapter | None = None,
     ) -> None:
         """Initialize the engine with a registry and aggregator.
 
         Args:
             registry: The reviewer registry; defaults to the empty built-in one.
             aggregator: The result aggregator; defaults to a new aggregator.
+            score_adapter: The score adapter that attaches the ML Readiness
+                Score; defaults to a new adapter over the built-in dimensions.
         """
         self.registry = registry or default_registry()
         self.aggregator = aggregator or ResultAggregator()
+        self.score_adapter = score_adapter or ScoreAdapter()
 
     def run(
         self,
@@ -75,7 +80,8 @@ class ReviewEngine:
                 reviewer ID.
 
         Returns:
-            A frozen ReviewResult containing the aggregated sections.
+            A frozen ReviewResult containing the aggregated sections, with the
+            ML Readiness Score attached when any dimension applies.
 
         Raises:
             ValueError: If reviewer_config references an unknown reviewer ID.
@@ -111,12 +117,13 @@ class ReviewEngine:
                     traceback.format_exception(type(error), error, error.__traceback__)
                 )
 
-        return self.aggregator.aggregate(
+        result = self.aggregator.aggregate(
             engine_version=REVIEW_ENGINE_VERSION,
             dataset_summary=profile.dataset_summary,
             sections=sections,
             failed_reviewers=failed,
         )
+        return self.score_adapter.attach(result)
 
     def _validate_config(self, config: ReviewConfig) -> None:
         """Raise if reviewer configuration references an unknown reviewer."""

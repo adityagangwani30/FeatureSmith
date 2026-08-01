@@ -129,4 +129,8 @@ ignore_imports = [
   "featuresmith.review.context -> featuresmith.core.rule_finding",
   "featuresmith.review.schema -> featuresmith.core.profile_result",
   "featuresmith.review.schema -> featuresmith.core.rule_finding",
+  "featuresmith.api -> featuresmith.scoring.schema",
+  "featuresmith.scoring.schema -> featuresmith.core.profile_result",
+  "featuresmith.api -> featuresmith.scoring.aggregator",
+  "featuresmith.scoring.aggregator -> featuresmith.core.rule_finding",
 ]

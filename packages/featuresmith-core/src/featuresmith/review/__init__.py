@@ -23,6 +23,7 @@ from featuresmith.review.schema import (
     ReviewSection,
     Severity,
 )
+from featuresmith.review.scoring_adapter import ScoreAdapter
 
 __all__ = [
     "REVIEW_ENGINE_VERSION",
@@ -38,6 +39,7 @@ __all__ = [
     "ReviewResult",
     "ReviewSection",
     "ReviewerRegistry",
+    "ScoreAdapter",
     "Severity",
     "default_registry",
     "render",

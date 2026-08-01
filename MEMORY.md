@@ -4,7 +4,7 @@
 
 - Current Version: 0.1.0
 - Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
-- Current Sprint: Review Engine — Built-in Reviewers (Sprint 2, complete)
+- Current Sprint: Review Engine — ML Readiness Score (Sprint 3, complete)
 - Repository: `D:\FeatureSmith`
 - Last Updated: 2026-08-02
 
@@ -25,6 +25,7 @@
 | Release Readiness Sprint 4 (RR-4) — Testing & Benchmarks | Completed | 2026-07-26 |
 | Review Engine Foundation | Completed | 2026-08-02 |
 | Review Engine — Built-in Reviewers (Sprint 2) | Completed | 2026-08-02 |
+| Review Engine — ML Readiness Score (Sprint 3) | Completed | 2026-08-02 |
 | Sprint 6 — SDK Hardening & Exporter Layer | Deferred | — |
 
 -------------------------------------------------
@@ -360,6 +361,78 @@
   Leakage/Diff reviewers remain future work; `review.quality.basic_statistics`
   currently absorbs the PRD's Outliers/Distribution/Basic-statistics sections.
 
+### Review Engine — ML Readiness Score (Sprint 3)
+
+- Objective: Implement the deterministic, explainable ML Readiness Score per
+  `docs/features/ML-Readiness-Score.md` (contract), computed purely from Review
+  Engine findings, surfaced through SDK and CLI. No AI scoring, no
+  recommendations, no leakage detection, no diff, no plugins, no dashboard, no
+  HTML reports.
+- Major Deliverables:
+  - `featuresmith/scoring/` — new module:
+    - `schema.py` — frozen `DimensionScore` and `MLReadinessScore` dataclasses
+      (`slots=True`, `to_dict()`); the latter carries `summary`,
+      `positive_findings`, `negative_findings`.
+    - `base.py` — `ScoreDimension` Protocol (`id`, `label`, `default_weight`,
+      `applicable()`, `compute()`).
+    - `dimensions/base.py` — `SectionScoreDimension` base; class attrs are
+      instance-level; `SEVERITY_DEDUCTIONS` (`critical` 30, `warning` 15,
+      `info` 5); `score_from_findings` (start 100, clamp [0,100], round 1),
+      `build_rationale`, `build_actions`.
+    - `dimensions/builtin.py` — 7 dimensions mapping 1:1 to Sprint-2
+      reviewers: `score.schema_health`↔`review.schema.health`,
+      `score.missing_values`↔`review.quality.missingness`,
+      `score.duplicate_records`↔`review.quality.duplicates`,
+      `score.data_types`↔`review.schema.types`,
+      `score.constant_columns`↔`review.quality.constants`,
+      `score.high_cardinality`↔`review.quality.cardinality`,
+      `score.dataset_structure`↔`review.quality.basic_statistics`.
+    - `registry.py` — explicit static `ScoreDimensionRegistry` +
+      `default_registry()` (no plugin discovery yet).
+    - `aggregator.py` — `WeightedAggregator`, `compute_score()`,
+      `SCORING_VERSION = "0.1.0"`, `build_summary`,
+      `build_positive_findings`, `build_negative_findings` (deduped by finding
+      id, sorted critical→info then rule_id/column/title).
+  - `featuresmith/review/scoring_adapter.py` — `ScoreAdapter.attach(result)`
+    (sole bridge; `replace(result, score=score)` or original when `None`).
+  - `featuresmith/review/engine.py` — `ReviewEngine.__init__`
+    (`registry`/`aggregator`/`score_adapter`); `run()` attaches score after
+    aggregation. `review/schema.py` types `score` as `MLReadinessScore | None`.
+  - `featuresmith/review/render.py` — `_render_score()` block in
+    `ConsoleRenderer` (conditional on `result.score`).
+  - `featuresmith/api.py` + `featuresmith/__init__.py` — `fs.score(result)`
+    accessor; `DimensionScore`/`MLReadinessScore` re-exports.
+  - `packages/featuresmith-cli/.../review.py` — `--no-score` flag
+    (`replace(result, score=None)` before rendering).
+  - Tests: 178 total pass (was 151). New `tests/scoring/test_scoring.py` (22
+    tests) + updated `tests/review/{test_sdk,test_render}.py` and
+    `tests/cli/test_cli_review.py`.
+- Files Added: `featuresmith/scoring/` (8 files), `review/scoring_adapter.py`,
+  `tests/scoring/` (2 files).
+- Files Modified: `review/engine.py`, `review/schema.py`,
+  `review/__init__.py`, `review/render.py`, `api.py`, `__init__.py`, CLI
+  `review.py`, `tests/review/*`, `tests/cli/test_cli_review.py`,
+  `pyproject.toml` (import-linter ignores), `docs/features/*.md`, `MEMORY.md`.
+- Important Decisions:
+  - Score is derived only from aggregated `ReviewSection` findings; `fs.score()`
+    never re-runs analysis and returns the attached score when present.
+  - `MLReadinessScore`/`DimensionScore` are frozen dataclasses (not Pydantic),
+    consistent with every other core schema.
+  - Weighted-mean overall with inapplicable-dimension renormalization; uniform
+    default weights (1.0); per-dimension weight overrides supported.
+  - All deduction amounts, weights, and the formula are versioned under
+    `scoring_version = "0.1.0"`.
+  - `--no-score` sets `score` to `None` in JSON output (not `0`), so "not
+    scored" is distinct from "scored poorly".
+- Lessons Learned: mypy Protocol conformance requires dimension class attrs to
+  be instance-level; import-linter needs explicit `ignore_imports` edges for
+  the new CLI→api→scoring→core chain; `1.0`-scale vs 0-100 scale must be kept
+  consistent between doc formula and implementation (shipped: `sum(score*w) /
+  sum(w)` on a 0-100 scale).
+- Known Limitations: `--fail-below`/`--fail-below-dimension` CI gating, Feature
+  Quality/Distribution/Class Balance/Leakage Risk dimensions, and
+  non-weighted/custom formulas remain future work.
+
 ### Release Readiness Sprint 3 (RR-3) — Examples & Tutorials
 
 - Objective: Produce standard examples and tutorial materials demonstrating the full SDK & CLI workflows across common industry patterns.
@@ -536,6 +609,11 @@ primitives.
 | 2026-08-02 | Review Engine (Sprint 2) | Fully empty columns are reported by `SchemaHealthReviewer` only; `MissingValueReviewer` excludes them. | Every issue reported exactly once; no cross-reviewer double-flagging. |
 | 2026-08-02 | Review Engine (Sprint 2) | Identifier-like/text findings folded into the Basic Statistics section (`review.quality.basic_statistics`); numeric constants reported there, not in `constants`. | Avoid output churn and duplicate "type" findings; a single owner per signal. |
 | 2026-08-02 | Review Engine (Sprint 2) | Reviewer thresholds are configurable via `ReviewConfig.reviewer_config` keyed by reviewer ID. | Docs' configurable-threshold requirement without a global config object. |
+| 2026-08-02 | Review Engine (Sprint 3) | ML Readiness Score is computed from aggregated `ReviewSection` findings only; `ScoreAdapter` is the sole bridge to `featuresmith.scoring`. | Structural guarantee behind the "not a black-box score" requirement. |
+| 2026-08-02 | Review Engine (Sprint 3) | `MLReadinessScore`/`DimensionScore` are frozen dataclasses with `to_dict()`, not Pydantic `BaseModel`. | Consistent with every other core schema; no extra dependency. |
+| 2026-08-02 | Review Engine (Sprint 3) | Seven score dimensions map 1:1 to the seven Sprint-2 reviewers; uniform default weights (1.0); weighted-mean overall with renormalization when a dimension is inapplicable. | Every shipped dimension must trace to a shipped reviewer; formula and weights versioned under `scoring_version = "0.1.0"`. |
+| 2026-08-02 | Review Engine (Sprint 3) | Per-finding deductions: `critical` 30, `warning` 15, `info` 5; dimension starts at 100, clamped to [0, 100], rounded to 1 decimal. | Deterministic, explainable, and monotonic in findings. |
+| 2026-08-02 | Review Engine (Sprint 3) | `--no-score` renders `"score": null` in JSON (not 0), and `fs.score()` returns the attached score, never re-running analysis. | Keeps "not scored" distinct from "scored poorly" and preserves one-pass review semantics. |
 
 -------------------------------------------------
 
@@ -559,8 +637,9 @@ primitives.
       diff reviewers are still future work in `reviewers/`.
 - [ ] `fs.review(previous=...)` raises `NotImplementedError` — diff-aware review
       (and the reserved `ReviewResult.diff` field) is future work.
-- [ ] `ReviewResult.score` is a reserved `None` field — ML Readiness Score is
-      future work.
+- [ ] `ReviewResult.score` is populated by the Score Adapter when a dimension
+      applies and stays `None` otherwise; `--fail-below`/`--fail-below-dimension`
+      CI gating on the score is future work.
 - [ ] `review.quality.basic_statistics` currently absorbs the PRD's Outliers,
       Distribution, and Basic-statistics sections into one section; split into
       dedicated reviewers when Outlier/DistributionReviewer ship.
@@ -622,6 +701,33 @@ primitives.
 - Full validation passes: ruff format/check, mypy strict (89 files),
   pytest (151 passed), lint-imports (1 kept, 0 broken), `uv build` for
   featuresmith-core and featuresmith-cli, and an end-to-end CLI smoke test.
+
+### 2026-08-02 — Review Engine — ML Readiness Score (Sprint 3)
+
+- Implemented the deterministic, explainable ML Readiness Score in
+  `packages/featuresmith-core/src/featuresmith/scoring/` per
+  `docs/features/ML-Readiness-Score.md` as contract:
+  `ScoreDimension` Protocol, `SectionScoreDimension` base, seven built-in
+  dimensions (one per Sprint-2 reviewer), `ScoreDimensionRegistry` +
+  `default_registry()`, `WeightedAggregator` with `SCORING_VERSION = "0.1.0"`,
+  and frozen `DimensionScore`/`MLReadinessScore` schemas carrying `summary`,
+  `positive_findings`, and `negative_findings`.
+- Wired the `ScoreAdapter` (`review/scoring_adapter.py`) as the sole bridge:
+  `ReviewEngine.run()` attaches `result.score` after aggregation; `ReviewResult`
+  now types `score` as `MLReadinessScore | None`.
+- Surfaced via `fs.score(result)` (returns the attached score, never re-runs
+  analysis), the console renderer's "ML Readiness Score" block, and the CLI's
+  `--no-score` flag (JSON output yields `"score": null`).
+- Added `tests/scoring/test_scoring.py` (22 tests) and score assertions to
+  `tests/review/test_sdk.py`, `tests/review/test_render.py`, and
+  `tests/cli/test_cli_review.py`.
+- Updated `docs/features/ML-Readiness-Score.md` (status + §16 "Implementation
+  Status (Sprint 3)"), `Review-Engine-Architecture.md` (§14), and
+  `Dataset-Review-PRD.md` (status).
+- Full validation passes: ruff format/check, mypy strict (100 source files),
+  pytest (178 passed), lint-imports (1 kept, 0 broken), `uv build` for
+  featuresmith-core and featuresmith-cli, and an end-to-end CLI smoke test
+  (`Overall: 97.9/100`, `--no-score` omits the block).
 
 ### 2026-08-02 — Review Engine Foundation
 

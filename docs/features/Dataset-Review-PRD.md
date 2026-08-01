@@ -1,6 +1,6 @@
 # Dataset Review — Product Requirements Document
 
-> **Status: Partially implemented (Sprint 2).** This is the flagship experience described in `Flagship-Capabilities.md` §1, made concrete. It is built entirely on top of the orchestration layer defined in `Review-Engine-Architecture.md`; that document is the "how," this one is the "what and why for the user." As of Sprint 2, seven of the §7.1 sections ship (Schema health, Missing values, Duplicate rows, Data types, Constant columns, High-cardinality columns, and Basic statistics folded under the quality category); the remaining sections in §7.1 are future work.
+> **Status: Partially implemented (Sprint 2 + Sprint 3).** This is the flagship experience described in `Flagship-Capabilities.md` §1, made concrete. It is built entirely on top of the orchestration layer defined in `Review-Engine-Architecture.md`; that document is the "how," this one is the "what and why for the user." As of Sprint 2, seven of the §7.1 sections ship (Schema health, Missing values, Duplicate rows, Data types, Constant columns, High-cardinality columns, and Basic statistics folded under the quality category); the remaining sections in §7.1 are future work. As of Sprint 3, the **ML Readiness Score (§8) is implemented**: `featuresmith review` prints an "ML Readiness Score" block by default, `--no-score` omits it, and `result.score.overall` is available from the SDK (see `ML-Readiness-Score.md` §16). The `--fail-below` / `--fail-below-dimension` CI gating options remain future work.
 
 ## 1. Overview
 

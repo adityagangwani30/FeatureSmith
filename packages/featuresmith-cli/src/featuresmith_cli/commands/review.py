@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import traceback
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -108,6 +109,13 @@ def review_command(
             "(schema, quality, leakage, diff, feature_quality, custom).",
         ),
     ] = None,
+    no_score: Annotated[
+        bool,
+        typer.Option(
+            "--no-score",
+            help="Omit the ML Readiness Score section from the output.",
+        ),
+    ] = False,
     quiet: Annotated[
         bool,
         typer.Option("--quiet", help="Suppress all standard console report output."),
@@ -162,6 +170,8 @@ def review_command(
                 raise typer.Exit(code=2) from error
 
         # 2. Render the canonical result (never reshape review content here)
+        if no_score:
+            result = replace(result, score=None)
         if format.lower() == "json":
             json_str = json.dumps(result.to_dict(), indent=2)
             if not quiet:

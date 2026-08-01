@@ -35,6 +35,12 @@ from featuresmith.review.schema import (
 from featuresmith.review.schema import (
     Severity as Severity,
 )
+from featuresmith.scoring.schema import (
+    DimensionScore as DimensionScore,
+)
+from featuresmith.scoring.schema import (
+    MLReadinessScore as MLReadinessScore,
+)
 
 
 def load(source: object) -> Dataset:
@@ -285,3 +291,34 @@ def review(
         enabled_categories=enabled_categories,
         reviewer_config=reviewer_config,
     )
+
+
+def score(result: ReviewResult) -> MLReadinessScore | None:
+    """Return the ML Readiness Score for an existing ReviewResult.
+
+    This is a convenience accessor for callers who already hold a ReviewResult;
+    it never performs a second analysis pass. When the result already carries a
+    score (e.g. from ``fs.review()``) it is returned as-is; otherwise the score
+    is computed deterministically from the result's sections.
+
+    Args:
+        result: An existing ReviewResult.
+
+    Returns:
+        The versioned MLReadinessScore, or None when no scoring dimension is
+        applicable to the review.
+
+    Examples:
+        >>> import pandas as pd
+        >>> import featuresmith as fs
+        >>> df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        >>> result = fs.review(df)
+        >>> score = fs.score(result)
+        >>> score.overall
+        100.0
+    """
+    if result.score is not None:
+        return result.score
+    from featuresmith.scoring.aggregator import compute_score
+
+    return compute_score(result)

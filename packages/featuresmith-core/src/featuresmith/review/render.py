@@ -6,6 +6,7 @@ import abc
 from collections.abc import Iterable
 
 from featuresmith.review.schema import ReviewResult
+from featuresmith.scoring.schema import MLReadinessScore
 
 
 class BaseRenderer(abc.ABC):
@@ -77,7 +78,50 @@ class ConsoleRenderer(BaseRenderer):
                     lines.append(f"      {finding.description}")
             else:
                 lines.append("  No issues found.")
+        if result.score is not None:
+            lines.extend(self._render_score(result.score))
         return "\n".join(lines)
+
+    def _render_score(self, score: MLReadinessScore) -> list[str]:
+        """Render the ML Readiness Score block for the report.
+
+        Args:
+            score: The frozen MLReadinessScore to render.
+
+        Returns:
+            The score block lines, always pairing the overall number with its
+            per-dimension breakdown and explanation.
+        """
+        lines: list[str] = [
+            "",
+            f"ML Readiness Score (scoring v{score.scoring_version})",
+        ]
+        lines.append(f"Overall: {score.overall:g}/100")
+        lines.append("")
+        for dimension in score.dimensions:
+            suffix = (
+                f" ({len(dimension.contributing_findings)} finding(s))"
+                if dimension.contributing_findings
+                else ""
+            )
+            lines.append(f"  {dimension.label}: {dimension.score:g}/100{suffix}")
+        lines.append("")
+        lines.append(f"Summary: {score.summary}")
+        actions = [
+            action
+            for dimension in score.dimensions
+            if dimension.score < 100.0
+            for action in dimension.suggested_actions
+        ]
+        if actions:
+            lines.append("")
+            lines.append("What would improve this score:")
+            lines.extend(f"  - {action}" for action in actions)
+        if score.positive_findings:
+            lines.append("")
+            lines.append("Healthy dimensions:")
+            lines.extend(f"  + {statement}" for statement in score.positive_findings)
+        return lines
 
 
 class RendererRegistry:

@@ -1,6 +1,6 @@
 # ML Readiness Score
 
-> **Status: Design only — nothing described here is implemented.** This document designs the flagship scoring experience described in `Flagship-Capabilities.md` §2, computed entirely from findings produced by the Review Engine (`Review-Engine-Architecture.md`). It supersedes no existing behavior; Phase 2's first-pass deterministic quality score (`Phases.md` Phase 2) is this score's seed, not a competing implementation.
+> **Status: Implemented (Sprint 3, `scoring_version` 0.1.0).** The design below is the contract; its first concrete implementation now ships in `packages/featuresmith-core/src/featuresmith/scoring/` with seven built-in dimensions (§7.1) that map one-to-one onto the reviewers implemented in the Review Engine's Sprint 2, a documented weighted-mean aggregation (§8.2), and full explainability (§7.2). The remaining dimension set (Feature Quality, Distribution Health, Class Balance, Leakage Risk) is deferred until their backing reviewers exist. See §16 "Implementation Status (Sprint 3)" for the concrete formula, weights, and shipped surface.
 
 ## 1. Overview
 
@@ -142,9 +142,19 @@ class MLReadinessScore(BaseModel):
     dimensions: list[DimensionScore]
 ```
 
+> **Implementation note (Sprint 3):** the shipped schemas are frozen dataclasses
+> (`frozen=True, slots=True`) with `to_dict()`, not Pydantic `BaseModel`, for
+> consistency with every other core schema (`ReviewResult`, `RuleFinding`,
+> `ProfileResult`). `MLReadinessScore` additionally carries `summary`,
+> `positive_findings`, and `negative_findings` (§16.2).
+
 ### 8.2 Aggregation formula
 
 `overall = round(100 * sum(d.score * d.weight for d in applicable_dimensions) / sum(d.weight for d in applicable_dimensions))`. Weights renormalize automatically when a dimension is inapplicable, so omitting Class Balance for a regression dataset doesn't silently punish the score — this renormalization behavior is itself part of the versioned, documented formula (§7.4).
+
+> **Implementation note (Sprint 3):** with `d.score` stored on a 0-100 scale,
+> the shipped formula is `overall = round(sum(d.score * d.weight) / sum(d.weight), 1)`
+> (§16.2).
 
 ## 9. Component Breakdown
 
@@ -219,3 +229,64 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 - Should Class Balance apply, in some modified form, to multi-label or multi-class-imbalanced-beyond-binary settings, or should it remain binary-classification-focused until real usage demands more?
 - How aggressively should default weights be tuned before release — this document proposes the dimension list and formula shape, but initial default weights are left as an implementation-time, empirically-tuned decision against the benchmark dataset suite (`Phases.md` Phase 1's acceptance datasets).
 - Should a "no score computed" state (e.g., `--no-score`, or too few applicable dimensions) be visually distinct from a genuinely low score, so a user never confuses "not scored" with "scored poorly"?
+
+## 16. Implementation Status (Sprint 3)
+
+**Implemented in `packages/featuresmith-core/src/featuresmith/scoring/`**
+(`scoring_version = "0.1.0"`), wired through the Review Engine's Score Adapter
+(`featuresmith.review.scoring_adapter`) and consumed by the SDK and CLI:
+
+| Component | Module | Shipped |
+| --- | --- | --- |
+| `ScoreDimension` interface | `featuresmith.scoring.base` | Protocol (`id`, `label`, `default_weight`, `applicable()`, `compute()`) |
+| `DimensionScore`, `MLReadinessScore` | `featuresmith.scoring.schema` | Frozen dataclasses with `to_dict()`; includes `summary`, `positive_findings`, `negative_findings` |
+| Built-in dimensions | `featuresmith.scoring.dimensions.*` | Seven §7.1 dimensions, one per shipped reviewer |
+| `ScoreDimensionRegistry` | `featuresmith.scoring.registry` | Explicit static registry + `default_registry()` |
+| `WeightedAggregator` | `featuresmith.scoring.aggregator` | Weighted mean + renormalization; optional per-dimension weight overrides |
+| Score Adapter | `featuresmith.review.scoring_adapter` | Attaches `ReviewResult.score` after aggregation; sole integration point |
+
+### 16.1 Implemented dimensions (mapping to shipped reviewers)
+
+| Dimension (`id`) | Reads from (section id) |
+| --- | --- |
+| Schema Health (`score.schema_health`) | `review.schema.health` |
+| Missing Values (`score.missing_values`) | `review.quality.missingness` |
+| Duplicate Records (`score.duplicate_records`) | `review.quality.duplicates` |
+| Data Types (`score.data_types`) | `review.schema.types` |
+| Constant Columns (`score.constant_columns`) | `review.quality.constants` |
+| High Cardinality (`score.high_cardinality`) | `review.quality.cardinality` |
+| Dataset Structure (`score.dataset_structure`) | `review.quality.basic_statistics` |
+
+Feature Quality, Distribution Health, Class Balance, and Leakage Risk dimensions
+remain future work until their backing reviewers ship (Review Engine Sprint
+scope), at which point they register through the same registry.
+
+### 16.2 Versioned formula (v0.1.0)
+
+- **Per-dimension score:** start at 100; deduct per finding by severity —
+  `critical` 30, `warning` 15, `info` 5 points — then clamp to `[0, 100]` and
+  round to one decimal. A dimension with no findings scores 100.
+- **Default weights:** uniform `1.0` for every dimension (empirically tuned
+  defaults deferred per §15).
+- **Overall score:** `round(sum(score * weight) / sum(weight), 1)` over the
+  applicable dimensions (the §8.2 weighted mean). Inapplicable dimensions are
+  omitted and weights renormalize automatically; when no dimension applies, no
+  score is produced (`ReviewResult.score` stays `None`).
+- **Explainability:** every `DimensionScore` carries `rationale`,
+  `contributing_findings` (the actual `RuleFinding`s that lowered it), and
+  `suggested_actions`; `MLReadinessScore` carries a one-sentence `summary`,
+  `positive_findings` (dimensions at 100), and `negative_findings` (the
+  findings that lowered the score, deduplicated and sorted by severity).
+
+### 16.3 Shipped surface
+
+- SDK: `result.score` on every `ReviewResult` from `fs.review()`; convenience
+  `fs.score(result)` accessor (returns the attached score or computes one from
+  the result's sections — never a second analysis pass).
+- CLI: `featuresmith review <source>` renders the score section inline by
+  default; `--no-score` omits it. `--fail-below` / `--fail-below-dimension`
+  CI gating remains Phase 3.
+- Serialization: `MLReadinessScore.to_dict()` is JSON-clean and included in
+  `ReviewResult.to_dict()`.
+- Validation: 178 tests pass (including 22 new scoring tests); ruff clean;
+  mypy strict clean; lint-imports 1 kept, 0 broken; builds succeed.

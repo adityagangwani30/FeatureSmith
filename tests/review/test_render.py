@@ -140,3 +140,74 @@ def test_base_renderer_is_abstract() -> None:
     """BaseRenderer cannot be instantiated directly."""
     with pytest.raises(TypeError):
         BaseRenderer()  # type: ignore[abstract]
+
+
+def make_scored_result() -> ReviewResult:
+    """Build a ReviewResult with an attached ML Readiness Score."""
+    from featuresmith.core.rule_finding import RuleFinding
+    from featuresmith.review.scoring_adapter import ScoreAdapter
+
+    finding = RuleFinding(
+        rule_id="review.quality.missingness",
+        rule_name="Missing Values",
+        category="quality",
+        severity="warning",
+        column_name="age",
+        title="High missing values in column 'age'",
+        description="40% of values are missing.",
+        evidence={"missing_percentage": 40.0},
+    )
+    result = ReviewResult(
+        engine_version="0.1.0",
+        dataset_summary=make_summary(),
+        generated_at=datetime(2026, 8, 2, 12, 0, 0, tzinfo=UTC),
+        sections=(
+            ReviewSection(
+                id="review.quality.missingness",
+                title="Missing Values",
+                category=ReviewCategory.QUALITY,
+                severity=Severity.WARNING,
+                findings=(finding,),
+            ),
+            ReviewSection(
+                id="review.quality.duplicates",
+                title="Duplicate Rows",
+                category=ReviewCategory.QUALITY,
+                severity=Severity.PASSED,
+            ),
+        ),
+        overall_summary="1 of 2 sections passed with 1 finding(s) identified.",
+    )
+    return ScoreAdapter().attach(result)
+
+
+def test_console_renderer_includes_score_section() -> None:
+    """ConsoleRenderer pairs the overall score with its full breakdown."""
+    text = ConsoleRenderer().render(make_scored_result())
+
+    assert "ML Readiness Score (scoring v0.1.0)" in text
+    assert "Overall: 92.5/100" in text
+    assert "  Missing Values: 85/100 (1 finding(s))" in text
+    assert "  Duplicate Records: 100/100" in text
+    assert "Summary: Overall ML Readiness is 92.5/100 across 2 dimension(s);" in text
+    assert "What would improve this score:" in text
+    assert (
+        "Address the flagged issue: High missing values in column 'age' (in column 'age')."
+        in text
+    )
+    assert "Healthy dimensions:" in text
+    assert "  + Duplicate Records scored 100/100 with no issues found." in text
+
+
+def test_console_renderer_score_is_deterministic() -> None:
+    """The rendered score block is stable across repeated renders."""
+    result = make_scored_result()
+
+    assert ConsoleRenderer().render(result) == ConsoleRenderer().render(result)
+
+
+def test_console_renderer_omits_score_when_absent() -> None:
+    """A result without a score renders without a score section."""
+    text = ConsoleRenderer().render(make_result())
+
+    assert "ML Readiness Score" not in text

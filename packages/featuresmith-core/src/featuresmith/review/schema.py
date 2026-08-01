@@ -17,6 +17,7 @@ from typing import Any
 
 from featuresmith.core.profile_result import DatasetSummary
 from featuresmith.core.rule_finding import RuleFinding
+from featuresmith.scoring.schema import MLReadinessScore
 
 
 class Severity(Enum):
@@ -120,7 +121,8 @@ class ReviewResult:
         generated_at: Timestamp (UTC) when the review was generated.
         sections: The aggregated review sections, sorted by severity.
         overall_summary: A short, templated roll-up of the whole review.
-        score: Reserved attachment point for the future ML Readiness Score.
+        score: The versioned ML Readiness Score computed from the review's
+            sections, or None when no scoring dimension applies.
         diff: Reserved attachment point for the future dataset diff output.
     """
 
@@ -129,7 +131,7 @@ class ReviewResult:
     generated_at: datetime
     sections: Sequence[ReviewSection] = ()
     overall_summary: str = ""
-    score: Any = None
+    score: MLReadinessScore | None = None
     diff: Any = None
 
     def __post_init__(self) -> None:
