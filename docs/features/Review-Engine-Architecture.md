@@ -1,6 +1,6 @@
 # Review Engine Architecture
 
-> **Status: Foundation implemented (see §14 "Implemented Foundation"); built-in reviewers are future work.** This document is the architectural contract for the next major phase of Featuresmith, written and reviewed before any implementation begins, per the Documentation-First workflow in `Rules.md` §4. It does not renumber or replace `Phases.md`; see §14 ("Roadmap Placement") for how this slots into the existing roadmap. The orchestration foundation described in §5-§13 is now implemented in `packages/featuresmith-core/src/featuresmith/review/`, but **no individual reviewers (§8.1, §8.2) have been implemented yet** — `fs.review()` currently runs zero reviewers by design.
+> **Status: Foundation implemented (see §14 "Implemented Foundation"); core reviewer set implemented (Sprint 2, see §14).** This document is the architectural contract for the next major phase of Featuresmith, written and reviewed before any implementation begins, per the Documentation-First workflow in `Rules.md` §4. It does not renumber or replace `Phases.md`; see §14 ("Roadmap Placement") for how this slots into the existing roadmap. The orchestration foundation described in §5-§13 is now implemented in `packages/featuresmith-core/src/featuresmith/review/`. As of Sprint 2, **seven of the built-in reviewers (§8.1) are implemented** (Schema Health, Missing Values, Duplicate Rows, Constant Columns, High Cardinality, Data Types, Basic Statistics) and ship in `default_registry()`; the remaining reviewers (outliers, distribution, feature quality, leakage, diff) remain future work.
 
 ## 1. Overview
 
@@ -270,15 +270,34 @@ A future revision of `Phases.md` should formalize this as its own milestone once
 
 ### Implemented Foundation
 
-The orchestration foundation (§5-§13) is implemented in `packages/featuresmith-core/src/featuresmith/review/`, wired end-to-end but shipping with zero reviewers by design:
+The orchestration foundation (§5-§13) is implemented in `packages/featuresmith-core/src/featuresmith/review/`, wired end-to-end:
 
 - **Schemas (§8):** `Severity`, `ReviewCategory`, `ReviewSection`, `ReviewResult` in `schema.py`; `ReviewResult` carries the reserved `score`/`diff` attachment points as `None`.
 - **Context (§9):** `ReviewConfig` + frozen `ReviewContext` in `context.py`; no `ExecutionState` class — state lives on the context itself.
-- **Reviewers (§8.1):** `BaseReviewer` ABC (`base.py`) + `ReviewerRegistry` with an empty `default_registry()` (`registry.py`); the `reviewers/` subpackage exists but defines no built-in reviewers yet.
+- **Reviewers (§8.1):** `BaseReviewer` ABC (`base.py`) + `ReviewerRegistry` (`registry.py`) with `default_registry()` now shipping the seven built-in reviewers implemented in Sprint 2.
 - **Engine (§6, §10):** `ReviewEngine.run()` pipeline in `engine.py` (`REVIEW_ENGINE_VERSION = "0.1.0"`): config validation → context construction → reviewer dispatch (enabled-reviewer/category filters, previous-snapshot gate, `applicable()` gate) → fault-isolated execution → aggregation via `ResultAggregator` (`aggregator.py`).
 - **Rendering (§7):** `ConsoleRenderer` + `RendererRegistry` in `render.py`; a `render()` facade dispatches by target name (console only for now).
+
+### Implemented Built-in Reviewers (Sprint 2)
+
+Seven built-in reviewers now live in `packages/featuresmith-core/src/featuresmith/review/reviewers/`, all subclasses of the shared `SectionReviewer` base (`base.py`) and all registered in `default_registry()`:
+
+| Reviewer | ID | Category | Notes |
+|---|---|---|---|
+| `SchemaHealthReviewer` | `review.schema.health` | `schema` | Fully empty columns, zero rows/columns |
+| `TypeReviewer` | `review.schema.types` | `schema` | Identifier-like numeric columns, free-text columns |
+| `MissingValueReviewer` | `review.quality.missingness` | `quality` | Per-column missingness threshold (default 20%), excludes fully empty columns |
+| `DuplicateReviewer` | `review.quality.duplicates` | `quality` | Duplicate-row percentage threshold (default 10%) |
+| `ConstantColumnReviewer` | `review.quality.constants` | `quality` | Constant non-empty columns |
+| `CardinalityReviewer` | `review.quality.cardinality` | `quality` | High unique-ratio categorical columns (threshold 0.50, min cardinality 20) |
+| `BasicStatisticsReviewer` | `review.quality.basic_statistics` | `quality` | Skewness/kurtosis flags, numeric constant columns, identifier-like numeric columns, text columns |
+
+Each reviewer reads only from the frozen `ReviewContext`, reuses the existing rule engine for detection where a matching rule exists (missingness, duplicates, constants, cardinality), sets `requires_previous_snapshot = False`, and emits its `ReviewSection` deterministically with traceable `RuleFinding`s. Reviewer-specific thresholds are configurable via `ReviewConfig.reviewer_config` keyed by reviewer ID.
+
+Still future work: `OutlierReviewer`, `DistributionReviewer`, `DuplicateColumnReviewer`, `FeatureQualityReviewer`, `LeakageReviewer`, `DiffReviewer`, and any `requires_previous_snapshot = True` diff-category reviewers.
+
 - **Surfaces:** SDK `fs.review()` (`featuresmith.api`, reusing `fs.analyze()`'s profile + rule findings), root `featuresmith` export, and `featuresmith review` CLI command (table/json formats, `--fail-on` exit-code gating, `--only` category filter).
-- **Out of scope so far (per §1 "nothing here is implemented" carve-outs):** all individual reviewers, `score`/`diff` computation, AI narration, recommendations, and non-console renderers. `fs.review(previous=...)` raises `NotImplementedError`.
+- **Out of scope so far (per §1 "nothing here is implemented" carve-outs):** the individual reviewers listed above, `score`/`diff` computation, AI narration, recommendations, and non-console renderers. `fs.review(previous=...)` raises `NotImplementedError`.
 
 ## 15. Future Extensions
 

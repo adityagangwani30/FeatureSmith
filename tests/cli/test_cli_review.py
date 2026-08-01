@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from typer.testing import CliRunner
@@ -48,14 +49,24 @@ def test_cli_review_version() -> None:
 
 
 def test_cli_review_csv(tmp_path: Path) -> None:
-    """A clean review exits 0 and prints the report."""
+    """A review with a warning finding exits 0 and prints the report."""
     runner = CliRunner()
     result = runner.invoke(app, ["review", str(sample_csv(tmp_path))])
 
     assert result.exit_code == 0
     assert "Featuresmith Dataset Review" in result.stdout
     assert "Rows: 5 | Columns: 2" in result.stdout
-    assert "No review sections produced." in result.stdout
+    assert "[WARNING] Missing Values (review.quality.missingness)" in result.stdout
+
+
+def test_cli_review_fail_on_warning(tmp_path: Path) -> None:
+    """--fail-on warning gates the exit code on warning-or-worse findings."""
+    runner = CliRunner()
+    result = runner.invoke(
+        app, ["review", str(sample_csv(tmp_path)), "--fail-on", "warning"]
+    )
+
+    assert result.exit_code == 1
 
 
 def test_cli_review_json_format(tmp_path: Path) -> None:
@@ -68,9 +79,24 @@ def test_cli_review_json_format(tmp_path: Path) -> None:
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert data["engine_version"] == "0.1.0"
-    assert data["sections"] == []
+    assert len(data["sections"]) == 7
+    missingness = next(
+        s for s in data["sections"] if s["id"] == "review.quality.missingness"
+    )
+    assert missingness["severity"] == "warning"
     assert "overall_summary" in data
     assert "dataset_summary" in data
+
+
+def _strip_finding_ids(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return a deep copy with volatile finding IDs removed for comparison."""
+    import copy
+
+    cleaned = copy.deepcopy(payload)
+    for section in cleaned["sections"]:
+        for finding in section["findings"]:
+            finding.pop("id", None)
+    return cleaned
 
 
 def test_cli_review_surface_parity_with_sdk(tmp_path: Path) -> None:
@@ -82,8 +108,8 @@ def test_cli_review_surface_parity_with_sdk(tmp_path: Path) -> None:
     cli_result = runner.invoke(app, ["review", str(path), "--format", "json"])
     assert cli_result.exit_code == 0
 
-    cli_data = json.loads(cli_result.stdout)
-    sdk_data = sdk_result.to_dict()
+    cli_data = _strip_finding_ids(json.loads(cli_result.stdout))
+    sdk_data = _strip_finding_ids(sdk_result.to_dict())
 
     assert cli_data["engine_version"] == sdk_data["engine_version"]
     assert (
@@ -128,14 +154,15 @@ def test_cli_review_only_unknown_category(tmp_path: Path) -> None:
 
 
 def test_cli_review_only_valid_category(tmp_path: Path) -> None:
-    """A valid --only category is accepted and still completes cleanly."""
+    """A valid --only category is accepted and runs its reviewers."""
     runner = CliRunner()
     result = runner.invoke(
         app, ["review", str(sample_csv(tmp_path)), "--only", "quality,leakage"]
     )
 
     assert result.exit_code == 0
-    assert "No review sections produced." in result.stdout
+    assert "[WARNING] Missing Values (review.quality.missingness)" in result.stdout
+    assert "review.schema.health" not in result.stdout
 
 
 def test_cli_review_previous_not_available(tmp_path: Path) -> None:
@@ -183,7 +210,7 @@ def test_cli_review_output_file_json(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert output_file.exists()
     data = json.loads(output_file.read_text(encoding="utf-8"))
-    assert data["sections"] == []
+    assert len(data["sections"]) == 7
 
 
 def test_cli_review_quiet(tmp_path: Path) -> None:

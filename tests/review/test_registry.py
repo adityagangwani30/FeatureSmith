@@ -74,8 +74,17 @@ def test_registry_list_reviewers() -> None:
     assert ids == {"review.quality.a", "review.quality.b"}
 
 
-def test_default_registry_is_empty() -> None:
-    """The foundation default registry ships with zero reviewers."""
+def test_default_registry_ships_builtin_reviewers() -> None:
+    """The default registry ships the built-in reviewer set."""
     registry = default_registry()
 
-    assert registry.list_reviewers() == []
+    ids = {reviewer.id for reviewer in registry.list_reviewers()}
+    assert ids == {
+        "review.schema.health",
+        "review.schema.types",
+        "review.quality.missingness",
+        "review.quality.duplicates",
+        "review.quality.constants",
+        "review.quality.cardinality",
+        "review.quality.basic_statistics",
+    }

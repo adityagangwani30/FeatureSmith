@@ -4,7 +4,7 @@
 
 - Current Version: 0.1.0
 - Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
-- Current Sprint: Review Engine Foundation (complete)
+- Current Sprint: Review Engine — Built-in Reviewers (Sprint 2, complete)
 - Repository: `D:\FeatureSmith`
 - Last Updated: 2026-08-02
 
@@ -24,6 +24,7 @@
 | Release Readiness Sprint 3 (RR-3) — Examples & Tutorials | Completed | 2026-07-26 |
 | Release Readiness Sprint 4 (RR-4) — Testing & Benchmarks | Completed | 2026-07-26 |
 | Review Engine Foundation | Completed | 2026-08-02 |
+| Review Engine — Built-in Reviewers (Sprint 2) | Completed | 2026-08-02 |
 | Sprint 6 — SDK Hardening & Exporter Layer | Deferred | — |
 
 -------------------------------------------------
@@ -276,6 +277,89 @@
     package root.
   - `.pytest_cache` writes fail under Windows (WinError 5, pre-existing).
 
+### Review Engine — Built-in Reviewers (Sprint 2)
+
+- Objective: Implement the first built-in reviewer set so `featuresmith review
+  dataset.csv` produces a meaningful engineering review, per the approved docs
+  as contract. No score, no recommendations, no AI, no diff.
+- Major Deliverables:
+  - `featuresmith/review/reviewers/base.py` — `SectionReviewer` abstract base
+    (title + `_collect_findings`; `review()` builds the `ReviewSection`) and
+    `section_severity()` helper (worst finding severity; `PASSED` when none).
+  - Seven built-in reviewers (all `SectionReviewer` subclasses, all
+    `requires_previous_snapshot = False`):
+    - `schema_health.py` — `SchemaHealthReviewer`
+      (`review.schema.health`, schema, "Schema Health"): fully empty columns
+      (warning via `FullyEmptyColumnsRule`), zero rows (warning), zero columns
+      (warning).
+    - `missing_value.py` — `MissingValueReviewer`
+      (`review.quality.missingness`, quality, "Missing Values"):
+      `MissingValueThresholdRule` default threshold 20.0, configurable;
+      excludes fully empty columns (owned by schema health).
+    - `duplicates.py` — `DuplicateReviewer`
+      (`review.quality.duplicates`, quality, "Duplicate Rows"):
+      `DuplicateRowsRule` default threshold 10.0, configurable.
+    - `constants.py` — `ConstantColumnReviewer`
+      (`review.quality.constants`, quality, "Constant Columns"):
+      `ConstantColumnsRule`; flags constant non-empty columns, including text
+      columns whose `logical_type == "text"`.
+    - `cardinality.py` — `CardinalityReviewer`
+      (`review.quality.cardinality`, quality, "High Cardinality"):
+      `HighCardinalityRule` threshold 0.50 / min_cardinality 20, configurable;
+      categorical columns only.
+    - `types.py` — `TypeReviewer` (`review.schema.types`, schema,
+      "Data Types"): identifier-like numeric columns (all non-null values
+      distinct, `identifier_min_count=10`), text-logical-type columns (info).
+    - `basic_statistics.py` — `BasicStatisticsReviewer`
+      (`review.quality.basic_statistics`, quality, "Basic Statistics"):
+      skewness >= 2.0 (warning), kurtosis >= 10.0 (info), numeric constant
+      columns, identifier-like numeric columns, text columns.
+  - `featuresmith/review/reviewers/__init__.py` — exports all 7 + the
+    `builtin_reviewers()` factory returning their tuple.
+  - `featuresmith/review/registry.py` — `default_registry()` now registers the
+    7 built-in reviewers.
+  - Tests: `tests/review/test_reviewers.py` (per-reviewer unit tests) and
+    `tests/review/test_review_integration.py` (empty/clean/missing/duplicates/
+    constants/mixed-types/high-cardinality scenarios, JSON serialization,
+    reviewer-config overrides); updated `test_registry.py`, `test_sdk.py`,
+    `test_engine.py`, `tests/cli/test_cli_review.py` for the non-empty default
+    registry.
+  - Updated `docs/features/Review-Engine-Architecture.md` (status + §14
+    "Implemented Built-in Reviewers (Sprint 2)") and
+    `docs/features/Dataset-Review-PRD.md` (status + §7.1 progress note).
+- Files Added: 7 reviewer modules, `reviewers/base.py`,
+  `tests/review/test_reviewers.py`, `tests/review/test_review_integration.py`.
+- Files Modified: `featuresmith/review/registry.py`,
+  `featuresmith/review/reviewers/__init__.py`,
+  `tests/review/{test_registry,test_sdk,test_engine}.py`,
+  `tests/cli/test_cli_review.py`, `MEMORY.md`, architecture/PRD docs.
+- Important Decisions:
+  - Docs are the contract: reviewer IDs are namespaced
+    (`review.schema.health`, `review.quality.missingness`, etc.);
+    `ReviewCategory` enum; `Severity` lowercase with `.rank`; reviewers read
+    only the frozen `ReviewContext` (profile + dataset + findings + config)
+    and never re-read/re-profile data.
+  - Fully empty columns are reported exactly once, by `SchemaHealthReviewer`;
+    `MissingValueReviewer` excludes them.
+  - `TypeReviewer` identifier-like findings folded into the Basic Statistics
+    section output to avoid double-flagging; numeric constants reported under
+    `basic_statistics` (not `constants`).
+  - Severity assignment: schema-health (fully empty) warning; quality
+    (missingness/cardinality/duplicates/false-constant) warning;
+    basic-statistics (skew info-to-warning, identifier-like, text) info.
+  - `ReviewConfig.reviewer_config` (reviewer id → mapping) drives configurable
+    thresholds; validated against registered reviewer IDs by the engine.
+  - Reviewer dispatch still runs with zero reviewers (explicit empty registry)
+    as a foundation guarantee — covered by `test_engine.py`.
+- Lessons Learned: default `--fail-on critical` means warning findings exit 0
+  — CLI tests must pass `--fail-on warning` to gate on warnings; finding `id`
+  UUIDs are volatile, so CLI/SDK surface-parity tests strip them before
+  comparison; `skewed_df` kurtosis exceeds both skew and kurtosis thresholds,
+  so threshold-config tests must raise both.
+- Known Limitations: Outliers/Distribution/DuplicateColumn/FeatureQuality/
+  Leakage/Diff reviewers remain future work; `review.quality.basic_statistics`
+  currently absorbs the PRD's Outliers/Distribution/Basic-statistics sections.
+
 ### Release Readiness Sprint 3 (RR-3) — Examples & Tutorials
 
 - Objective: Produce standard examples and tutorial materials demonstrating the full SDK & CLI workflows across common industry patterns.
@@ -383,7 +467,7 @@
 | Connectors | Completed |
 | Profiling | Completed |
 | Rules | Completed |
-| Review Engine | Foundation Implemented |
+| Review Engine | Built-in Reviewer Set Implemented |
 | Recommendation Engine | Not Started |
 | AI Layer | Not Started |
 | Exporters | Not Started |
@@ -448,6 +532,10 @@ primitives.
 | 2026-08-02 | Review Engine | Reviewers re-use `fs.analyze()` outputs; the engine never re-reads or re-profiles data. | Single profiling pass; reviewers are pure consumers of `ProfileResult` + `RuleFinding[]`. |
 | 2026-08-02 | Review Engine | Zero built-in reviewers ship with the foundation; `fs.review(previous=...)` raises `NotImplementedError`. | Diff/scoring/AI are future phases; the pipeline must be correct with an empty reviewer set. |
 | 2026-08-02 | Review Engine | Ruff formatter excludes `*.md` via `extend-exclude`. | Prevents `ruff format --check .` from rewriting intentional alignment in README and design docs. |
+| 2026-08-02 | Review Engine (Sprint 2) | Seven built-in reviewers ship in `default_registry()`: schema health, types, missingness, duplicates, constants, cardinality, basic statistics. | `featuresmith review dataset.csv` must produce a meaningful review from the start; remaining PRD sections stay future work. |
+| 2026-08-02 | Review Engine (Sprint 2) | Fully empty columns are reported by `SchemaHealthReviewer` only; `MissingValueReviewer` excludes them. | Every issue reported exactly once; no cross-reviewer double-flagging. |
+| 2026-08-02 | Review Engine (Sprint 2) | Identifier-like/text findings folded into the Basic Statistics section (`review.quality.basic_statistics`); numeric constants reported there, not in `constants`. | Avoid output churn and duplicate "type" findings; a single owner per signal. |
+| 2026-08-02 | Review Engine (Sprint 2) | Reviewer thresholds are configurable via `ReviewConfig.reviewer_config` keyed by reviewer ID. | Docs' configurable-threshold requirement without a global config object. |
 
 -------------------------------------------------
 
@@ -465,12 +553,17 @@ primitives.
       be configurable via `.featuresmith.yml` once the config system is built.
 - [ ] No `.featuresmith.yml` config loading yet — rule configs are passed at call
       time only.
-- [ ] Review Engine has zero built-in reviewers; the `reviewers/` subpackage is a
-      placeholder until future sprints add schema/quality/leakage/diff reviewers.
+- [ ] Review Engine has seven built-in reviewers (schema health, types,
+      missingness, duplicates, constants, cardinality, basic statistics);
+      outliers, distribution, duplicate-column, feature-quality, leakage, and
+      diff reviewers are still future work in `reviewers/`.
 - [ ] `fs.review(previous=...)` raises `NotImplementedError` — diff-aware review
       (and the reserved `ReviewResult.diff` field) is future work.
 - [ ] `ReviewResult.score` is a reserved `None` field — ML Readiness Score is
       future work.
+- [ ] `review.quality.basic_statistics` currently absorbs the PRD's Outliers,
+      Distribution, and Basic-statistics sections into one section; split into
+      dedicated reviewers when Outlier/DistributionReviewer ship.
 - [ ] `render` is not exported from the package root (only `featuresmith.api`
       and `featuresmith.review`); revisit if callers expect it at root.
 - [ ] `ruff format --check .` excludes `*.md` via `extend-exclude` — reformatting
@@ -498,6 +591,37 @@ primitives.
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-08-02 — Review Engine — Built-in Reviewers (Sprint 2)
+
+- Implemented seven built-in reviewers in
+  `packages/featuresmith-core/src/featuresmith/review/reviewers/` per the
+  approved docs as contract: `SchemaHealthReviewer`
+  (`review.schema.health`), `TypeReviewer` (`review.schema.types`),
+  `MissingValueReviewer` (`review.quality.missingness`),
+  `DuplicateReviewer` (`review.quality.duplicates`),
+  `ConstantColumnReviewer` (`review.quality.constants`),
+  `CardinalityReviewer` (`review.quality.cardinality`),
+  `BasicStatisticsReviewer` (`review.quality.basic_statistics`), plus the
+  shared `SectionReviewer` base (`reviewers/base.py`) and
+  `section_severity()` helper.
+- Wired `default_registry()` to the seven reviewers via
+  `builtin_reviewers()`; `featuresmith review dataset.csv` now produces
+  findings from all reviewers (deterministic, traceable `RuleFinding`s).
+- Reviewers read only the frozen `ReviewContext`, reuse the existing rule
+  engine where a matching rule exists (missingness/duplicates/constants/
+  cardinality), set `requires_previous_snapshot = False`, and honor
+  per-reviewer `reviewer_config` thresholds.
+- Added `tests/review/test_reviewers.py` (per-reviewer unit tests) and
+  `tests/review/test_review_integration.py` (empty/clean/missing/duplicates/
+  constants/mixed-types/high-cardinality, JSON serialization, config
+  overrides); updated `test_registry.py`, `test_sdk.py`, `test_engine.py`,
+  and `tests/cli/test_cli_review.py` for the non-empty default registry.
+- Updated `docs/features/Review-Engine-Architecture.md` (§14) and
+  `docs/features/Dataset-Review-PRD.md` (§7.1) implementation status.
+- Full validation passes: ruff format/check, mypy strict (89 files),
+  pytest (151 passed), lint-imports (1 kept, 0 broken), `uv build` for
+  featuresmith-core and featuresmith-cli, and an end-to-end CLI smoke test.
 
 ### 2026-08-02 — Review Engine Foundation
 

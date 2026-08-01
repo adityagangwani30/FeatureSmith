@@ -65,7 +65,12 @@ class ReviewerRegistry:
 def default_registry() -> ReviewerRegistry:
     """Return the default ReviewerRegistry.
 
-    This foundation sprint ships with zero built-in reviewers; the registry is
-    deliberately empty so the pipeline provably works with no reviewers loaded.
+    The default registry ships the built-in reviewers implemented so far
+    (schema health, data types, missing values, duplicate rows, constant
+    columns, high cardinality, and basic statistics). Remaining reviewers
+    (outliers, distribution, feature quality, leakage, diff) land in future
+    sprints and register through the same registry.
     """
-    return ReviewerRegistry()
+    from featuresmith.review.reviewers import builtin_reviewers
+
+    return ReviewerRegistry(builtin_reviewers())

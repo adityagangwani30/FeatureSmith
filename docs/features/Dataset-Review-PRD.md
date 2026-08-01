@@ -1,6 +1,6 @@
 # Dataset Review — Product Requirements Document
 
-> **Status: Design only — nothing described here is implemented.** This is the flagship experience described in `Flagship-Capabilities.md` §1, made concrete. It is built entirely on top of the orchestration layer defined in `Review-Engine-Architecture.md`; that document is the "how," this one is the "what and why for the user."
+> **Status: Partially implemented (Sprint 2).** This is the flagship experience described in `Flagship-Capabilities.md` §1, made concrete. It is built entirely on top of the orchestration layer defined in `Review-Engine-Architecture.md`; that document is the "how," this one is the "what and why for the user." As of Sprint 2, seven of the §7.1 sections ship (Schema health, Missing values, Duplicate rows, Data types, Constant columns, High-cardinality columns, and Basic statistics folded under the quality category); the remaining sections in §7.1 are future work.
 
 ## 1. Overview
 
@@ -77,6 +77,8 @@ The review must include a dedicated section for each of the following, sourced f
 | Overall summary | Aggregator | dataset-level roll-up, always present even if every section is clean |
 
 Every section must be present in the output even when it finds nothing — an explicit "no issues found" state, not an absent section, per `Design.md` §13's empty-state principle.
+
+> **Sprint 2 implementation status.** The following §7.1 sections are implemented and ship in `default_registry()`: Schema health, Missing values, Duplicate rows, Data types, Constant columns, and High-cardinality columns (each mapped 1:1 to its reviewer). Outliers, Distribution issues, and Basic statistics currently collapse into a single `review.quality.basic_statistics` section (`BasicStatisticsReviewer`); Duplicate columns, Feature quality, and Target leakage warnings remain future work.
 
 ### 7.2 Actionability requirement
 

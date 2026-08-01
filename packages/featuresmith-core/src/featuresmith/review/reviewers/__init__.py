@@ -1,10 +1,48 @@
 """Built-in reviewers for the Review Engine.
 
-This package is the landing spot for the built-in reviewer set described in
-``docs/features/Dataset-Review-PRD.md`` section 7.1 — SchemaHealthReviewer,
-MissingValueReviewer, DuplicateRowReviewer, DuplicateColumnReviewer,
-TypeReviewer, ConstantColumnReviewer, CardinalityReviewer, OutlierReviewer,
-DistributionReviewer, FeatureQualityReviewer, LeakageReviewer, and
-DiffReviewer. None of them are implemented yet; they land in dedicated future
-sprints and register through ``featuresmith.review.registry``.
+This package ships the default reviewer set described in
+``docs/features/Dataset-Review-PRD.md`` section 7.1, implemented incrementally
+across sprints. Sprint 2 ships the schema-health, type, missing-value,
+duplicate, constant-column, high-cardinality, and basic-statistics reviewers;
+outlier, distribution, feature-quality, leakage, and diff reviewers remain
+future work.
 """
+
+from __future__ import annotations
+
+from featuresmith.review.base import BaseReviewer
+from featuresmith.review.reviewers.basic_statistics import BasicStatisticsReviewer
+from featuresmith.review.reviewers.cardinality import CardinalityReviewer
+from featuresmith.review.reviewers.constants import ConstantColumnReviewer
+from featuresmith.review.reviewers.duplicates import DuplicateReviewer
+from featuresmith.review.reviewers.missing_value import MissingValueReviewer
+from featuresmith.review.reviewers.schema_health import SchemaHealthReviewer
+from featuresmith.review.reviewers.types import TypeReviewer
+
+__all__ = [
+    "BasicStatisticsReviewer",
+    "CardinalityReviewer",
+    "ConstantColumnReviewer",
+    "DuplicateReviewer",
+    "MissingValueReviewer",
+    "SchemaHealthReviewer",
+    "TypeReviewer",
+    "builtin_reviewers",
+]
+
+
+def builtin_reviewers() -> tuple[BaseReviewer, ...]:
+    """Return the default built-in reviewer instances.
+
+    Returns:
+        A tuple of reviewer instances registered by default.
+    """
+    return (
+        SchemaHealthReviewer(),
+        MissingValueReviewer(),
+        DuplicateReviewer(),
+        ConstantColumnReviewer(),
+        CardinalityReviewer(),
+        TypeReviewer(),
+        BasicStatisticsReviewer(),
+    )

@@ -78,7 +78,7 @@ def build_profile() -> ProfileResult:
 
 def test_zero_reviewers_completes() -> None:
     """The pipeline must complete successfully with zero reviewers."""
-    result = ReviewEngine().run(profile=build_profile())
+    result = ReviewEngine(registry=ReviewerRegistry(())).run(profile=build_profile())
 
     assert result.engine_version == REVIEW_ENGINE_VERSION
     assert result.sections == ()
