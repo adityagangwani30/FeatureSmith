@@ -1,0 +1,149 @@
+"""Serializable schemas for the Review Engine output models.
+
+The Review Engine produces one canonical, fully serializable artifact
+(``ReviewResult``) that every surface — CLI, dashboard, HTML report, JSON —
+consumes identically. These models mirror ``Review-Engine-Architecture.md``
+section 8.4 and reuse the existing ``RuleFinding`` schema unchanged so
+traceability back to the Rule Engine holds.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
+from featuresmith.core.profile_result import DatasetSummary
+from featuresmith.core.rule_finding import RuleFinding
+
+
+class Severity(Enum):
+    """Severity of a review section or finding.
+
+    Values reuse the shared severity vocabulary already used by the rule
+    engine and the CLI (critical > warning > info), extended with ``passed``
+    for sections that found no issues.
+    """
+
+    CRITICAL = "critical"
+    WARNING = "warning"
+    INFO = "info"
+    PASSED = "passed"
+
+    @property
+    def rank(self) -> int:
+        """Return an ordering rank (higher is more severe).
+
+        Returns:
+            An integer between 0 and 3 where 3 is the most severe.
+        """
+        return _SEVERITY_RANK[self]
+
+
+_SEVERITY_RANK = {
+    Severity.PASSED: 0,
+    Severity.INFO: 1,
+    Severity.WARNING: 2,
+    Severity.CRITICAL: 3,
+}
+
+
+class ReviewCategory(Enum):
+    """Category of a reviewer and of the section it produces.
+
+    Mirrors the reviewer categories defined in ``Review-Engine-Architecture.md``
+    section 8.3: schema, quality, leakage, diff, feature quality, and custom.
+    """
+
+    SCHEMA = "schema"
+    QUALITY = "quality"
+    LEAKAGE = "leakage"
+    DIFF = "diff"
+    FEATURE_QUALITY = "feature_quality"
+    CUSTOM = "custom"
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewSection:
+    """One reviewer's contribution to a review.
+
+    Attributes:
+        id: The namespaced, stable identifier of the producing reviewer.
+        title: Human-readable heading for the section.
+        category: The reviewer category of the section.
+        severity: Section-level severity; ``Severity.PASSED`` when the section
+            found no issues.
+        findings: The existing ``RuleFinding`` objects that fired for this
+            section (never reshaped by the Review Engine).
+        narrative: Optional plain-language narration; populated only when the
+            AI layer is enabled (future).
+        recommendations: Optional ranked suggestions; populated only when the
+            Recommendation Engine is available (future).
+    """
+
+    id: str
+    title: str
+    category: ReviewCategory
+    severity: Severity
+    findings: Sequence[RuleFinding] = ()
+    narrative: str | None = None
+    recommendations: Sequence[Any] = ()
+
+    def __post_init__(self) -> None:
+        """Freeze sequence fields to keep the section immutable."""
+        object.__setattr__(self, "findings", tuple(self.findings))
+        object.__setattr__(self, "recommendations", tuple(self.recommendations))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the section to a dictionary of primitive values.
+
+        Returns:
+            A dictionary representation suitable for JSON serialization.
+        """
+        from typing import cast
+
+        from featuresmith.core.profile_result import _asdict_custom
+
+        return cast(dict[str, Any], _asdict_custom(self))
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewResult:
+    """The canonical, fully serializable output of a Review Engine run.
+
+    Attributes:
+        engine_version: Version of the Review Engine result schema so
+            downstream consumers can detect breaking changes across releases.
+        dataset_summary: The dataset-level summary of the reviewed dataset.
+        generated_at: Timestamp (UTC) when the review was generated.
+        sections: The aggregated review sections, sorted by severity.
+        overall_summary: A short, templated roll-up of the whole review.
+        score: Reserved attachment point for the future ML Readiness Score.
+        diff: Reserved attachment point for the future dataset diff output.
+    """
+
+    engine_version: str
+    dataset_summary: DatasetSummary
+    generated_at: datetime
+    sections: Sequence[ReviewSection] = ()
+    overall_summary: str = ""
+    score: Any = None
+    diff: Any = None
+
+    def __post_init__(self) -> None:
+        """Freeze sequence fields to keep the result immutable."""
+        object.__setattr__(self, "sections", tuple(self.sections))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the result to a dictionary of primitive values.
+
+        Returns:
+            A dictionary representation suitable for JSON serialization.
+        """
+        from typing import cast
+
+        from featuresmith.core.profile_result import _asdict_custom
+
+        return cast(dict[str, Any], _asdict_custom(self))

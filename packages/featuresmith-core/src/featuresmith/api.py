@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from featuresmith.connectors.registry import default_registry
@@ -21,6 +22,19 @@ from featuresmith.core.exceptions import (
 from featuresmith.core.profile_result import ProfileResult as ProfileResult
 from featuresmith.core.rule_result import RuleResult as RuleResult
 from featuresmith.profiling import profile_dataset
+from featuresmith.review.render import render as render
+from featuresmith.review.schema import (
+    ReviewCategory as ReviewCategory,
+)
+from featuresmith.review.schema import (
+    ReviewResult as ReviewResult,
+)
+from featuresmith.review.schema import (
+    ReviewSection as ReviewSection,
+)
+from featuresmith.review.schema import (
+    Severity as Severity,
+)
 
 
 def load(source: object) -> Dataset:
@@ -177,4 +191,97 @@ def analyze(
         target_column=target_column,
         enabled_rules=enabled_rules,
         rule_config=rule_config,
+    )
+
+
+def review(
+    source: object,
+    *,
+    previous: object | None = None,
+    target_column: str | None = None,
+    enabled_reviewers: Sequence[str] | None = None,
+    enabled_categories: Sequence[ReviewCategory] | None = None,
+    reviewer_config: Mapping[str, Mapping[str, Any]] | None = None,
+    max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
+) -> ReviewResult:
+    """Run an engineering review of a tabular source or Dataset.
+
+    The Review Engine composes the existing profiling and rule engines into a
+    single structured review. It accepts the same sources as ``fs.analyze()``
+    (Dataset, file path, or in-memory dataframe) and returns one frozen,
+    serializable ReviewResult.
+
+    Args:
+        source: The data source to review. This can be a pre-loaded Dataset
+            object, a string representing a local file path (CSV, Excel,
+            Parquet), or an in-memory pandas or Polars DataFrame.
+        previous: Optional prior snapshot for diff-aware review. Not yet
+            available; providing a value raises NotImplementedError.
+        target_column: Optional name of the target column in the dataset,
+            forwarded for reviewers that use it.
+        enabled_reviewers: Optional list of reviewer IDs to execute. If not
+            provided, the engine runs all registered reviewers.
+        enabled_categories: Optional list of reviewer categories to execute.
+            If not provided, all categories are considered.
+        reviewer_config: Optional dictionary of configurations keyed by
+            reviewer ID.
+        max_correlation_columns: Limit correlation computations during
+            profiling (default 100).
+        max_frequency_table_size: Maximum entries to keep in categorical
+            frequency tables (default 1000).
+
+    Returns:
+        ReviewResult: The canonical Review Engine output containing the
+            aggregated review sections and an overall summary.
+
+    Raises:
+        ConnectorError: If the source is a file path or dataframe that fails to
+            load before profiling.
+        ValueError: If reviewer_config references an unknown reviewer ID.
+        NotImplementedError: If ``previous`` is provided (diff-aware review is
+            a future capability).
+
+    Notes:
+        The review reuses ``fs.analyze()`` internally to obtain the profile and
+        rule findings, so reviewers never re-read or re-profile the dataset.
+        This foundation sprint ships with no built-in reviewers; the engine
+        must complete successfully with zero reviewers registered.
+
+    Examples:
+        >>> import pandas as pd
+        >>> import featuresmith as fs
+        >>> df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        >>> result = fs.review(df)
+        >>> result.overall_summary
+        'Review complete: no reviewers ran.'
+    """
+    if previous is not None:
+        raise NotImplementedError(
+            "Diff-aware review ('previous') is not available yet; "
+            "it ships with the Dataset Diff capability."
+        )
+    if isinstance(source, Dataset):
+        dataset = source
+    else:
+        dataset = load(source)
+
+    analysis = analyze(
+        dataset,
+        target_column=target_column,
+        max_correlation_columns=max_correlation_columns,
+        max_frequency_table_size=max_frequency_table_size,
+    )
+
+    from featuresmith.review.engine import ReviewEngine
+
+    engine = ReviewEngine()
+    return engine.run(
+        profile=analysis.profile,
+        dataset=dataset,
+        findings=analysis.findings,
+        target_column=target_column,
+        enabled_reviewers=enabled_reviewers,
+        enabled_categories=enabled_categories,
+        reviewer_config=reviewer_config,
     )

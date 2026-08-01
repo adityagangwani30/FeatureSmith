@@ -4,9 +4,9 @@
 
 - Current Version: 0.1.0
 - Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
-- Current Sprint: Sprint 6 — SDK Hardening & Exporter Layer (next)
+- Current Sprint: Review Engine Foundation (complete)
 - Repository: `D:\FeatureSmith`
-- Last Updated: 2026-07-26
+- Last Updated: 2026-08-02
 
 -------------------------------------------------
 
@@ -23,7 +23,8 @@
 | Release Readiness Sprint 2 (RR-2) — Documentation Website | Completed | 2026-07-26 |
 | Release Readiness Sprint 3 (RR-3) — Examples & Tutorials | Completed | 2026-07-26 |
 | Release Readiness Sprint 4 (RR-4) — Testing & Benchmarks | Completed | 2026-07-26 |
-| Sprint 6 — SDK Hardening & Exporter Layer | Next | — |
+| Review Engine Foundation | Completed | 2026-08-02 |
+| Sprint 6 — SDK Hardening & Exporter Layer | Deferred | — |
 
 -------------------------------------------------
 
@@ -205,6 +206,76 @@
   - No rule configuration persistence (e.g. `.featuresmith.yml` loading) yet —
     rule configs are passed directly at call time.
 
+### Review Engine Foundation
+
+- Objective: Build the Review Engine orchestration foundation inside
+  `featuresmith-core` per `docs/features/Review-Engine-Architecture.md` —
+  infrastructure only, shipping with zero built-in reviewers by design.
+- Major Deliverables:
+  - `featuresmith/review/schema.py` — `Severity`, `ReviewCategory`,
+    `ReviewSection`, `ReviewResult` (frozen dataclasses with `to_dict()`).
+  - `featuresmith/review/context.py` — `ReviewConfig` + frozen `ReviewContext`;
+    no `ExecutionState` class, per the architecture decision that state lives on
+    the context.
+  - `featuresmith/review/base.py` — `BaseReviewer` ABC (`id`, `category`,
+    `requires_previous_snapshot`, `applicable()`, `review()`).
+  - `featuresmith/review/registry.py` — `ReviewerRegistry` +
+    empty `default_registry()`; `reviewers/` subpackage placeholder.
+  - `featuresmith/review/engine.py` — `ReviewEngine.run()` pipeline
+    (`REVIEW_ENGINE_VERSION = "0.1.0"`): config validation → context
+    construction → reviewer dispatch (enabled-reviewer/category filters,
+    previous-snapshot gate, `applicable()` gate) → fault-isolated execution →
+    aggregation.
+  - `featuresmith/review/aggregator.py` — `ResultAggregator` (severity-sorted
+    sections, templated overall summary, failed-reviewer warning).
+  - `featuresmith/review/render.py` — `ConsoleRenderer` + `RendererRegistry` +
+    `render()` facade (console only for now).
+  - `featuresmith/review/__init__.py` — full public exports.
+  - SDK: `fs.review(source)` in `featuresmith/api.py` (reuses `fs.analyze()`'s
+    profile + rule findings); `review` added to root `__init__.py` exports;
+    `render`, `ReviewCategory`, `ReviewResult`, `ReviewSection`, `Severity`
+    re-exported from `featuresmith.api`.
+  - CLI: `featuresmith review <source>` in
+    `featuresmith_cli/commands/review.py` (table/json formats, `--output`,
+    `--fail-on`, `--only`, `--quiet`, `--verbose`, `--version`).
+  - Extended `featuresmith/core/profile_result.py::_asdict_custom` to serialize
+    `datetime` (ISO-8601) and `Enum` (`.value`) so `ReviewResult.to_dict()` is
+    JSON-clean.
+  - Tests: `tests/review/` (schema, context, registry, aggregator, engine,
+    render, sdk) and `tests/cli/test_cli_review.py` — 56 new tests.
+  - Updated `docs/features/Review-Engine-Architecture.md` status to
+    "Foundation implemented"; added §14 "Implemented Foundation" subsection.
+- Files Modified: `featuresmith/api.py`; `featuresmith/__init__.py`;
+  `featuresmith/core/profile_result.py`; `featuresmith_cli/main.py`;
+  `pyproject.toml` (ruff `extend-exclude = ["*.md"]`; import-linter
+  `ignore_imports` for review edges); `tests/test_imports.py`.
+- Important Decisions:
+  - The approved architecture docs are the source of truth; conflicting sprint
+    brief details (a separate `ReviewFinding` type, an `INFO/WARNING/ERROR/
+    CRITICAL` enum) were ignored — `ReviewSection.findings` reuses the existing
+    `RuleFinding`, and `Severity` uses `critical | warning | info | passed`
+    (lowercase values for backward compatibility).
+  - Zero built-in reviewers ship with this sprint; `fs.review()` runs an empty
+    reviewer set by design. `score`/`diff` fields exist only as reserved `None`
+    attachment points. `fs.review(previous=...)` raises `NotImplementedError`.
+  - Fault isolation mirrors the Rule Engine: one crashing reviewer degrades to
+    a partial-result warning without aborting the run.
+  - Added `extend-exclude = ["*.md"]` to `[tool.ruff]` so `ruff format --check .`
+    passes without reformatting intentional alignment in README/design docs
+    (pre-existing failure).
+- Lessons Learned: Import-linter's transitive forbidden-contract chains need
+  every new `featuresmith.api -> review -> core` edge listed in `ignore_imports`
+  (same pattern as Sprint 5). `uv build --package <name>` builds a workspace
+  member; `uv run build` is not a valid invocation.
+- Known Limitations:
+  - No built-in reviewers yet — future sprints fill `reviewers/`.
+  - Diff-aware review (`previous=`) raises `NotImplementedError`; ML Readiness
+    Score, AI narration, recommendations, and non-console renderers remain
+    future work.
+  - `render` is exported from `featuresmith.api`/`featuresmith.review`, not the
+    package root.
+  - `.pytest_cache` writes fail under Windows (WinError 5, pre-existing).
+
 ### Release Readiness Sprint 3 (RR-3) — Examples & Tutorials
 
 - Objective: Produce standard examples and tutorial materials demonstrating the full SDK & CLI workflows across common industry patterns.
@@ -312,6 +383,7 @@
 | Connectors | Completed |
 | Profiling | Completed |
 | Rules | Completed |
+| Review Engine | Foundation Implemented |
 | Recommendation Engine | Not Started |
 | AI Layer | Not Started |
 | Exporters | Not Started |
@@ -338,6 +410,16 @@ primitives.
   Flags: `--target`, `--format {table,json}`, `--output`, `--severity {info,warning,critical}`,
   `--max-correlation-columns`, `--quiet`, `--verbose`, `--version`.
   Exit codes: 0 (clean), 1 (findings above threshold), 2 (invalid input), 3 (file load failure), 4 (unexpected error).
+- `fs.review(source, *, previous, target_column, enabled_reviewers,
+  enabled_categories, reviewer_config)` — run the Review Engine pipeline
+  (load → profile → rules → reviewers → aggregate) and return a `ReviewResult`.
+  `previous=` raises `NotImplementedError` for now. Also exported: `render`,
+  `ReviewCategory`, `ReviewSection`, `Severity`, `ReviewResult`.
+- `featuresmith review <source>` — CLI command; thin Typer wrapper over `fs.review()`.
+  Flags: `--previous`, `--format {table,json}`, `--output`, `--fail-on {info,warning,critical}`,
+  `--only <categories>`, `--quiet`, `--verbose`, `--version`.
+  Exit codes: 0 (clean), 1 (finding ≥ `--fail-on`), 2 (usage / unknown category / `--previous`),
+  3 (source missing/parse), 4 (unexpected error).
 
 -------------------------------------------------
 
@@ -360,6 +442,12 @@ primitives.
 | 2026-07-26 | Sprint 5 | Use `import-linter` `ignore_imports` for transitive-only paths through `featuresmith.api`. | Prevent false positives from chains that route legitimately through the public API boundary. |
 | 2026-07-26 | Sprint 5 | Set `Console(width=200)` to prevent mid-word Rich text wrapping in test environments. | Ensures rule IDs rendered in table cells are assertable without folding or truncation. |
 | 2026-07-26 | Sprint 5 | Parquet fixture in CLI tests uses Polars `write_parquet()` not pandas. | Pandas Parquet requires pyarrow/fastparquet not installed; Polars writes natively. |
+| 2026-08-02 | Review Engine | Architecture docs are the source of truth when they conflict with the sprint brief. | The sprint brief's `ReviewFinding` type and `INFO/WARNING/ERROR/CRITICAL` enum conflicted with the reviewed architecture; the latter wins. |
+| 2026-08-02 | Review Engine | `Severity` uses lowercase string values `critical | warning | info | passed` with a `.rank`. | Backward compatible with existing `RuleFinding` severity strings and CLI `SEVERITY_LEVELS`. |
+| 2026-08-02 | Review Engine | `ReviewSection.findings` reuses the existing `RuleFinding`; no separate `ReviewFinding` model. | Architecture requires traceability back to Rule Findings; no new model needed. |
+| 2026-08-02 | Review Engine | Reviewers re-use `fs.analyze()` outputs; the engine never re-reads or re-profiles data. | Single profiling pass; reviewers are pure consumers of `ProfileResult` + `RuleFinding[]`. |
+| 2026-08-02 | Review Engine | Zero built-in reviewers ship with the foundation; `fs.review(previous=...)` raises `NotImplementedError`. | Diff/scoring/AI are future phases; the pipeline must be correct with an empty reviewer set. |
+| 2026-08-02 | Review Engine | Ruff formatter excludes `*.md` via `extend-exclude`. | Prevents `ruff format --check .` from rewriting intentional alignment in README and design docs. |
 
 -------------------------------------------------
 
@@ -377,14 +465,25 @@ primitives.
       be configurable via `.featuresmith.yml` once the config system is built.
 - [ ] No `.featuresmith.yml` config loading yet — rule configs are passed at call
       time only.
+- [ ] Review Engine has zero built-in reviewers; the `reviewers/` subpackage is a
+      placeholder until future sprints add schema/quality/leakage/diff reviewers.
+- [ ] `fs.review(previous=...)` raises `NotImplementedError` — diff-aware review
+      (and the reserved `ReviewResult.diff` field) is future work.
+- [ ] `ReviewResult.score` is a reserved `None` field — ML Readiness Score is
+      future work.
+- [ ] `render` is not exported from the package root (only `featuresmith.api`
+      and `featuresmith.review`); revisit if callers expect it at root.
+- [ ] `ruff format --check .` excludes `*.md` via `extend-exclude` — reformatting
+      Python code blocks inside docs is intentionally not enforced.
 
 -------------------------------------------------
 
 ## Upcoming Sprint
 
-- Sprint Number: Sprint 6
+- Sprint Number: Sprint 6 (deferred) — SDK Hardening & Exporter Layer
 - Objective: SDK Hardening & Exporter Layer — improve SDK resilience, add JSON/CSV
   export helpers, and begin configuration loading from `.featuresmith.yml`.
+  Deferred while the Review Engine foundation was built; still the next planned sprint.
 - Major Tasks:
   - Add JSON and CSV export helpers to the SDK.
   - Implement `.featuresmith.yml` configuration loading for rule thresholds.
@@ -393,9 +492,40 @@ primitives.
 - Expected Deliverables: `fs.export_json()`, `fs.export_csv()`; YAML config loader;
   size-tiered profiling strategy.
 
+> Note: built-in Review Engine reviewers (schema/quality/leakage/diff) may take
+> precedence over the deferred Sprint 6 items per `docs/features/Review-Engine-Architecture.md`.
+
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-08-02 — Review Engine Foundation
+
+- Added the Review Engine orchestration foundation in
+  `packages/featuresmith-core/src/featuresmith/review/` per the approved
+  `docs/features/Review-Engine-Architecture.md`: `schema.py`, `context.py`,
+  `base.py`, `registry.py`, `aggregator.py`, `engine.py`, `render.py`,
+  `__init__.py`, and `reviewers/__init__.py` (empty placeholder).
+- Added `Severity` (`critical | warning | info | passed`) and `ReviewCategory`
+  enums; `ReviewSection` and `ReviewResult` schemas reusing the existing
+  `RuleFinding` type; `ReviewConfig`/`ReviewContext`; `BaseReviewer` ABC;
+  `ReviewerRegistry`; `ReviewEngine.run()` 5-stage pipeline with per-reviewer
+  fault isolation; `ResultAggregator`; `ConsoleRenderer` + `RendererRegistry`.
+- Extended `_asdict_custom` in `core/profile_result.py` to serialize `datetime`
+  and `Enum` so `ReviewResult.to_dict()` is JSON-clean.
+- Added SDK `fs.review()` (reusing `fs.analyze()`; `previous=` raises
+  `NotImplementedError`) and exported `review` at the package root, plus
+  `render`, `ReviewCategory`, `ReviewResult`, `ReviewSection`, `Severity` from
+  `featuresmith.api`.
+- Added `featuresmith review <source>` CLI command with table/json formats,
+  `--output`, `--fail-on`, `--only`, `--quiet`, `--verbose`, `--version`;
+  exit codes 0/1/2/3/4.
+- Added 56 tests under `tests/review/` and `tests/cli/test_cli_review.py`.
+- Added `extend-exclude = ["*.md"]` to `[tool.ruff]` and review edges to the
+  import-linter `ignore_imports` list.
+- Full validation passes: ruff format/check, mypy strict (79 files), pytest
+  (121 passed), lint-imports (1 kept, 0 broken), `uv build` for all three
+  packages, and CLI smoke tests.
 
 ### 2026-07-26 — Release Readiness Sprint 4 (RR-4)
 

@@ -395,8 +395,14 @@ class ProfileResult:
 
 
 def _asdict_custom(obj: Any) -> Any:
-    """Recursively convert dataclasses and mapping proxies to standard python primitives."""
+    """Recursively convert dataclasses and mapping proxies to standard python primitives.
+
+    Datetime values are converted to ISO-8601 strings and enum members to their
+    value so the result stays JSON-serializable.
+    """
     import dataclasses
+    from datetime import datetime
+    from enum import Enum
     from types import MappingProxyType
 
     if dataclasses.is_dataclass(obj):
@@ -408,5 +414,9 @@ def _asdict_custom(obj: Any) -> Any:
         return {k: _asdict_custom(v) for k, v in obj.items()}
     elif isinstance(obj, (list, tuple)):
         return [_asdict_custom(v) for v in obj]
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, Enum):
+        return obj.value
     else:
         return obj

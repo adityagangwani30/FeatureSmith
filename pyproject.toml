@@ -43,6 +43,7 @@ members = [
 [tool.ruff]
 target-version = "py311"
 line-length = 88
+extend-exclude = ["*.md"]
 src = [
   "packages/featuresmith-core/src",
   "packages/featuresmith-cli/src",
@@ -116,4 +117,16 @@ ignore_imports = [
   "featuresmith.rules.engine -> featuresmith.core.profile_result",
   "featuresmith.rules.engine -> featuresmith.core.rule_result",
   "featuresmith.rules.engine -> featuresmith.core.rule_finding",
+  "featuresmith.api -> featuresmith.review.schema",
+  "featuresmith.api -> featuresmith.review.render",
+  "featuresmith.api -> featuresmith.review.engine",
+  "featuresmith.review.aggregator -> featuresmith.core.profile_result",
+  "featuresmith.review.engine -> featuresmith.core.dataset",
+  "featuresmith.review.engine -> featuresmith.core.profile_result",
+  "featuresmith.review.engine -> featuresmith.core.rule_finding",
+  "featuresmith.review.context -> featuresmith.core.dataset",
+  "featuresmith.review.context -> featuresmith.core.profile_result",
+  "featuresmith.review.context -> featuresmith.core.rule_finding",
+  "featuresmith.review.schema -> featuresmith.core.profile_result",
+  "featuresmith.review.schema -> featuresmith.core.rule_finding",
 ]

@@ -1,0 +1,167 @@
+"""Render pipeline that turns a ReviewResult into surface-native output."""
+
+from __future__ import annotations
+
+import abc
+from collections.abc import Iterable
+
+from featuresmith.review.schema import ReviewResult
+
+
+class BaseRenderer(abc.ABC):
+    """Base class for rendering a ReviewResult into one output format.
+
+    Renderers are pure functions over the frozen ReviewResult: they must never
+    recompute or reinterpret a finding. Each surface owns only a renderer that
+    turns the one canonical artifact into its native idiom.
+    """
+
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """Return the target identifier this renderer produces."""
+        pass
+
+    @abc.abstractmethod
+    def render(self, result: ReviewResult) -> str:
+        """Render the result into the target format.
+
+        Args:
+            result: The frozen ReviewResult.
+
+        Returns:
+            The rendered output as a string.
+        """
+        pass
+
+
+class ConsoleRenderer(BaseRenderer):
+    """Render a ReviewResult as a deterministic plain-text terminal report.
+
+    The output carries no ANSI styling so any thin surface can emit it
+    directly; the CLI is a thin wrapper over this renderer.
+    """
+
+    @property
+    def name(self) -> str:
+        """Return the target identifier "console"."""
+        return "console"
+
+    def render(self, result: ReviewResult) -> str:
+        """Render the result as a plain-text terminal report.
+
+        Args:
+            result: The frozen ReviewResult.
+
+        Returns:
+            The plain-text report.
+        """
+        lines: list[str] = ["Featuresmith Dataset Review"]
+        summary = result.dataset_summary
+        lines.append(f"Rows: {summary.row_count:,} | Columns: {summary.column_count:,}")
+        lines.append(f"Engine: v{result.engine_version}")
+        lines.append(f"Generated: {result.generated_at.isoformat()}")
+        lines.append("")
+        lines.append(result.overall_summary)
+        lines.append("")
+        if not result.sections:
+            lines.append("No review sections produced.")
+        for section in result.sections:
+            lines.append(
+                f"[{section.severity.value.upper()}] {section.title} ({section.id})"
+            )
+            if section.findings:
+                for finding in section.findings:
+                    column = finding.column_name or "(dataset)"
+                    lines.append(f"  - {finding.title} [{column}]")
+                    lines.append(f"      {finding.description}")
+            else:
+                lines.append("  No issues found.")
+        return "\n".join(lines)
+
+
+class RendererRegistry:
+    """Registry of named renderers for review output targets."""
+
+    def __init__(self, renderers: Iterable[BaseRenderer] = ()) -> None:
+        """Initialize the registry with an optional set of initial renderers.
+
+        Args:
+            renderers: Iterable of renderer instances to register.
+        """
+        self._renderers: dict[str, BaseRenderer] = {}
+        for renderer in renderers:
+            self.register(renderer)
+
+    def register(self, renderer: BaseRenderer) -> None:
+        """Register a new renderer instance.
+
+        Args:
+            renderer: An instance of a BaseRenderer subclass.
+        """
+        self._renderers[renderer.name] = renderer
+
+    def unregister(self, renderer: BaseRenderer | str) -> None:
+        """Unregister a renderer by instance or name.
+
+        Args:
+            renderer: The renderer instance or renderer name to unregister.
+        """
+        name = renderer if isinstance(renderer, str) else renderer.name
+        if name in self._renderers:
+            del self._renderers[name]
+
+    def get(self, name: str) -> BaseRenderer | None:
+        """Retrieve a registered renderer by name.
+
+        Args:
+            name: The renderer name.
+
+        Returns:
+            The registered BaseRenderer instance, or None if not found.
+        """
+        return self._renderers.get(name)
+
+    def render(self, name: str, result: ReviewResult) -> str:
+        """Render the result with a named renderer.
+
+        Args:
+            name: The renderer name.
+            result: The frozen ReviewResult.
+
+        Returns:
+            The rendered output as a string.
+
+        Raises:
+            ValueError: If no renderer is registered under the name.
+        """
+        renderer = self.get(name)
+        if renderer is None:
+            raise ValueError(f"Unknown renderer: '{name}'")
+        return renderer.render(result)
+
+
+def default_registry() -> RendererRegistry:
+    """Return the built-in renderer registry.
+
+    Only the console renderer ships in this foundation sprint; dashboard,
+    HTML, and JSON renderers are future surfaces.
+    """
+    return RendererRegistry((ConsoleRenderer(),))
+
+
+def render(result: ReviewResult, target: str = "console") -> str:
+    """Render a ReviewResult into the requested target format.
+
+    Args:
+        result: The frozen ReviewResult.
+        target: Output target name. Only "console" ships in this foundation
+            sprint.
+
+    Returns:
+        The rendered output as a string.
+
+    Raises:
+        ValueError: If the target renderer is not registered.
+    """
+    return default_registry().render(target, result)

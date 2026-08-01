@@ -5,6 +5,7 @@ from __future__ import annotations
 import typer
 
 from featuresmith_cli.commands.analyze import analyze_command, version_callback
+from featuresmith_cli.commands.review import review_command
 
 # Create the Typer CLI application
 app = typer.Typer(
@@ -15,6 +16,9 @@ app = typer.Typer(
 
 # Register analyze command
 app.command(name="analyze")(analyze_command)
+
+# Register review command
+app.command(name="review")(review_command)
 
 
 # Add a top-level version callback on the CLI itself (e.g. featuresmith --version)
