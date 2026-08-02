@@ -31,7 +31,9 @@ class IdentifierShapeDetector(LeakagePatternDetector):
     column the detector returns no findings.
     """
 
-    def __init__(self, correlation_threshold: float = _DEFAULT_CORRELATION_THRESHOLD) -> None:
+    def __init__(
+        self, correlation_threshold: float = _DEFAULT_CORRELATION_THRESHOLD
+    ) -> None:
         """Initialize the identifier-shape detector.
 
         Args:

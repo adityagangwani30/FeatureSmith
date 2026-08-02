@@ -68,8 +68,8 @@ def default_registry() -> ScoreDimensionRegistry:
 
     The default registry ships the built-in dimensions that map onto the
     reviewers implemented so far. Remaining dimensions (feature quality,
-    distribution health, class balance, leakage risk) land in future sprints
-    once their backing reviewers ship, registering through the same registry.
+    distribution health, class balance) land in future sprints once their
+    backing reviewers ship, registering through the same registry.
     """
     from featuresmith.scoring.dimensions import builtin_dimensions
 

@@ -22,7 +22,7 @@ from featuresmith.scoring.schema import DimensionScore, MLReadinessScore
 if TYPE_CHECKING:
     from featuresmith.review.schema import ReviewResult
 
-SCORING_VERSION = "0.1.0"
+SCORING_VERSION = "0.2.0"
 
 _SEVERITY_RANK = {"critical": 0, "warning": 1, "info": 2}
 

@@ -28,6 +28,19 @@ def sample_csv(tmp_path: Path) -> Path:
     return path
 
 
+def leaky_csv(tmp_path: Path) -> Path:
+    """Create a small temporary CSV with a target and a leaky feature."""
+    df = pd.DataFrame(
+        {
+            "target": [1, 2, 3, 4, 5],
+            "leak": [1, 2, 3, 4, 5],
+        }
+    )
+    path = tmp_path / "leaky.csv"
+    df.to_csv(path, index=False)
+    return path
+
+
 def test_cli_review_help() -> None:
     """Review help displays the new command's options."""
     runner = CliRunner()
@@ -35,6 +48,7 @@ def test_cli_review_help() -> None:
 
     assert result.exit_code == 0
     assert "Path to the local tabular dataset" in result.stdout
+    assert "--target" in result.stdout
     assert "--fail-on" in result.stdout
     assert "--only" in result.stdout
 
@@ -57,7 +71,7 @@ def test_cli_review_csv(tmp_path: Path) -> None:
     assert "Featuresmith Dataset Review" in result.stdout
     assert "Rows: 5 | Columns: 2" in result.stdout
     assert "[WARNING] Missing Values (review.quality.missingness)" in result.stdout
-    assert "ML Readiness Score (scoring v0.1.0)" in result.stdout
+    assert "ML Readiness Score (scoring v0.2.0)" in result.stdout
     assert "  Missing Values: 85/100 (1 finding(s))" in result.stdout
     assert "Overall: " in result.stdout
 
@@ -113,8 +127,8 @@ def test_cli_review_json_format(tmp_path: Path) -> None:
     assert missingness["severity"] == "warning"
     assert "overall_summary" in data
     assert "dataset_summary" in data
-    assert data["score"]["overall"] == 97.9
-    assert len(data["score"]["dimensions"]) == 7
+    assert data["score"]["overall"] == 98.1
+    assert len(data["score"]["dimensions"]) == 8
 
 
 def _strip_finding_ids(payload: dict[str, Any]) -> dict[str, Any]:
@@ -203,6 +217,51 @@ def test_cli_review_previous_not_available(tmp_path: Path) -> None:
 
     assert result.exit_code == 2
     assert "not available yet" in result.stderr
+
+
+def test_cli_review_target_column(tmp_path: Path) -> None:
+    """--target escalates leakage detection and lowers the ML Readiness Score."""
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["review", str(leaky_csv(tmp_path)), "--target", "target", "--format", "json"],
+    )
+
+    assert result.exit_code == 1
+    data = json.loads(result.stdout)
+    leakage = next(s for s in data["sections"] if s["id"] == "review.leakage")
+    assert leakage["severity"] == "critical"
+    assert leakage["findings"]
+    assert data["score"]["overall"] < 100.0
+    leakage_dim = next(
+        d for d in data["score"]["dimensions"] if d["id"] == "score.leakage_risk"
+    )
+    assert leakage_dim["score"] < 100.0
+
+
+def test_cli_review_target_unknown_column(tmp_path: Path) -> None:
+    """An unknown --target column exits 2 with a clear error."""
+    runner = CliRunner()
+    result = runner.invoke(
+        app, ["review", str(sample_csv(tmp_path)), "--target", "bogus"]
+    )
+
+    assert result.exit_code == 2
+    assert "Target column 'bogus' not found in dataset" in result.stderr
+    assert "Available columns" in result.stderr
+
+
+def test_cli_review_renders_leakage_findings(tmp_path: Path) -> None:
+    """The console report surfaces leakage findings from a leaky dataset."""
+    runner = CliRunner()
+    result = runner.invoke(
+        app, ["review", str(leaky_csv(tmp_path)), "--target", "target"]
+    )
+
+    assert result.exit_code == 1
+    assert "Leakage Detection (review.leakage)" in result.stdout
+    assert "leak" in result.stdout
+    assert "Overall: " in result.stdout
 
 
 def test_cli_review_output_file_txt(tmp_path: Path) -> None:

@@ -1,12 +1,12 @@
 """Built-in ML Readiness scoring dimensions.
 
-The initial dimension set maps one-to-one onto the built-in Review Engine
-reviewers implemented so far (``docs/features/ML-Readiness-Score.md``
-section 7.1): Schema Health, Missing Values, Duplicate Records, Data Types,
-Constant Columns, High Cardinality, and Dataset Structure. Each dimension reads
+The dimension set maps one-to-one onto the built-in Review Engine reviewers
+implemented so far (``docs/features/ML-Readiness-Score.md`` section 7.1):
+Schema Health, Missing Values, Duplicate Records, Data Types, Constant Columns,
+High Cardinality, Dataset Structure, and Leakage Risk. Each dimension reads
 exactly one review section; dimensions whose reviewer does not yet exist (e.g.
-Feature Quality, Distribution Health, Class Balance, Leakage Risk) ship in a
-future sprint once their reviewers land.
+Feature Quality, Distribution Health, Class Balance) ship in a future sprint
+once their reviewers land.
 """
 
 from __future__ import annotations
@@ -70,11 +70,19 @@ class DatasetStructureDimension(SectionScoreDimension):
     section_id = "review.quality.basic_statistics"
 
 
+class LeakageRiskDimension(SectionScoreDimension):
+    """Scores leakage risk from ``review.leakage`` findings."""
+
+    id = "score.leakage_risk"
+    label = "Leakage Risk"
+    section_id = "review.leakage"
+
+
 def builtin_dimensions() -> tuple[SectionScoreDimension, ...]:
     """Return the default built-in scoring dimensions in a stable order.
 
     Returns:
-        A tuple of the seven built-in scoring dimension instances.
+        A tuple of the eight built-in scoring dimension instances.
     """
     return (
         SchemaHealthDimension(),
@@ -84,4 +92,5 @@ def builtin_dimensions() -> tuple[SectionScoreDimension, ...]:
         ConstantColumnsDimension(),
         HighCardinalityDimension(),
         DatasetStructureDimension(),
+        LeakageRiskDimension(),
     )

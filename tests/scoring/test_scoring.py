@@ -35,6 +35,7 @@ SECTION_TITLES = {
     "review.quality.constants": "Constant Columns",
     "review.quality.cardinality": "High Cardinality",
     "review.quality.basic_statistics": "Basic Statistics",
+    "review.leakage": "Leakage Detection",
 }
 
 
@@ -123,10 +124,10 @@ def test_perfect_result_scores_full_marks() -> None:
 
     assert score is not None
     assert score.overall == 100.0
-    assert len(score.dimensions) == 7
+    assert len(score.dimensions) == 8
     assert all(dimension.score == 100.0 for dimension in score.dimensions)
     assert score.negative_findings == ()
-    assert len(score.positive_findings) == 7
+    assert len(score.positive_findings) == 8
 
 
 def test_missing_values_deduction_is_severity_based() -> None:
@@ -156,6 +157,38 @@ def test_missing_values_deduction_is_severity_based() -> None:
     assert critical.dimensions[0].score == 70.0
     assert warning.dimensions[0].score == 85.0
     assert info.dimensions[0].score == 95.0
+
+
+def test_leakage_findings_lower_leakage_risk_dimension() -> None:
+    """A critical leakage finding deducts its documented points."""
+    score = compute(
+        make_result(
+            "review.leakage",
+            severities={"review.leakage": ("critical",)},
+        )
+    )
+
+    assert score is not None
+    leakage = next(d for d in score.dimensions if d.id == "score.leakage_risk")
+    assert leakage.score == 70.0
+    assert "Leakage Risk" in leakage.label
+    assert leakage.contributing_findings
+
+
+def test_leakage_findings_only_affect_leakage_dimension() -> None:
+    """Leakage findings lower only the leakage-risk dimension."""
+    score = compute(
+        make_result(
+            *all_sections(),
+            severities={"review.leakage": ("critical",)},
+        )
+    )
+
+    assert score is not None
+    leakage = next(d for d in score.dimensions if d.id == "score.leakage_risk")
+    others = [d for d in score.dimensions if d.id != "score.leakage_risk"]
+    assert leakage.score == 70.0
+    assert all(dimension.score == 100.0 for dimension in others)
 
 
 def test_multiple_findings_accumulate_and_clamp_at_zero() -> None:
@@ -188,14 +221,14 @@ def test_aggregation_is_weighted_mean_of_applicable_dimensions() -> None:
     )
 
     assert score is not None
-    assert score.overall == round((100.0 * 5 + 85.0 + 85.0) / 7, 1)
+    assert score.overall == round((100.0 * 6 + 85.0 + 85.0) / 8, 1)
     missing = next(d for d in score.dimensions if d.id == "score.missing_values")
     constants = next(d for d in score.dimensions if d.id == "score.constant_columns")
     assert missing.score == 85.0
     assert constants.score == 85.0
     assert score.summary == (
-        "Overall ML Readiness is 95.7/100 across 7 dimension(s); "
-        "5 fully healthy, 2 with findings lowering the score."
+        "Overall ML Readiness is 96.2/100 across 8 dimension(s); "
+        "6 fully healthy, 2 with findings lowering the score."
     )
 
 
@@ -246,7 +279,7 @@ def test_positive_findings_list_fully_healthy_dimensions() -> None:
         "Missing Values scored 100/100 with no issues found."
         not in score.positive_findings
     )
-    assert len(score.positive_findings) == 6
+    assert len(score.positive_findings) == 7
     assert all(
         statement.endswith("scored 100/100 with no issues found.")
         for statement in score.positive_findings
@@ -308,7 +341,7 @@ def test_custom_weights_are_respected_and_transparent() -> None:
     assert score is not None
     missing = next(d for d in score.dimensions if d.id == "score.missing_values")
     assert missing.weight == 2.0
-    assert score.overall == round((85.0 * 2.0 + 100.0 * 6) / 8.0, 1)
+    assert score.overall == round((85.0 * 2.0 + 100.0 * 7) / 9.0, 1)
 
 
 def test_score_is_json_serializable() -> None:
@@ -323,9 +356,9 @@ def test_score_is_json_serializable() -> None:
     assert score is not None
     data = score.to_dict()
     parsed = json.loads(json.dumps(data))
-    assert parsed["scoring_version"] == "0.1.0"
-    assert parsed["overall"] == 97.9
-    assert len(parsed["dimensions"]) == 7
+    assert parsed["scoring_version"] == "0.2.0"
+    assert parsed["overall"] == 98.1
+    assert len(parsed["dimensions"]) == 8
     assert parsed["positive_findings"][0].endswith(
         "scored 100/100 with no issues found."
     )
@@ -366,8 +399,8 @@ def test_score_adapter_attaches_score() -> None:
 
     assert attached is not result
     assert attached.score is not None
-    assert attached.score.overall == 97.9
-    assert attached.score is not None and attached.score.scoring_version == "0.1.0"
+    assert attached.score.overall == 98.1
+    assert attached.score is not None and attached.score.scoring_version == "0.2.0"
 
 
 def test_compute_score_helper() -> None:
@@ -394,7 +427,7 @@ def test_dimension_compute_raises_when_section_absent() -> None:
 
 def test_review_perfect_dataset_scores_100() -> None:
     """A clean dataframe reviews to a perfect overall score."""
-    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [1.0, 2.0, 3.0, 4.0, 5.0]})
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [2.5, 1.0, 4.0, 3.0, 5.5]})
 
     result = fs.review(df)
 
@@ -472,3 +505,29 @@ def test_review_score_is_deterministic_across_runs() -> None:
     assert first is not None and second is not None
     assert first.overall == second.overall
     assert [d.score for d in first.dimensions] == [d.score for d in second.dimensions]
+
+
+def test_review_leakage_lowers_score() -> None:
+    """A leaky feature lowers the leakage-risk dimension and the overall."""
+    df = pd.DataFrame({"target": [1, 2, 3, 4, 5], "leak": [1, 2, 3, 4, 5]})
+
+    score = fs.review(df, target_column="target").score
+
+    assert score is not None
+    leakage = next(d for d in score.dimensions if d.id == "score.leakage_risk")
+    assert leakage.score < 100.0
+    assert score.overall < 100.0
+    assert "with findings lowering the score" in score.summary
+
+
+def test_review_score_is_stable_with_leakage() -> None:
+    """Two reviews of the same leaky dataset produce identical scores."""
+    df = pd.DataFrame({"target": [1, 2, 3, 4, 5], "leak": [1, 2, 3, 4, 5]})
+
+    first = fs.review(df, target_column="target").score
+    second = fs.review(df, target_column="target").score
+
+    assert first is not None and second is not None
+    assert first.overall == second.overall
+    assert [d.score for d in first.dimensions] == [d.score for d in second.dimensions]
+    assert first.overall < 100.0

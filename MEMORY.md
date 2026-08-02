@@ -4,7 +4,7 @@
 
 - Current Version: 0.1.0
 - Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
-- Current Sprint: Review Engine — ML Readiness Score (Sprint 3, complete)
+- Current Sprint: Intelligent Leakage Detection (Sprint 4, complete) + Leakage Integration & Production Readiness (Sprint 4.1, complete)
 - Repository: `D:\FeatureSmith`
 - Last Updated: 2026-08-02
 
@@ -26,6 +26,8 @@
 | Review Engine Foundation | Completed | 2026-08-02 |
 | Review Engine — Built-in Reviewers (Sprint 2) | Completed | 2026-08-02 |
 | Review Engine — ML Readiness Score (Sprint 3) | Completed | 2026-08-02 |
+| Review Engine — Intelligent Leakage Detection (Sprint 4) | Completed | 2026-08-02 |
+| Review Engine — Leakage Integration & Production Readiness (Sprint 4.1) | Completed | 2026-08-02 |
 | Sprint 6 — SDK Hardening & Exporter Layer | Deferred | — |
 
 -------------------------------------------------
@@ -430,8 +432,91 @@
   consistent between doc formula and implementation (shipped: `sum(score*w) /
   sum(w)` on a 0-100 scale).
 - Known Limitations: `--fail-below`/`--fail-below-dimension` CI gating, Feature
-  Quality/Distribution/Class Balance/Leakage Risk dimensions, and
-  non-weighted/custom formulas remain future work.
+  Quality/Distribution/Class Balance dimensions, and non-weighted/custom
+  formulas remain future work.
+
+### Review Engine — Intelligent Leakage Detection (Sprint 4)
+
+- Objective: Implement pattern-based intelligent leakage detection per
+  `docs/features/Dataset-Diff-And-Leakage-Detection.md` (contract): six named
+  pattern detectors matured from Phase 1's single naive threshold rule, an
+  orchestration `LeakageReviewer`, and integration into the default reviewer
+  set. No Dataset Diff, no AI, no detector registry refactor.
+- Major Deliverables:
+  - `featuresmith/rules/leakage/` — new package: `base.py`
+    (`LeakagePatternDetector` ABC + `LeakageFinding` protocol members),
+    `schema.py` (`LeakageFinding` frozen dataclass, `confidence_label`),
+    `target_correlation.py` (also re-exports the legacy
+    `LeakageRuleTargetCorrelation`, id `leakage.potential_leakage`, for
+    backward compatibility with `fs.analyze`), `future_info.py`,
+    `identifier.py`, `duplicate_target.py`, `timestamp.py`, `suspicious.py`,
+    `__init__.py` (`builtin_detectors()`).
+  - `featuresmith/review/reviewers/leakage.py` — `LeakageReviewer`
+    (`review.leakage`, category `leakage`, "Leakage Detection") dispatching all
+    detectors against `context.profile` with `context.config.target_column` and
+    per-reviewer config; merges findings per column into one `RuleFinding`
+    (`leakage.multiple_patterns`) citing every contributing pattern, or a
+    single `leakage.<pattern>` finding.
+  - Registered in `review/registry.py` `default_registry()` (8th built-in
+    reviewer); exported from `review/reviewers/__init__.py`.
+  - Tests: `tests/review/test_leakage_reviewer.py` (30 tests: per-detector
+    positive/negative fixtures, dedup/merge, severity, CLI `--only` category).
+- Files Modified: `review/registry.py`, `review/reviewers/__init__.py`;
+  deleted single-file `rules/leakage.py` (replaced by the package);
+  `tests/cli/test_cli_review.py`, `tests/review/test_registry.py`,
+  `tests/review/test_review_integration.py`, `tests/review/test_sdk.py`.
+- Important Decisions:
+  - Detectors live under `rules/leakage` (matured rules, per the doc §8.2) and
+    expose `detect(profile, *, target_column, config)` rather than the doc's
+    `detect(context)` sketch, avoiding a `rules`→`review` dependency.
+  - The legacy naive rule is preserved as a re-export so `fs.analyze` behavior
+    is unchanged.
+  - Merged findings carry every contributing pattern's rationale; severity is
+    the worst contributing finding's.
+- Lessons Learned: no target column means correlation-based detectors stay
+  silent by design (explicit target only, no inference); finding `id`s are
+  volatile UUIDs so CLI/SDK parity tests strip them.
+- Known Limitations: known-leaky benchmark suite (§13 of the doc) not yet
+  built; categorical targets silently skip correlation-based detectors; finding
+  IDs are non-deterministic (uuid4).
+
+### Review Engine — Leakage Integration & Production Readiness (Sprint 4.1)
+
+- Objective: Close the integration/consistency gaps found in the Sprint 4
+  verification audit — make leakage findings affect the ML Readiness Score, add
+  CLI target-column support, fix lint issues, sync docs, and strengthen tests.
+  Not a feature sprint; no benchmark suite, diff, AI, or refactors.
+- Major Deliverables:
+  - `featuresmith/scoring/dimensions/builtin.py` — new `LeakageRiskDimension`
+    (`score.leakage_risk`, label "Leakage Risk", `section_id = "review.leakage"`)
+    added to `builtin_dimensions()` (eight built-in dimensions); `registry.py`
+    docstring updated.
+  - `featuresmith/scoring/aggregator.py` — `SCORING_VERSION` bumped `0.1.0` →
+    `0.2.0` (dimension-list change per `ML-Readiness-Score.md` §7.4); formula
+    shape and weights unchanged.
+  - `featuresmith_cli/commands/review.py` — new `--target <column>` option
+    mirroring `analyze` (validates presence against the dataset schema, forwards
+    `target_column=` to `fs.review`).
+  - Lint fixes: removed unused `Any` import and added `strict=True` to the
+    `zip()` in `review/reviewers/leakage.py`.
+  - Tests: leakage-scoring integration + score stability in
+    `tests/scoring/test_scoring.py`; CLI `--target` and leakage-findings output
+    tests in `tests/cli/test_cli_review.py`; dimension-count/version updates
+    across scoring/sdk/render/cli tests.
+  - Docs synchronized: `ML-Readiness-Score.md` (§16: eight dimensions,
+    `scoring_version` 0.2.0, Leakage Risk mapping, `--target` surface),
+    `Review-Engine-Architecture.md` (§14: leakage reviewer + scoring status,
+    reviewer count), `Dataset-Diff-And-Leakage-Detection.md` (status + `--target`
+    example), `Dataset-Review-PRD.md` (status + §7.1 note), `MEMORY.md`.
+- Important Decisions:
+  - Leakage Risk uses the shared `SectionScoreDimension` formula (start 100,
+    deduct critical 30 / warning 15 / info 5) — no bespoke scoring logic, per
+    the versioned formula in `ML-Readiness-Score.md` §16.2.
+  - CLI uses `--target` (same name as `analyze`) rather than a separate flag,
+    keeping SDK/CLI consistent.
+- Known Limitations: deferred items from the audit remain documented future work
+  (stable finding IDs, detector registry refactor, benchmark suite, advanced
+  heuristics, polars-specific enhancements).
 
 ### Release Readiness Sprint 3 (RR-3) — Examples & Tutorials
 
@@ -573,8 +658,8 @@ primitives.
   `previous=` raises `NotImplementedError` for now. Also exported: `render`,
   `ReviewCategory`, `ReviewSection`, `Severity`, `ReviewResult`.
 - `featuresmith review <source>` — CLI command; thin Typer wrapper over `fs.review()`.
-  Flags: `--previous`, `--format {table,json}`, `--output`, `--fail-on {info,warning,critical}`,
-  `--only <categories>`, `--quiet`, `--verbose`, `--version`.
+  Flags: `--target <column>`, `--previous`, `--format {table,json}`, `--output`, `--fail-on {info,warning,critical}`,
+  `--only <categories>`, `--no-score`, `--quiet`, `--verbose`, `--version`.
   Exit codes: 0 (clean), 1 (finding ≥ `--fail-on`), 2 (usage / unknown category / `--previous`),
   3 (source missing/parse), 4 (unexpected error).
 
@@ -631,15 +716,18 @@ primitives.
       be configurable via `.featuresmith.yml` once the config system is built.
 - [ ] No `.featuresmith.yml` config loading yet — rule configs are passed at call
       time only.
-- [ ] Review Engine has seven built-in reviewers (schema health, types,
-      missingness, duplicates, constants, cardinality, basic statistics);
-      outliers, distribution, duplicate-column, feature-quality, leakage, and
+- [ ] Review Engine has eight built-in reviewers (schema health, types,
+      missingness, duplicates, constants, cardinality, basic statistics, and
+      leakage); outliers, distribution, duplicate-column, feature-quality, and
       diff reviewers are still future work in `reviewers/`.
 - [ ] `fs.review(previous=...)` raises `NotImplementedError` — diff-aware review
       (and the reserved `ReviewResult.diff` field) is future work.
 - [ ] `ReviewResult.score` is populated by the Score Adapter when a dimension
       applies and stays `None` otherwise; `--fail-below`/`--fail-below-dimension`
       CI gating on the score is future work.
+- [ ] Leakage finding `id`s are volatile UUIDs; stable finding identifiers are
+      deferred. The known-leaky benchmark suite
+      (`Dataset-Diff-And-Leakage-Detection.md` §13) is not yet built.
 - [ ] `review.quality.basic_statistics` currently absorbs the PRD's Outliers,
       Distribution, and Basic-statistics sections into one section; split into
       dedicated reviewers when Outlier/DistributionReviewer ship.
@@ -670,6 +758,44 @@ primitives.
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-08-02 — Review Engine — Leakage Integration & Production Readiness (Sprint 4.1)
+
+- Registered the **Leakage Risk** scoring dimension (`score.leakage_risk` ↔
+  `review.leakage`) in `scoring/dimensions/builtin.py` via the shared
+  `SectionScoreDimension` base, so leakage findings now lower the ML Readiness
+  Score; bumped `scoring_version` to `0.2.0` per the versioned-formula rule.
+- Added CLI `--target <column>` to `featuresmith review` (mirrors `analyze`;
+  validates the column against the dataset schema, forwards
+  `target_column=` to `fs.review`), so target-aware leakage detection is
+  available from the CLI and consistent with the SDK.
+- Fixed lint issues: removed the unused `typing.Any` import and added
+  `strict=True` to the `zip()` in `review/reviewers/leakage.py`.
+- Added tests for leakage-scoring integration, score stability on leaky
+  datasets, CLI target-column validation/behavior, and CLI rendering of
+  leakage findings; updated scoring/sdk/render/cli tests for the 8-dimension
+  set and `scoring_version` 0.2.0.
+- Synchronized implementation status across `ML-Readiness-Score.md`,
+  `Review-Engine-Architecture.md`, `Dataset-Diff-And-Leakage-Detection.md`,
+  `Dataset-Review-PRD.md`, and `MEMORY.md`.
+- Full validation passes: ruff format/check, mypy strict clean, pytest
+  (215 passed), lint-imports clean, `uv build` for featuresmith-core and
+  featuresmith-cli, and CLI/SDK smoke tests.
+
+### 2026-08-02 — Review Engine — Intelligent Leakage Detection (Sprint 4)
+
+- Implemented pattern-based intelligent leakage detection per
+  `docs/features/Dataset-Diff-And-Leakage-Detection.md`: six built-in
+  `LeakagePatternDetector`s in the new `featuresmith/rules/leakage/` package
+  (future-information, target-correlation, identifier-shape, duplicate-target,
+  timestamp, suspicious-correlation) plus a `LeakageReviewer`
+  (`review.leakage`) that merges per-column findings into one `RuleFinding`.
+- Preserved the legacy `LeakageRuleTargetCorrelation` rule
+  (`leakage.potential_leakage`) as a re-export so `fs.analyze` behavior is
+  unchanged; registered the reviewer as the 8th built-in in `default_registry()`.
+- Added `tests/review/test_leakage_reviewer.py` (30 tests); full validation
+  passes: ruff, mypy strict, pytest (208 passed), lint-imports, builds, CLI/SDK
+  smoke tests.
 
 ### 2026-08-02 — Review Engine — Built-in Reviewers (Sprint 2)
 

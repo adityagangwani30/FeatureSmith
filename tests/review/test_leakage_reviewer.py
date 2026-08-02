@@ -118,9 +118,7 @@ def test_target_correlation_detector_flags_leaky_feature() -> None:
 
 def test_target_correlation_detector_no_target_no_findings() -> None:
     """Without a declared target the detector never infers one."""
-    df = pd.DataFrame(
-        {"feature": [1, 2, 3, 4, 5], "normal": [5, 2, 8, 1, 9]}
-    )
+    df = pd.DataFrame({"feature": [1, 2, 3, 4, 5], "normal": [5, 2, 8, 1, 9]})
 
     findings = TargetCorrelationDetector().detect(profile_of(df), target_column=None)
 
@@ -131,9 +129,7 @@ def test_target_correlation_detector_missing_target_column() -> None:
     """A declared target that is not numeric yields no findings."""
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
 
-    findings = TargetCorrelationDetector().detect(
-        profile_of(df), target_column="b"
-    )
+    findings = TargetCorrelationDetector().detect(profile_of(df), target_column="b")
 
     assert findings == []
 
@@ -144,9 +140,7 @@ def test_identifier_detector_flags_id_column() -> None:
     target = [1 if value >= 150 else 0 for value in ids]
     df = pd.DataFrame({"row_id": ids, "target": target})
 
-    findings = IdentifierShapeDetector().detect(
-        profile_of(df), target_column="target"
-    )
+    findings = IdentifierShapeDetector().detect(profile_of(df), target_column="target")
 
     assert [f.column_name for f in findings] == ["row_id"]
     assert findings[0].severity == "critical"
@@ -161,9 +155,7 @@ def test_identifier_detector_ignores_unique_but_predictive_column() -> None:
         }
     )
 
-    findings = IdentifierShapeDetector().detect(
-        profile_of(df), target_column="target"
-    )
+    findings = IdentifierShapeDetector().detect(profile_of(df), target_column="target")
 
     assert findings == []
 
@@ -215,9 +207,7 @@ def test_duplicate_target_detector_flags_copy_of_target() -> None:
     """A column that is an exact copy of the target is flagged."""
     df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "target": [1, 2, 3, 4, 5]})
 
-    findings = DuplicateTargetDetector().detect(
-        profile_of(df), target_column="target"
-    )
+    findings = DuplicateTargetDetector().detect(profile_of(df), target_column="target")
 
     assert [f.column_name for f in findings] == ["a"]
     assert findings[0].severity == "critical"
@@ -248,13 +238,10 @@ def test_future_info_detector_flags_outcome_column_with_target() -> None:
         {"prediction": [1, 2, 3, 4, 5], "target": [1, 2, 3, 4, 5], "v": [5, 4, 3, 2, 1]}
     )
 
-    findings = FutureInfoDetector().detect(
-        profile_of(df), target_column="target"
-    )
+    findings = FutureInfoDetector().detect(profile_of(df), target_column="target")
 
     assert any(
-        f.column_name == "prediction" and f.severity == "critical"
-        for f in findings
+        f.column_name == "prediction" and f.severity == "critical" for f in findings
     )
 
 
@@ -331,9 +318,7 @@ def test_leakage_reviewer_target_leakage_is_critical() -> None:
             "normal": [5, 2, 8, 1, 9],
         }
     )
-    section = run_reviewer(
-        LeakageReviewer(), df, target_column="target"
-    )
+    section = run_reviewer(LeakageReviewer(), df, target_column="target")
 
     assert section.severity is Severity.CRITICAL
     assert [f.column_name for f in section.findings] == ["feature"]
@@ -368,11 +353,12 @@ def test_leakage_reviewer_identifier_leakage() -> None:
 def test_leakage_reviewer_timestamp_config() -> None:
     """A configured prediction cutoff drives timestamp findings."""
     df = pd.DataFrame(
-        {"ts": pd.to_datetime(["2025-01-01", "2025-06-01", "2026-01-01"]), "v": [1, 2, 3]}
+        {
+            "ts": pd.to_datetime(["2025-01-01", "2025-06-01", "2026-01-01"]),
+            "v": [1, 2, 3],
+        }
     )
-    section = run_reviewer(
-        LeakageReviewer(), df, prediction_cutoff="2025-12-31"
-    )
+    section = run_reviewer(LeakageReviewer(), df, prediction_cutoff="2025-12-31")
 
     assert section.severity is Severity.WARNING
     assert [f.rule_id for f in section.findings] == ["leakage.timestamp"]

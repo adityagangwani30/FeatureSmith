@@ -185,7 +185,7 @@ def test_console_renderer_includes_score_section() -> None:
     """ConsoleRenderer pairs the overall score with its full breakdown."""
     text = ConsoleRenderer().render(make_scored_result())
 
-    assert "ML Readiness Score (scoring v0.1.0)" in text
+    assert "ML Readiness Score (scoring v0.2.0)" in text
     assert "Overall: 92.5/100" in text
     assert "  Missing Values: 85/100 (1 finding(s))" in text
     assert "  Duplicate Records: 100/100" in text

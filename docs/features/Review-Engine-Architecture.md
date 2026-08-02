@@ -1,6 +1,6 @@
 # Review Engine Architecture
 
-> **Status: Foundation implemented (see §14 "Implemented Foundation"); core reviewer set implemented (Sprint 2, see §14); ML Readiness Score implemented (Sprint 3, see §14).** This document is the architectural contract for the next major phase of Featuresmith, written and reviewed before any implementation begins, per the Documentation-First workflow in `Rules.md` §4. It does not renumber or replace `Phases.md`; see §14 ("Roadmap Placement") for how this slots into the existing roadmap. The orchestration foundation described in §5-§13 is now implemented in `packages/featuresmith-core/src/featuresmith/review/`. As of Sprint 2, **seven of the built-in reviewers (§8.1) are implemented** (Schema Health, Missing Values, Duplicate Rows, Constant Columns, High Cardinality, Data Types, Basic Statistics) and ship in `default_registry()`; the remaining reviewers (outliers, distribution, feature quality, leakage, diff) remain future work. As of Sprint 3, the **Score Adapter (§9) is implemented** and attaches the versioned ML Readiness Score (`featuresmith.scoring`, `ML-Readiness-Score.md`) onto `ReviewResult.score` after aggregation.
+> **Status: Foundation implemented (see §14 "Implemented Foundation"); core reviewer set implemented (Sprint 2, see §14); ML Readiness Score implemented (Sprint 3, see §14); intelligent leakage detection implemented (Sprint 4, see §14); leakage scoring integrated (Sprint 4.1, see §14).** This document is the architectural contract for the next major phase of Featuresmith, written and reviewed before any implementation begins, per the Documentation-First workflow in `Rules.md` §4. It does not renumber or replace `Phases.md`; see §14 ("Roadmap Placement") for how this slots into the existing roadmap. The orchestration foundation described in §5-§13 is now implemented in `packages/featuresmith-core/src/featuresmith/review/`. As of Sprint 2, **seven of the built-in reviewers (§8.1) are implemented** (Schema Health, Missing Values, Duplicate Rows, Constant Columns, High Cardinality, Data Types, Basic Statistics) and ship in `default_registry()`; as of Sprint 4, the **`LeakageReviewer` (§8.1) is also implemented** (`Dataset-Diff-And-Leakage-Detection.md`), bringing the shipped set to eight. The remaining reviewers (outliers, distribution, duplicate columns, feature quality, diff) remain future work. As of Sprint 3, the **Score Adapter (§9) is implemented** and attaches the versioned ML Readiness Score (`featuresmith.scoring`, `ML-Readiness-Score.md`) onto `ReviewResult.score` after aggregation; as of Sprint 4.1 it consumes leakage findings through the **Leakage Risk** dimension (`score.leakage_risk`, `scoring_version` 0.2.0).
 
 ## 1. Overview
 
@@ -274,7 +274,7 @@ The orchestration foundation (§5-§13) is implemented in `packages/featuresmith
 
 - **Schemas (§8):** `Severity`, `ReviewCategory`, `ReviewSection`, `ReviewResult` in `schema.py`; `ReviewResult.score` is a typed `MLReadinessScore | None` populated by the Score Adapter (§9); `ReviewResult.diff` remains a reserved attachment point as `None`.
 - **Context (§9):** `ReviewConfig` + frozen `ReviewContext` in `context.py`; no `ExecutionState` class — state lives on the context itself.
-- **Reviewers (§8.1):** `BaseReviewer` ABC (`base.py`) + `ReviewerRegistry` (`registry.py`) with `default_registry()` now shipping the seven built-in reviewers implemented in Sprint 2.
+- **Reviewers (§8.1):** `BaseReviewer` ABC (`base.py`) + `ReviewerRegistry` (`registry.py`) with `default_registry()` now shipping the eight built-in reviewers implemented in Sprint 2 (seven) and Sprint 4 (leakage).
 - **Engine (§6, §10):** `ReviewEngine.run()` pipeline in `engine.py` (`REVIEW_ENGINE_VERSION = "0.1.0"`): config validation → context construction → reviewer dispatch (enabled-reviewer/category filters, previous-snapshot gate, `applicable()` gate) → fault-isolated execution → aggregation via `ResultAggregator` (`aggregator.py`).
 - **Rendering (§7):** `ConsoleRenderer` + `RendererRegistry` in `render.py`; a `render()` facade dispatches by target name (console only for now).
 
@@ -294,19 +294,20 @@ Seven built-in reviewers now live in `packages/featuresmith-core/src/featuresmit
 
 Each reviewer reads only from the frozen `ReviewContext`, reuses the existing rule engine for detection where a matching rule exists (missingness, duplicates, constants, cardinality), sets `requires_previous_snapshot = False`, and emits its `ReviewSection` deterministically with traceable `RuleFinding`s. Reviewer-specific thresholds are configurable via `ReviewConfig.reviewer_config` keyed by reviewer ID.
 
-Still future work: `OutlierReviewer`, `DistributionReviewer`, `DuplicateColumnReviewer`, `FeatureQualityReviewer`, `LeakageReviewer`, `DiffReviewer`, and any `requires_previous_snapshot = True` diff-category reviewers.
+### Implemented Leakage Review (Sprint 4)
+
+The `LeakageReviewer` (`review.reviewers.leakage`, id `review.leakage`, category `leakage`) ships in `default_registry()` and dispatches the six built-in `LeakagePatternDetector`s from `featuresmith.rules.leakage` (future-information, target-correlation, identifier-shape, duplicate-target, timestamp, and suspicious-correlation patterns; `Dataset-Diff-And-Leakage-Detection.md` §7.2). Findings that point at the same column are merged into one `RuleFinding` citing every contributing pattern. The reviewer reads `context.config.target_column`, so `fs.review(..., target_column=...)` (and the CLI's `--target`) activates target-aware detection.
+
+Still future work: `OutlierReviewer`, `DistributionReviewer`, `DuplicateColumnReviewer`, `FeatureQualityReviewer`, `DiffReviewer`, and any `requires_previous_snapshot = True` diff-category reviewers.
 
 ### Implemented ML Readiness Score (Sprint 3)
 
 The Score Adapter (§9) is now implemented and is the **sole** bridge from the Review Engine to `featuresmith.scoring` (`ML-Readiness-Score.md` §16):
 
 - **`ScoreAdapter`** (`featuresmith.review.scoring_adapter`) — `attach(result)` rebuilds the `ReviewResult` with `score` set after aggregation, or returns the original unchanged when no dimension applies. `ReviewEngine.__init__` accepts `registry`/`aggregator`/`score_adapter` overrides; `run()` invokes `score_adapter.attach(result)` as its final step.
-- **`featuresmith.scoring`** — seven built-in `ScoreDimension`s, one per shipped reviewer (§16.1 mapping), versioned deterministic formula `scoring_version = "0.1.0"` (per-severity deductions §16.2), `ScoreDimensionRegistry` + `default_registry()`, `WeightedAggregator`, frozen `DimensionScore`/`MLReadinessScore` dataclasses.
+- **`featuresmith.scoring`** — eight built-in `ScoreDimension`s, one per shipped reviewer (§16.1 mapping), versioned deterministic formula `scoring_version = "0.2.0"` (per-severity deductions §16.2; the Leakage Risk dimension joined the list in Sprint 4.1), `ScoreDimensionRegistry` + `default_registry()`, `WeightedAggregator`, frozen `DimensionScore`/`MLReadinessScore` dataclasses.
 - **Surfaces:** every `ReviewResult` from `fs.review()` now carries `score`; `fs.score(result)` accessor; console renderer prints an "ML Readiness Score" block; `--no-score` CLI flag omits it (`--no-score --format json` yields `"score": null`).
 - **Out of scope (deferred):** `--fail-below`/`--fail-below-dimension` CI gating, diff-category reviewers, and the remaining §8.1 reviewers.
-
-- **Surfaces:** SDK `fs.review()` (`featuresmith.api`, reusing `fs.analyze()`'s profile + rule findings), root `featuresmith` export, and `featuresmith review` CLI command (table/json formats, `--fail-on` exit-code gating, `--only` category filter).
-- **Out of scope so far (per §1 "nothing here is implemented" carve-outs):** the individual reviewers listed above, `diff` computation, AI narration, recommendations, and non-console renderers. `fs.review(previous=...)` raises `NotImplementedError`. (Score computation is implemented as of Sprint 3 — see "Implemented ML Readiness Score" above.)
 
 ## 15. Future Extensions
 

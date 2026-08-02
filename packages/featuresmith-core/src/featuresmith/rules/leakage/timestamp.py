@@ -188,8 +188,10 @@ class FutureInfoDetector(LeakagePatternDetector):
         # Signal 2: outcome-adjacent column names.
         for col_name in profile.column_profiles:
             is_unmistakable = _name_matches(col_name, _UNMISTAKABLE_OUTCOME)
-            if target_column is not None and col_name != target_column and _name_matches(
-                col_name, _OUTCOME_LIKE
+            if (
+                target_column is not None
+                and col_name != target_column
+                and _name_matches(col_name, _OUTCOME_LIKE)
             ):
                 corr = pearson.get(col_name, {}).get(target_column)
                 if corr is not None and abs(corr) >= 0.5:
@@ -213,9 +215,7 @@ class FutureInfoDetector(LeakagePatternDetector):
                         )
                     )
             elif (
-                target_column is None
-                and col_name != target_column
-                and is_unmistakable
+                target_column is None and col_name != target_column and is_unmistakable
             ):
                 findings.append(
                     _outcome_finding(

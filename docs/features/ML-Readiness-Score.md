@@ -1,6 +1,6 @@
 # ML Readiness Score
 
-> **Status: Implemented (Sprint 3, `scoring_version` 0.1.0).** The design below is the contract; its first concrete implementation now ships in `packages/featuresmith-core/src/featuresmith/scoring/` with seven built-in dimensions (§7.1) that map one-to-one onto the reviewers implemented in the Review Engine's Sprint 2, a documented weighted-mean aggregation (§8.2), and full explainability (§7.2). The remaining dimension set (Feature Quality, Distribution Health, Class Balance, Leakage Risk) is deferred until their backing reviewers exist. See §16 "Implementation Status (Sprint 3)" for the concrete formula, weights, and shipped surface.
+> **Status: Implemented (Sprint 3 + Sprint 4.1, `scoring_version` 0.2.0).** The design below is the contract; its first concrete implementation ships in `packages/featuresmith-core/src/featuresmith/scoring/` with eight built-in dimensions (§7.1) that map one-to-one onto the reviewers implemented in the Review Engine, a documented weighted-mean aggregation (§8.2), and full explainability (§7.2). Sprint 4.1 registered the Leakage Risk dimension once its backing `LeakageReviewer` shipped (Sprint 4), bumping `scoring_version` to 0.2.0. The remaining dimension set (Feature Quality, Distribution Health, Class Balance) is deferred until their backing reviewers exist. See §16 "Implementation Status (Sprint 3 + Sprint 4.1)" for the concrete formula, weights, and shipped surface.
 
 ## 1. Overview
 
@@ -230,17 +230,17 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 - How aggressively should default weights be tuned before release — this document proposes the dimension list and formula shape, but initial default weights are left as an implementation-time, empirically-tuned decision against the benchmark dataset suite (`Phases.md` Phase 1's acceptance datasets).
 - Should a "no score computed" state (e.g., `--no-score`, or too few applicable dimensions) be visually distinct from a genuinely low score, so a user never confuses "not scored" with "scored poorly"?
 
-## 16. Implementation Status (Sprint 3)
+## 16. Implementation Status (Sprint 3 + Sprint 4.1)
 
 **Implemented in `packages/featuresmith-core/src/featuresmith/scoring/`**
-(`scoring_version = "0.1.0"`), wired through the Review Engine's Score Adapter
+(`scoring_version = "0.2.0"`), wired through the Review Engine's Score Adapter
 (`featuresmith.review.scoring_adapter`) and consumed by the SDK and CLI:
 
 | Component | Module | Shipped |
 | --- | --- | --- |
 | `ScoreDimension` interface | `featuresmith.scoring.base` | Protocol (`id`, `label`, `default_weight`, `applicable()`, `compute()`) |
 | `DimensionScore`, `MLReadinessScore` | `featuresmith.scoring.schema` | Frozen dataclasses with `to_dict()`; includes `summary`, `positive_findings`, `negative_findings` |
-| Built-in dimensions | `featuresmith.scoring.dimensions.*` | Seven §7.1 dimensions, one per shipped reviewer |
+| Built-in dimensions | `featuresmith.scoring.dimensions.*` | Eight §7.1 dimensions, one per shipped reviewer |
 | `ScoreDimensionRegistry` | `featuresmith.scoring.registry` | Explicit static registry + `default_registry()` |
 | `WeightedAggregator` | `featuresmith.scoring.aggregator` | Weighted mean + renormalization; optional per-dimension weight overrides |
 | Score Adapter | `featuresmith.review.scoring_adapter` | Attaches `ReviewResult.score` after aggregation; sole integration point |
@@ -256,12 +256,15 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 | Constant Columns (`score.constant_columns`) | `review.quality.constants` |
 | High Cardinality (`score.high_cardinality`) | `review.quality.cardinality` |
 | Dataset Structure (`score.dataset_structure`) | `review.quality.basic_statistics` |
+| Leakage Risk (`score.leakage_risk`) | `review.leakage` |
 
-Feature Quality, Distribution Health, Class Balance, and Leakage Risk dimensions
-remain future work until their backing reviewers ship (Review Engine Sprint
-scope), at which point they register through the same registry.
+The Leakage Risk dimension registered in Sprint 4.1 once its backing
+`LeakageReviewer` shipped (Sprint 4, `Dataset-Diff-And-Leakage-Detection.md`).
+Feature Quality, Distribution Health, and Class Balance dimensions remain future
+work until their backing reviewers ship (Review Engine Sprint scope), at which
+point they register through the same registry.
 
-### 16.2 Versioned formula (v0.1.0)
+### 16.2 Versioned formula (v0.2.0)
 
 - **Per-dimension score:** start at 100; deduct per finding by severity —
   `critical` 30, `warning` 15, `info` 5 points — then clamp to `[0, 100]` and
@@ -277,6 +280,10 @@ scope), at which point they register through the same registry.
   `suggested_actions`; `MLReadinessScore` carries a one-sentence `summary`,
   `positive_findings` (dimensions at 100), and `negative_findings` (the
   findings that lowered the score, deduplicated and sorted by severity).
+- **Version history:** Sprint 4.1 added the Leakage Risk dimension to the
+  dimension list, bumping `scoring_version` from `0.1.0` to `0.2.0` per §7.4;
+  the per-severity deduction formula, default weights, and aggregation shape
+  are unchanged.
 
 ### 16.3 Shipped surface
 
@@ -284,9 +291,12 @@ scope), at which point they register through the same registry.
   `fs.score(result)` accessor (returns the attached score or computes one from
   the result's sections — never a second analysis pass).
 - CLI: `featuresmith review <source>` renders the score section inline by
-  default; `--no-score` omits it. `--fail-below` / `--fail-below-dimension`
-  CI gating remains Phase 3.
+  default; `--target <column>` declares the target column for leakage
+  evaluation (forwarded to `fs.review(target_column=...)`); `--no-score`
+  omits the score block. `--fail-below` / `--fail-below-dimension` CI gating
+  remains Phase 3.
 - Serialization: `MLReadinessScore.to_dict()` is JSON-clean and included in
   `ReviewResult.to_dict()`.
-- Validation: 178 tests pass (including 22 new scoring tests); ruff clean;
-  mypy strict clean; lint-imports 1 kept, 0 broken; builds succeed.
+- Validation: 215 tests pass (including new leakage-scoring and CLI
+  target-column tests); ruff clean; mypy strict clean; lint-imports clean;
+  builds succeed.

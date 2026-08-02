@@ -1,6 +1,6 @@
 # Dataset Diff & Intelligent Leakage Detection
 
-> **Status: Design only — nothing described here is implemented.** This document designs two flagship capabilities together (`Flagship-Capabilities.md` §3-4) because both are, structurally, comparison problems: Dataset Diff compares a dataset against its own past; Leakage Detection compares a feature against the information it shouldn't have access to. Both integrate into the Review Engine (`Review-Engine-Architecture.md`) as reviewer categories, and both build directly on capabilities already shipped or planned (`fs.diff()` from Phase 2; naive correlation-based leakage rules from Phase 1).
+> **Status: Intelligent Leakage Detection implemented (Sprint 4); Dataset Diff remains design only.** This document designs two flagship capabilities together (`Flagship-Capabilities.md` §3-4) because both are, structurally, comparison problems: Dataset Diff compares a dataset against its own past; Leakage Detection compares a feature against the information it shouldn't have access to. Both integrate into the Review Engine (`Review-Engine-Architecture.md`) as reviewer categories, and both build directly on capabilities already shipped or planned (`fs.diff()` from Phase 2; naive correlation-based leakage rules from Phase 1). As of Sprint 4 the leakage-detection half is implemented — the `LeakageReviewer` (`featuresmith.review.reviewers.leakage`), the six built-in pattern detectors (`featuresmith.rules.leakage.*`, §7.2), and the per-column finding merge (§8.2) — and ships in `default_registry()`; the Leakage Risk scoring dimension (`ML-Readiness-Score.md` §16.1) consumes its findings as of Sprint 4.1. Everything describing Dataset Diff (the `DiffReviewer`, `fs.diff()`, `--previous`) remains design only.
 
 ## 1. Overview
 
@@ -222,6 +222,7 @@ for finding in result.sections_by_id["review.leakage"].findings:
 
 ```
 featuresmith review train.csv --only leakage
+featuresmith review train.csv --target target        # declare the target column for target-aware leakage detection
 featuresmith review train.csv --fail-below-dimension leakage_risk:90   # via ML Readiness Score, see ML-Readiness-Score.md
 ```
 

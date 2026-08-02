@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 from featuresmith.core.rule_finding import RuleFinding
 from featuresmith.review.context import ReviewContext
@@ -39,7 +38,9 @@ class LeakageReviewer(SectionReviewer):
         self._detectors = tuple(
             detectors if detectors is not None else builtin_detectors()
         )
-        self._pattern_names = {detector.id: detector.name for detector in self._detectors}
+        self._pattern_names = {
+            detector.id: detector.name for detector in self._detectors
+        }
 
     @property
     def id(self) -> str:
@@ -130,7 +131,8 @@ def _merge_column(
     worst = max(findings, key=lambda f: _SEVERITY_RANK.get(f.severity, 0))
     confidence = max(finding.confidence for finding in findings)
     rationale = " ".join(
-        f"{name}: {finding.rationale}" for name, finding in zip(names, findings)
+        f"{name}: {finding.rationale}"
+        for name, finding in zip(names, findings, strict=True)
     )
     return RuleFinding(
         rule_id="leakage.multiple_patterns",

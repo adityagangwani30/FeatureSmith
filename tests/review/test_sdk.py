@@ -27,7 +27,7 @@ def test_review_dataframe_returns_review_result() -> None:
     assert result.dataset_summary.column_count == 2
     assert result.score is not None
     assert result.score.overall == 100.0
-    assert len(result.score.dimensions) == 7
+    assert len(result.score.dimensions) == 8
 
 
 def test_review_polars_dataframe() -> None:
@@ -63,7 +63,7 @@ def test_review_result_is_json_serializable() -> None:
     assert all(section["severity"] == "passed" for section in parsed["sections"])
     assert "overall_summary" in parsed
     assert parsed["score"]["overall"] == 100.0
-    assert len(parsed["score"]["dimensions"]) == 7
+    assert len(parsed["score"]["dimensions"]) == 8
 
 
 def test_review_previous_not_implemented() -> None:
