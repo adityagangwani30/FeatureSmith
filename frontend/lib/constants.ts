@@ -74,17 +74,19 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     phase: "Phase 2",
-    title: "Data Quality — Dataset Diffing & Drift Detection (v0.2)",
-    status: "in-progress",
+    title: "Data Quality — Review Engine, Score, Diff & Leakage (v0.2)",
+    status: "done",
     items: [
-      "Cross-snapshot diffing via fs.diff() and featuresmith diff command",
-      "Schema-evolution tracking (added/removed/type-changed columns)",
-      "Deterministic multi-dimensional dataset quality-score formula",
+      "Review Engine with 8 built-in reviewers (schema, quality, leakage)",
+      "ML Readiness Score with 8 deterministic dimensions",
+      "Dataset Diff via fs.diff() and featuresmith diff command",
+      "Intelligent Leakage Detection with 6 pattern detectors",
+      "CLI: featuresmith review and featuresmith diff commands",
     ],
   },
   {
     phase: "Phase 3",
-    title: "Developer Experience (v0.3 - v0.4)",
+    title: "Developer Experience (v0.3)",
     status: "planned",
     items: [
       "Streamlit dashboard browser interface to connect data and browse findings",
@@ -95,7 +97,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     phase: "Phase 4",
-    title: "Feature Intelligence & Export Layer (v0.5)",
+    title: "Feature Intelligence & Export Layer (v0.4)",
     status: "planned",
     items: [
       "Feature engineering transformation recommendations",
@@ -106,7 +108,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     phase: "Phase 5",
-    title: "Data Observability & History (v1.0)",
+    title: "Data Observability & History (v0.5)",
     status: "planned",
     items: [
       "Cron-based scheduled re-profiling of data sources",
@@ -117,7 +119,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     phase: "Phase 6",
-    title: "AI Assistant Layer (v1.x)",
+    title: "AI Assistant Layer (v1.0)",
     status: "planned",
     items: [
       "AIProvider protocol supporting Ollama (local default), OpenAI, and Anthropic",

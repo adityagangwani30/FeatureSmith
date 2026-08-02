@@ -1,6 +1,6 @@
 # Dataset Review — Product Requirements Document
 
-> **Status: Partially implemented (Sprint 2 + Sprint 3 + Sprint 4 + Sprint 4.1).** This is the flagship experience described in `Flagship-Capabilities.md` §1, made concrete. It is built entirely on top of the orchestration layer defined in `Review-Engine-Architecture.md`; that document is the "how," this one is the "what and why for the user." As of Sprint 2, seven of the §7.1 sections ship (Schema health, Missing values, Duplicate rows, Data types, Constant columns, High-cardinality columns, and Basic statistics folded under the quality category); the remaining sections in §7.1 are future work. As of Sprint 3, the **ML Readiness Score (§8) is implemented**: `featuresmith review` prints an "ML Readiness Score" block by default, `--no-score` omits it, and `result.score.overall` is available from the SDK (see `ML-Readiness-Score.md` §16). As of Sprint 4, the **Target leakage warnings (§7.1) section is implemented** (`LeakageReviewer`, see `Dataset-Diff-And-Leakage-Detection.md`); as of Sprint 4.1, the CLI supports **`--target <column>`** to declare the target column for leakage evaluation, and the ML Readiness Score consumes leakage findings through the Leakage Risk dimension. The `--fail-below` / `--fail-below-dimension` CI gating options remain future work.
+> **Status: Partially Implemented (Sprints 1-5, Sprint 4.1).** The `fs.review()` SDK entrypoint, `featuresmith review` CLI command, 8 of 11 required built-in reviewers, ML Readiness Score attachment, `--no-score`, `--fail-on`, `--only` category filtering, and console rendering are implemented. Missing reviewers: `DuplicateColumnReviewer`, `OutlierReviewer`, `DistributionReviewer`, `FeatureQualityReviewer`. Diff-aware review (`--previous`) raises `NotImplementedError` (use standalone `fs.diff()`). Dashboard "Review" tab, HTML report, and centralized Recommendation Engine remain future work.
 
 ## 1. Overview
 
@@ -25,9 +25,9 @@ Long-term, running `featuresmith review` should feel as natural, and as unremark
 ## 4. Non-Goals
 
 - Not a new statistics engine. Every number in a review traces back to the existing Profiling Engine and Rule Engine (`Architecture.md` §3); Dataset Review is a presentation and prioritization layer, not a computation layer.
-- Not a replacement for `featuresmith analyze`. `analyze` remains the lower-level, single-purpose primitive; `review` is the composed, opinionated experience built on top of it (`Review-Engine-Architecture.md` §11).
+- Not a replacement for `featuresmith analyze`. `analyze` remains the lower-level, single-purpose primitive; `review` is the composed, opinionated experience built on top of it (`Review-Engine-Architecture.md` §12).
 - Not an AutoML recommendation system — recommendations are about data quality and structure (encoding, missingness handling, leakage removal), never model selection or hyperparameters (`PRD.md` §6).
-- Not, at this stage, a scheduled/continuous check — a single review is triggered by a single command invocation. Continuous review is Phase 5's Data Observability concern, which this design is built to support later without rework (`Review-Engine-Architecture.md` §14).
+- Not, at this stage, a scheduled/continuous check — a single review is triggered by a single command invocation. Continuous review is Phase 5's Data Observability concern, which this design is built to support later without rework (`Review-Engine-Architecture.md` §15).
 - Does not silently apply any recommendation. Every suggested action requires explicit review and acceptance, consistent with `Design-Principles.md`'s "evidence before recommendations."
 
 ## 5. User Stories
@@ -59,30 +59,28 @@ A typical session: a user points the command at a file, gets a top-of-report sum
 
 ### 7.1 Coverage requirements
 
-The review must include a dedicated section for each of the following, sourced from a specific reviewer (`Review-Engine-Architecture.md` §9):
+The review must include a dedicated section for each of the following, sourced from a specific reviewer, each tagged with exactly one Review Category (`Review-Engine-Architecture.md` §8.3, §9):
 
-| Section | Reviewer | Source signal |
-|---|---|---|
-| Schema health | `SchemaHealthReviewer` | dtype consistency, unexpected nulls in typed columns, schema vs. declared config |
-| Missing values | `MissingValueReviewer` | missingness ratio and pattern per column (existing quality rules) |
-| Duplicate rows | `DuplicateRowReviewer` | exact and near-duplicate row detection |
-| Duplicate columns | `DuplicateColumnReviewer` | fully or near-fully correlated/identical columns |
-| Data types | `TypeReviewer` | inferred vs. expected dtype mismatches |
-| Constant columns | `ConstantColumnReviewer` | zero/near-zero variance columns |
-| High-cardinality columns | `CardinalityReviewer` | categorical columns above a configurable unique-value threshold |
-| Outliers | `OutlierReviewer` | IQR/Z-score/Isolation Forest flags (existing statistical rules) |
-| Distribution issues | `DistributionReviewer` | skew, unexpected multimodality, distribution shape flags |
-| Feature quality | `FeatureQualityReviewer` | low-signal / near-constant / redundant feature flags, feeding Phase 4's recommendation engine when available |
-| Target leakage warnings | `LeakageReviewer` | pattern-based leakage detection, detailed in `Dataset-Diff-And-Leakage-Detection.md` |
-| Overall summary | Aggregator | dataset-level roll-up, always present even if every section is clean |
+| Section | Reviewer | Category | Source signal |
+|---|---|---|---|
+| Schema health | `SchemaHealthReviewer` | `schema` | dtype consistency, unexpected nulls in typed columns, schema vs. declared config |
+| Missing values | `MissingValueReviewer` | `data_quality` | missingness ratio and pattern per column (existing quality rules) |
+| Duplicate rows | `DuplicateRowReviewer` | `data_quality` | exact and near-duplicate row detection |
+| Duplicate columns | `DuplicateColumnReviewer` | `data_quality` | fully or near-fully correlated/identical columns |
+| Data types | `TypeReviewer` | `schema` | inferred vs. expected dtype mismatches |
+| Constant columns | `ConstantColumnReviewer` | `data_quality` | zero/near-zero variance columns |
+| High-cardinality columns | `CardinalityReviewer` | `statistics` | categorical columns above a configurable unique-value threshold |
+| Outliers | `OutlierReviewer` | `statistics` | IQR/Z-score/Isolation Forest flags (existing statistical rules) |
+| Distribution issues | `DistributionReviewer` | `distribution` | skew, unexpected multimodality, distribution shape flags |
+| Feature quality | `FeatureQualityReviewer` | `feature_quality` | low-signal / near-constant / redundant feature flags |
+| Target leakage warnings | `LeakageReviewer` | `leakage` | pattern-based leakage detection, detailed in `Dataset-Diff-And-Leakage-Detection.md` |
+| Overall summary | Aggregator | *(none — dataset-level)* | dataset-level roll-up, always present even if every section is clean |
 
-Every section must be present in the output even when it finds nothing — an explicit "no issues found" state, not an absent section, per `Design.md` §13's empty-state principle.
-
-> **Sprint 2 implementation status.** The following §7.1 sections are implemented and ship in `default_registry()`: Schema health, Missing values, Duplicate rows, Data types, Constant columns, and High-cardinality columns (each mapped 1:1 to its reviewer). Outliers, Distribution issues, and Basic statistics currently collapse into a single `review.quality.basic_statistics` section (`BasicStatisticsReviewer`); Duplicate columns and Feature quality remain future work. Target leakage warnings ship as of Sprint 4 via the `LeakageReviewer` (`review.leakage`); see `Dataset-Diff-And-Leakage-Detection.md`.
+Every section must be present in the output even when it finds nothing — an explicit "no issues found" state, not an absent section, per `Design.md` §13's empty-state principle. The category column above is what makes future category-scoped views (`Review-Engine-Architecture.md` §9.3) — a leakage-only report, a schema-only CLI filter — a pure filter over this same table, not a redesign.
 
 ### 7.2 Actionability requirement
 
-No finding may be presented without at least one of: a suggested action, a link to the specific rule/reviewer that produced it, or an explicit statement that no action is needed. A pile of numbers with no verdict is exactly the failure mode Dataset Review exists to fix (`PRD.md` §4).
+No finding may be presented without at least one of: a recommendation produced by the centralized Recommendation Engine (`Review-Engine-Architecture.md` §8.4), a link to the specific rule/reviewer that produced the underlying finding, or an explicit statement that no action is needed. A pile of numbers with no verdict is exactly the failure mode Dataset Review exists to fix (`PRD.md` §4). Reviewers themselves never phrase this suggested action — that responsibility belongs entirely to the Recommendation Engine stage, so every section's recommendations read consistently regardless of which reviewer produced the underlying finding.
 
 ### 7.3 Performance requirement
 
@@ -101,12 +99,14 @@ flowchart LR
     CLI["featuresmith review"] --> SDK["fs.review()"]
     SDK --> ENGINE["ReviewEngine.run()"]
     ENGINE --> REVIEWERS["Built-in reviewers (§7.1 table)"]
-    REVIEWERS --> RESULT["ReviewResult"]
+    REVIEWERS --> FINDINGS["Review Findings\n(sections, no recommendations yet)"]
+    FINDINGS --> REC["Recommendation Engine\n(Review-Engine-Architecture.md §8.4)"]
+    REC --> RESULT["ReviewResult\n(sections + recommendations)"]
     RESULT --> SCORE["Score Adapter -> MLReadinessScore"]
     RESULT --> RENDER["Renderer (CLI/dashboard/HTML/JSON)"]
 ```
 
-Dataset Review's "product" is: (a) the specific, fixed set of built-in reviewers listed in §7.1 shipping together as the default reviewer set, and (b) the rendering/UX decisions in §9-11 below. It introduces no new schema beyond `ReviewResult` and no new plugin category beyond `BaseReviewer`.
+Dataset Review's "product" is: (a) the specific, fixed set of built-in reviewers listed in §7.1 shipping together as the default reviewer set, each declaring exactly one Review Category, and (b) the rendering/UX decisions in §9-11 below. It introduces no new schema beyond `ReviewResult` and no new plugin category beyond `BaseReviewer` — and it introduces no recommendation-generation logic of its own, relying entirely on the centralized Recommendation Engine stage.
 
 ## 9. Component Breakdown
 
@@ -143,10 +143,12 @@ for section in result.sections:
 featuresmith review train.csv
 featuresmith review train.csv --format json
 featuresmith review train.csv --previous train_v1.csv
-featuresmith review train.csv --only leakage,quality
+featuresmith review train.csv --only leakage,data_quality   # illustrative — see note below
 featuresmith review train.csv --fail-on critical
 featuresmith review train.csv --no-score               # opt out of the ML Readiness Score section
 ```
+
+`--only`/`--skip` are shown here to illustrate what the Review Category design (`Review-Engine-Architecture.md` §9) enables; per that document, they are not part of the committed, near-term CLI surface and are not being implemented alongside this design freeze — only the underlying category tagging is.
 
 Default output is a `rich`-rendered, severity-sorted tree (critical → warning → info → passed), with the overall summary and score printed first — mirroring the existing CLI UX conventions in `Design.md` §4 exactly (human-readable by default, `--format json` for machine consumption, meaningful exit codes).
 
@@ -161,22 +163,57 @@ A new "Review" tab, alongside the existing Overview/Data Quality/Recommendations
 - **The overall summary is templated by default, AI-enhanced when available.** Dataset Review must be a complete, useful product with the AI layer fully disabled (`Architecture.md` §7.4); AI narration (Phase 6) only makes an already-complete summary read more naturally, it is never required to produce one.
 - **Severity ordering is fixed and shared** across CLI, dashboard, and HTML report: critical → warning → info → passed. This is the same information hierarchy already defined in `Design.md` §2 ("severity → finding → evidence → action"), reused rather than reinvented for this command.
 - **`--fail-on` mirrors `analyze`'s existing exit-code convention** (`Design.md` §4) rather than introducing a new one, so CI configs that already gate on `analyze` need only swap the command name.
+- **Every built-in reviewer in §7.1 declares exactly one Review Category, and none phrases its own recommendation.** Both are inherited constraints from `Review-Engine-Architecture.md` (§8.4, §9), not new decisions this PRD makes independently — Dataset Review is a specific, opinionated configuration of the engine, not a parallel implementation of any of it.
 
 ## 12. Integration Points
 
 - **Review Engine (`Review-Engine-Architecture.md`):** the entire execution substrate; this PRD adds no engine-level behavior.
 - **ML Readiness Score (`ML-Readiness-Score.md`):** every review includes a score by default (`--no-score` to opt out); the score is computed from this command's own `ReviewResult`.
 - **Dataset Diff & Leakage Detection (`Dataset-Diff-And-Leakage-Detection.md`):** `--previous` activates diff-aware review; leakage findings are always active as part of the default reviewer set.
-- **Feature Engineering Engine (Phase 4):** `FeatureQualityReviewer`'s recommendations are the same ranked suggestions the Recommendation Engine already produces (`Architecture.md` §8) — no separate ranking logic for review-mode recommendations.
+- **Recommendation Engine (`Review-Engine-Architecture.md` §8.4):** every section's recommendations — not just Feature Quality's — are produced by this one centralized stage, which itself reuses the existing core Recommendation Engine (`Architecture.md` §8). Dataset Review introduces no reviewer-specific recommendation logic anywhere in the coverage table (§7.1).
+- **Feature Engineering Engine (Phase 4):** `FeatureQualityReviewer` only detects low-signal/redundant/near-constant features; its findings flow into the same centralized Recommendation Engine as every other reviewer's findings, with no separate ranking logic for review-mode recommendations.
 - **Export Layer (Phase 4):** any accepted recommendation surfaced during a review still flows through the existing `fs.export()` path; Dataset Review does not introduce a second export mechanism.
 - **CI / GitHub Action (Phase 3):** `featuresmith-action` can point at `featuresmith review --fail-on <severity>` as an alternative or complement to `analyze`.
 - **AI Layer (Phase 6):** optional narration of the overall summary and per-section narratives, per the existing grounding contract (`Architecture.md` §7.2).
 
-## 13. Testing Strategy
+## 13.1 Implementation Status (as of v0.2.0)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `fs.review()` SDK entrypoint | ✅ Implemented | `featuresmith.api.review()` |
+| `featuresmith review` CLI | ✅ Implemented | `featuresmith_cli/commands/review.py` |
+| Built-in Reviewers (11 per §7.1) | 🟡 8/11 Implemented | See table below |
+| ML Readiness Score attachment | ✅ Implemented | Automatic via ScoreAdapter |
+| CLI `--no-score` | ✅ Implemented | Omits score section |
+| CLI `--fail-on` | ✅ Implemented | Mirrors `analyze` exit codes |
+| CLI `--only` category filter | ✅ Implemented | `featuresmith review --only schema,leakage` |
+| CLI `--previous` (diff-aware) | ❌ Not Implemented | Raises `NotImplementedError`; use `fs.diff()` |
+| Dashboard "Review" tab | 🚧 Not Implemented | Dashboard not yet built |
+| HTML static report | 🚧 Not Implemented | Deferred |
+| Centralized Recommendation Engine | ❌ Not Implemented | Deferred |
+
+### §7.1 Coverage Table Implementation Detail
+
+| Section | Reviewer | Category | Implemented |
+|---------|----------|----------|-------------|
+| Schema health | `SchemaHealthReviewer` | `schema` | ✅ |
+| Missing values | `MissingValueReviewer` | `data_quality` | ✅ |
+| Duplicate rows | `DuplicateReviewer` | `data_quality` | ✅ |
+| Duplicate columns | `DuplicateColumnReviewer` | `data_quality` | ❌ Deferred |
+| Data types | `TypeReviewer` | `schema` | ✅ |
+| Constant columns | `ConstantColumnReviewer` | `data_quality` | ✅ |
+| High-cardinality columns | `CardinalityReviewer` | `statistics` | ✅ |
+| Outliers | `OutlierReviewer` | `statistics` | ❌ Deferred |
+| Distribution issues | `DistributionReviewer` | `distribution` | ❌ Deferred |
+| Feature quality | `FeatureQualityReviewer` | `feature_quality` | ❌ Deferred (Phase 4) |
+| Target leakage warnings | `LeakageReviewer` | `leakage` | ✅ |
+| Overall summary | Aggregator | — | ✅ |
+
+## 14. Testing Strategy
 
 - **Coverage tests**: a fixture-dataset suite proving every section in §7.1 is present in `ReviewResult.sections`, including on a "clean" dataset where all sections should report "passed."
 - **Golden-dataset acceptance tests**: run against the same diverse public datasets already used for Phase 1 acceptance (Titanic, Adult Income, a known-leaky Kaggle dataset, a messy real-world CSV, a clean synthetic set — `Phases.md` Phase 1), asserting sensible, correctly-prioritized output on each.
-- **Actionability tests**: every finding in test fixtures must carry a suggested action or an explicit "no action needed" — enforced as an aggregation-level invariant, not just a convention.
+- **Actionability tests**: every finding in test fixtures must carry a recommendation from the Recommendation Engine stage or an explicit "no action needed" — enforced as an invariant of that stage (`Review-Engine-Architecture.md` §8.4), not just a convention.
 - **Surface-parity tests**: CLI, SDK, and dashboard produce identical `ReviewResult` content for the same fixture dataset (`PRD.md` §12).
 - **CI-gating tests**: `--fail-on` produces the documented exit code across a matrix of injected severities.
 - **Performance tests**: reviewing a 1M-row fixture completes within the documented time budget (§7.3), benchmarked alongside the existing `profiling/`/`rules/` benchmarks (`Rules.md` §12, `benchmarks.md`).
@@ -191,6 +228,6 @@ A new "Review" tab, alongside the existing Overview/Data Quality/Recommendations
 ## 15. Open Questions
 
 - Should `--fail-on` default to a conservative threshold (e.g., `critical` only) out of the box, or should the CLI require the user to opt into any CI-gating behavior explicitly on first use?
-- Should the built-in reviewer set in §7.1 be user-disableable individually (beyond the coarse `--only` category flag), and if so, does that config belong in `.featuresmith.yml` or CLI flags only?
+- Should the built-in reviewer set in §7.1 be user-disableable individually (beyond a coarse, category-level filter per `Review-Engine-Architecture.md` §9), and if so, does that config belong in `.featuresmith.yml` or CLI flags only?
 - How should Dataset Review behave on extremely wide datasets (thousands of columns) where a full per-column narrative would overwhelm the default CLI output — a summarized/paginated table view, deferred to implementation-time UX testing?
 - Should the overall dataset summary eventually support a "read aloud to a non-technical stakeholder" mode distinct from the engineer-facing default, or is that better left entirely to the AI narration layer once it exists?

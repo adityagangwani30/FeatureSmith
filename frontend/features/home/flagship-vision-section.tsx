@@ -10,26 +10,26 @@ const VISION_CARDS = [
   {
     icon: CheckSquare,
     title: "Dataset Review",
-    cmd: "featuresmith review <dataset>",
-    description: "A single command for a comprehensive engineering review of a dataset — checking missingness, leakage, balance, and quality in one pass.",
+    cmd: "featuresmith review <dataset>  ✅ v0.2.0",
+    description: "8/11 review sections implemented (schema, missingness, duplicates, types, constants, cardinality, basic stats, leakage). ML Readiness Score attached. Missing: recommendations, duplicate columns, outliers, distribution, feature quality.",
   },
   {
     icon: ShieldAlert,
     title: "Intelligent Leakage Detection",
-    cmd: "Pattern-based discovery",
-    description: "Going beyond basic thresholds to recognize target leakage shapes like label derivation, time-based leakage, or identifier leakage.",
+    cmd: "6 pattern detectors  ✅ v0.2.0",
+    description: "Target correlation, identifier shape, timestamp, future info, duplicate target, suspicious correlation — all implemented with merged per-column findings and scoring integration.",
   },
   {
     icon: FileDiff,
     title: "Dataset Diffing",
-    cmd: "featuresmith diff <v1> <v2>",
-    description: "Compare two versions of a dataset side-by-side. Spot added/removed columns, schema shifts, and distribution drift before training.",
+    cmd: "featuresmith diff <v1> <v2>  ✅ v0.2.0",
+    description: "Standalone engine: schema, structure, quality, distribution, and leakage deltas with overall health verdict (regressed/improved/unchanged). Not integrated as Review Engine reviewer.",
   },
   {
     icon: Sparkles,
     title: "ML Readiness Score",
-    cmd: "Composite quality scorecard",
-    description: "A single, multi-dimensional metric (e.g. ML Readiness: 91/100) detailing dataset health across schema, quality, and leakage dimensions.",
+    cmd: "8 dimensions  ✅ v0.2.0",
+    description: "Schema Health, Missing Values, Duplicate Records, Data Types, Constant Columns, High Cardinality, Dataset Structure, Leakage Risk. Per-dimension breakdown. Missing: Class Balance, Feature Quality, Distribution Health.",
   },
 ]
 
@@ -40,7 +40,7 @@ export function FlagshipVisionSection() {
         <SectionHeader centered>
           <div className="flex justify-center mb-3">
             <Badge variant="outline" className="border-dashed border-primary/40 text-primary font-medium text-xs">
-              Future Roadmap
+              v0.2.0 — Partially Delivered
             </Badge>
           </div>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
@@ -48,7 +48,8 @@ export function FlagshipVisionSection() {
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-balance text-base leading-relaxed text-muted-foreground">
             Featuresmith aims to become the standard engineering toolkit for the structured data lifecycle.
-            These define the future destination we are building toward.
+            In v0.2.0, Dataset Review, ML Readiness Score, Dataset Diff, and Intelligent Leakage Detection
+            are partially delivered — see each card for implementation status.
           </p>
         </SectionHeader>
 

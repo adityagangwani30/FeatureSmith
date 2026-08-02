@@ -307,7 +307,7 @@ wheels = [
 
 [[package]]
 name = "featuresmith-cli"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/featuresmith-cli" }
 dependencies = [
     { name = "featuresmith-core" },
@@ -324,7 +324,7 @@ requires-dist = [
 
 [[package]]
 name = "featuresmith-core"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/featuresmith-core" }
 dependencies = [
     { name = "openpyxl" },
@@ -352,7 +352,7 @@ requires-dist = [{ name = "featuresmith-core", editable = "packages/featuresmith
 
 [[package]]
 name = "featuresmith-workspace"
-version = "0.1.0"
+version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
     { name = "featuresmith-cli" },

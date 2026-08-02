@@ -7,6 +7,51 @@ This project adheres to [Semantic Versioning](https://semver.org/) and
 
 ---
 
+## [0.2.0] - 2026-08-02
+
+Completes Phase 2 of the roadmap: Review Engine, ML Readiness Score, Dataset Diff, and Intelligent Leakage Detection.
+
+### Added
+- **Review Engine** (`featuresmith.review`) — orchestration layer with 8 built-in reviewers:
+  - `SchemaHealthReviewer` (schema health, dtype consistency)
+  - `TypeReviewer` (data type appropriateness)
+  - `MissingValueReviewer` (missingness ratios and patterns)
+  - `DuplicateReviewer` (duplicate row detection)
+  - `ConstantColumnReviewer` (zero/near-zero variance columns)
+  - `CardinalityReviewer` (high-cardinality categorical columns)
+  - `BasicStatisticsReviewer` (distribution statistics)
+  - `LeakageReviewer` (6 pattern detectors merged per column)
+- **ML Readiness Score** (`featuresmith.scoring`) — deterministic, explainable 0-100 score with 8 dimensions:
+  - Schema Health, Missing Values, Duplicate Records, Data Types, Constant Columns, High Cardinality, Dataset Structure, Leakage Risk
+  - Per-dimension breakdown with rationale, contributing findings, and suggested actions
+  - `scoring_version = "0.2.0"` (bumped from `0.1.0` with Leakage Risk addition)
+- **Dataset Diff Engine** (`featuresmith.diff`) — standalone comparison engine:
+  - `fs.diff(old, new)` SDK and `featuresmith diff` CLI
+  - Schema, structure, missing values, duplicates, constants, cardinality, statistics, distribution shifts, and leakage deltas
+  - Overall health verdict: regressed / improved / unchanged
+  - Plain-language engineering recommendation
+- **Intelligent Leakage Detection** — 6 named pattern detectors in `featuresmith.rules.leakage`:
+  - `TargetCorrelationDetector`, `IdentifierShapeDetector`, `TimestampLeakageDetector`, `FutureInfoDetector`, `DuplicateTargetDetector`, `SuspiciousCorrelationDetector`
+  - Findings merged per column, confidence levels, rationale
+  - Legacy `LeakageRuleTargetCorrelation` preserved for backward compatibility
+- **CLI Commands**:
+  - `featuresmith review` — with `--target`, `--format`, `--output`, `--fail-on`, `--only`, `--no-score`, `--quiet`, `--verbose`, `--version`
+  - `featuresmith diff` — with `--target`, `--format`, `--output`, `--fail-on`, `--quiet`, `--verbose`, `--version`
+- **SDK Entrypoints** in `featuresmith.api`:
+  - `fs.review()`, `fs.diff()`, `fs.diff_findings()`, `fs.score()`
+- **Implementation Status Tracker** — `docs/implementation/IMPLEMENTATION_STATUS.md`
+
+### Changed
+- Version bumped to `0.2.0` across all packages (core, cli, workspace)
+- `ReviewCategory` enum: 7 categories (schema, quality, leakage, diff, feature_quality, custom)
+- `fs.review(previous=...)` raises `NotImplementedError` with guidance to use `fs.diff()`
+- Leakage Risk dimension integrated into ML Readiness Score (scoring version bumped)
+
+### Fixed
+- `DatasetDiffSummary.columns_added/removed` now correctly derive from `SchemaDiff.added_columns/removed_columns` (not structure counts)
+
+---
+
 ## [0.1.0] - 2026-07-27
 
 The first public release. Completes Phase 1 of the roadmap: SDK + CLI MVP with deterministic profiling, a rule engine, and robust engineering validations.

@@ -1,6 +1,6 @@
 # Dataset Diff & Intelligent Leakage Detection
 
-> **Status: Intelligent Leakage Detection implemented (Sprint 4); Dataset Diff implemented as a standalone Diff Engine (Sprint 5); the `review.diff` reviewer remains design only.** This document designs two flagship capabilities together (`Flagship-Capabilities.md` §3-4) because both are, structurally, comparison problems: Dataset Diff compares a dataset against its own past; Leakage Detection compares a feature against the information it shouldn't have access to. As of Sprint 4 the leakage-detection half is implemented — the `LeakageReviewer` (`featuresmith.review.reviewers.leakage`), the six built-in pattern detectors (`featuresmith.rules.leakage.*`, §7.2), and the per-column finding merge (§8.2) — and ships in `default_registry()`; the Leakage Risk scoring dimension (`ML-Readiness-Score.md` §16.1) consumes its findings as of Sprint 4.1. As of Sprint 5, Dataset Diff ships as a **standalone engine** — the `featuresmith.diff` package (`DatasetDiffEngine`, `fs.diff()`, `featuresmith diff old.csv new.csv`) that reuses the existing profiling engine and the `LeakageReviewer` internally for its leakage comparison. What remains design only is the diff-as-reviewer bridge: `DiffReviewer`, `fs.review(..., previous=...)`, and `featuresmith review --previous` (§5, §8.3, §10) are explicitly future work and do not ship in this sprint.
+> **Status: Leakage Detection Fully Implemented (Sprint 4); Dataset Diff Fully Implemented as Standalone Engine (Sprint 5).** All 6 leakage pattern detectors, `LeakageReviewer`, and integration with ML Readiness Score are implemented. Dataset Diff ships as a standalone engine (`featuresmith.diff` package, `fs.diff()`, `featuresmith diff` CLI) with schema, structure, quality, distribution, and leakage comparisons — NOT as a `DiffReviewer` integrated into the Review Engine. The `DiffReviewer` and `ReviewResult.diff` field remain future work.
 
 ## 1. Overview
 
@@ -8,7 +8,7 @@
 
 **Intelligent Leakage Detection** goes beyond a single correlation threshold to recognize the *shapes* target leakage tends to take: label-derived columns, features that encode post-prediction-point information, identifier leakage, timestamp leakage, duplicate target information, and suspicious correlation patterns a naive threshold would miss or over-flag.
 
-Leakage Detection is implemented as a reviewer category inside the Review Engine — the `LeakageReviewer` family plugs into the same pipeline as every schema, quality, and feature-quality reviewer (`Review-Engine-Architecture.md` §9). Dataset Diff is implemented as a **standalone Diff Engine** (`featuresmith.diff`) that produces a typed `DatasetDiffResult`; the two workflows are deliberately separate engines. The eventual `DiffReviewer` bridge (§8.3) — making a diff-aware review `featuresmith review new.csv --previous old.csv` — remains future work.
+Both are designed as reviewer categories inside the Review Engine, not separate engines — `DiffReviewer` and the `LeakageReviewer` family plug into the same pipeline as every schema, quality, and feature-quality reviewer (`Review-Engine-Architecture.md` §9).
 
 ## 2. Vision
 
@@ -20,9 +20,8 @@ Leakage Detection is implemented as a reviewer category inside the Review Engine
 
 ### Dataset Diff
 - Compare two dataset snapshots and surface: added/removed columns, schema changes, distribution shifts, missing-value changes, data-quality regressions, feature changes, and recommendations before retraining.
-- Ship as a standalone Diff Engine (`featuresmith diff old.csv new.csv`, `fs.diff(old_df, new_df)`) that produces one canonical, serializable `DatasetDiffResult`, reusing the existing profiling engine and `LeakageReviewer` rather than duplicating any analysis.
-- Provide a deterministic, evidence-backed verdict ("regressed / improved / unchanged") with a plain-language recommendation, plus `RuleFinding`-based exit-code gating for CI.
-- Keep the future `DiffReviewer` bridge optional: a diff-aware review (`featuresmith review new.csv --previous old.csv`) is a later, additive integration, not a dependency of the diff engine itself.
+- Integrate as a reviewer (`DiffReviewer`) so a diff-aware review is just `featuresmith review new.csv --previous old.csv`, not a separate mental model from a normal review.
+- Build directly on the existing `fs.diff()` / `ProfileDiff` schema from Phase 2 (`Phases.md` Phase 2) — extend it, never fork it.
 
 ### Intelligent Leakage Detection
 - Detect, with named, inspectable patterns: target leakage, future-information leakage, identifier leakage, timestamp leakage, duplicate target information, and suspicious correlations.
@@ -41,7 +40,7 @@ Leakage Detection is implemented as a reviewer category inside the Review Engine
 ### Dataset Diff
 - As a data engineer, I want to diff two snapshots of the same dataset and get a plain-language summary of what changed, so I can decide whether to retrain (`PRD.md` §9).
 - As an MLOps engineer, I want a diff to flag a quality regression (e.g., new missingness introduced) as clearly as it flags a schema change, so subtle regressions don't slip through because they're not a structural change.
-- As an ML engineer, I want `featuresmith diff old.csv new.csv` to give me one canonical comparison — schema, quality, distribution, and (with `--target`) leakage deltas — so I don't have to reconcile multiple ad-hoc checks myself. *(The `featuresmith review new.csv --previous old.csv` form remains future work.)*
+- As an ML engineer, I want `featuresmith review new.csv --previous old.csv` to give me both the normal review *and* the diff in one call, so I don't have to run two separate commands and reconcile their output myself.
 
 ### Leakage Detection
 - As a data scientist, I want the tool to tell me not just that a column is suspiciously correlated with the target, but *why* — is it an identifier, a post-event timestamp, a duplicate of the target — so I know how to fix it.
@@ -54,12 +53,13 @@ Leakage Detection is implemented as a reviewer category inside the Review Engine
 
 ```mermaid
 flowchart TB
-    A["featuresmith diff old.csv new.csv\n(fs.diff(old_df, new_df))"] --> B["fs.load + profile both snapshots\n(existing profiling engine)"]
-    B --> C["DatasetDiffEngine computes\nDatasetDiffResult: schema, structure,\nmissingness, duplicates, constants,\ncardinality, statistics, distributions,\nleakage (when --target given)"]
-    C --> D["DiffConsoleRenderer\n(standalone report) or to_dict()\n(canonical JSON)"]
-    D --> E{"Regression detected?"}
-    E -->|Yes| F["Flagged with recommendation:\nreview before retraining"]
-    E -->|No| G["Explicit 'no regression detected' state"]
+    A["featuresmith diff v2.csv --previous v1.csv"] --> B["fs.diff(profile_v1, profile_v2)\n(existing Phase 2 primitive)"]
+    B --> C["ProfileDiff computed:\nschema, distributions, missingness"]
+    C --> D["DiffReviewer wraps ProfileDiff\ninto a ReviewSection"]
+    D --> E["Rendered as part of\nfeaturesmith review's diff section\nor standalone featuresmith diff output"]
+    E --> F{"Regression detected?"}
+    F -->|Yes| G["Flagged with recommendation:\nreview before retraining"]
+    F -->|No| H["Explicit 'no regression detected' state"]
 ```
 
 ### Leakage Detection
@@ -77,8 +77,12 @@ flowchart TB
     C3 --> D
     C4 --> D
     C5 --> D
-    D --> E["Aggregated leakage section:\ncolumn, pattern, confidence, rationale, suggested action"]
+    D --> E["Aggregated leakage section (findings only):\ncolumn, pattern, confidence, rationale"]
+    E --> F["Recommendation Engine\n(Review-Engine-Architecture.md §8.4)"]
+    F --> G["Suggested action attached\nto the leakage section"]
 ```
+
+Leakage detectors are detection-only, matching the Review Engine's reviewer contract (`Review-Engine-Architecture.md` §8.3): a `LeakageFinding` states a column, pattern, confidence, and rationale, never a suggested action. Turning "this column is likely leakage" into "here's what to do about it" is the centralized Recommendation Engine's job, not any individual detector's — the same rule that applies to every other reviewer category.
 
 ## 7. Product Requirements
 
@@ -92,7 +96,7 @@ flowchart TB
 | Missing value changes | Delta in missingness ratio per column between snapshots |
 | Data quality regressions | Any quality-relevant reviewer section (duplicates, constant columns, outliers) that got measurably worse between snapshots |
 | Feature changes | New/removed/renamed candidate features relevant to the Feature Engineering Engine (Phase 4), when available |
-| Recommendations before retraining | A synthesized, plain-language recommendation (e.g., "3 columns show meaningful distribution shift; consider re-validating before retraining") — never just a list of deltas with no verdict |
+| Recommendations before retraining | A plain-language recommendation (e.g., "3 columns show meaningful distribution shift; consider re-validating before retraining") — never just a list of deltas with no verdict. Produced by the centralized Recommendation Engine (`Review-Engine-Architecture.md` §8.4) reading `DiffReviewer`'s findings, not synthesized by `DiffReviewer` itself |
 
 ### 7.2 Leakage Detection coverage
 
@@ -120,28 +124,23 @@ Reducing false positives must never mean silently dropping a borderline finding.
 
 ```mermaid
 flowchart TB
-    subgraph Reused["Reused (existing engines)"]
-        PROF["Profiling Engine\nProfileResult snapshots"]
-        LEAK["LeakageReviewer\n(leakage comparison)"]
+    subgraph Existing["Existing (Phase 2)"]
+        FSD["fs.diff(profile_a, profile_b)"]
+        PD["ProfileDiff schema"]
     end
-    subgraph New["New (Sprint 5)"]
-        ENG["DatasetDiffEngine"]
-        S1["Schema / structure / missingness\n/ duplicates / constants / cardinality"]
-        S2["Statistics + distribution shifts"]
-        S3["Leakage deltas (via LeakageReviewer)"]
-        FND["findings_from_diff → RuleFindings"]
-        REN["DiffConsoleRenderer / render_diff"]
+    subgraph New["New (this document)"]
+        DR["DiffReviewer"]
+        DIST["Distribution-shift comparator\n(extends ProfileDiff)"]
+        REG["Regression detector\n(reads quality-relevant sections)"]
     end
-    PROF --> ENG
-    ENG --> S1
-    ENG --> S2
-    ENG --> S3
-    LEAK --> S3
-    ENG --> FND
-    FND --> REN
+    FSD --> PD
+    PD --> DR
+    DIST --> DR
+    REG --> DR
+    DR --> RS["ReviewSection\n(category: diff)"]
 ```
 
-`DatasetDiffEngine.diff(previous, current, *, target_column=None, config=None)` consumes two `ProfileResult` snapshots produced by the existing profiling engine and emits one frozen, serializable `DatasetDiffResult` (`featuresmith.diff.schema`). The engine reuses existing analysis rather than reimplementing any statistic: missingness, duplicates, constants, and cardinality come straight from `ProfileResult`/`MissingValueSummary`/`DuplicateSummary`; leakage deltas are computed by running the existing `LeakageReviewer` against each snapshot (`featuresmith.review.reviewers.leakage`) and comparing per-column severities. A deterministic rename detector matches removed↔added columns by value-shape signature (dtype + missing count + top values/mean/datetime bounds/text length). Thresholds live in `DiffConfig` (`distribution_shift_threshold`, `missing_change_threshold`, `duplicate_change_threshold`, `numeric_tolerance`). The `featuresmith.diff` package intentionally does **not** register a Review Engine reviewer; the `DiffReviewer` bridge is future work (§8.3).
+`DiffReviewer.applicable(context)` returns `True` only when `context.previous_profile` is set (`Review-Engine-Architecture.md` §8.3). It calls the existing `fs.diff()` internally rather than reimplementing comparison logic, then layers the new distribution-shift and regression-detection capabilities documented here on top of the existing `ProfileDiff` schema, extending it with additive, backward-compatible fields (`distribution_shifts: list[DistributionShift]`, `quality_regressions: list[QualityRegression]`). Like every reviewer, `DiffReviewer` produces findings only; the "recommendations before retraining" requirement (§7.1) is satisfied downstream by the centralized Recommendation Engine (`Review-Engine-Architecture.md` §8.4) reading this section's findings, not by any diff-specific recommendation logic.
 
 ### 8.2 Leakage Detection
 
@@ -179,24 +178,20 @@ flowchart TB
 
 `LeakagePatternDetector` is a small interface (`detect(context) -> list[LeakageFinding]`) that each pattern implements independently; `LeakageReviewer` runs all registered detectors and deduplicates/merges findings that point at the same column (e.g., a column flagged by both the identifier-shape and target-correlation detectors is presented as one finding citing both patterns, not two redundant findings).
 
-### 8.3 Future combined integration into the Review Engine
+### 8.3 Combined integration into the Review Engine
 
-`LeakageReviewer` is an ordinary reviewer from the Review Engine's perspective — no special-cased control flow exists for it inside `ReviewEngine.run()` (`Review-Engine-Architecture.md` §8.2). The eventual `DiffReviewer` will follow the same pattern: a reviewer with `requires_previous_snapshot` that delegates to the standalone `featuresmith.diff` engine and attaches the full `DatasetDiffResult` to its section. The plumbing already exists for that future bridge (`ReviewContext.previous_profile`, `ReviewSection`), but the reviewer itself is **not** registered in Sprint 5 — `default_registry()` ships the same eight reviewers as Sprint 4, keeping the single-dataset Review Engine and two-dataset Diff Engine as separate workflows.
+Both `DiffReviewer` and the `LeakageReviewer` family are ordinary reviewers from the Review Engine's perspective — no special-cased control flow exists for either inside `ReviewEngine.run()` (`Review-Engine-Architecture.md` §8.2). This is a deliberate architectural test of the Review Engine's extensibility claim: two of the four flagship capabilities are implemented as "just another reviewer," proving the pattern generalizes.
 
 ## 9. Component Breakdown
 
 | Component | Responsibility | Lives in |
 |---|---|---|
-| `DatasetDiffEngine` | Computes the typed `DatasetDiffResult` from two `ProfileResult` snapshots | `featuresmith.diff.engine` |
-| `DatasetDiffResult` + diff schemas | Frozen, serializable comparison models and `DiffConfig` thresholds | `featuresmith.diff.schema` |
-| `findings_from_diff` | Maps a `DatasetDiffResult` onto shared `RuleFinding` objects (drives CLI exit codes) | `featuresmith.diff.findings` |
-| `DiffConsoleRenderer` / `render_diff` | Renders the diff as a deterministic plain-text report | `featuresmith.diff.render` |
-| `LeakageReviewer` | Reused by the diff engine for per-snapshot leakage severities | `featuresmith.review.reviewers.leakage` |
-| `DiffReviewer` (future) | Wraps `DatasetDiffResult` into a `ReviewSection` (category: diff) | `featuresmith.review.reviewers.diff` (not shipped) |
+| `DiffReviewer` | Wraps `fs.diff()` output into a `ReviewSection`; adds distribution-shift and regression detection | `featuresmith.review.reviewers.diff` |
+| `DistributionShift`, `QualityRegression` | New, additive fields on the existing `ProfileDiff` schema | `featuresmith.core.schema` (extends Phase 2's schema) |
 | `LeakageReviewer` | Dispatches all `LeakagePatternDetector`s, dedupes findings | `featuresmith.review.reviewers.leakage` |
 | `LeakagePatternDetector` | Base interface for one leakage pattern | `featuresmith.rules.leakage.base` |
 | Six built-in detectors (§7.2) | Individual pattern implementations | `featuresmith.rules.leakage.*` |
-| `LeakageFinding` | Typed result: column, pattern, confidence, rationale, suggested action | `featuresmith.rules.leakage.schema` |
+| `LeakageFinding` | Typed, detection-only result: column, pattern, confidence, rationale — no suggested action (produced downstream by the Recommendation Engine, `Review-Engine-Architecture.md` §8.4) | `featuresmith.rules.leakage.schema` |
 
 Leakage detectors live under `featuresmith.rules.leakage` (extending the existing `rules/leakage/` folder from `Architecture.md` §4) rather than a new top-level module, since they are, structurally, an evolution of the existing Rule Engine's leakage category — the `LeakageReviewer` is the new orchestration wrapper; the detectors are matured rules.
 
@@ -207,24 +202,16 @@ Leakage detectors live under `featuresmith.rules.leakage` (extending the existin
 ```python
 import featuresmith as fs
 
-diff = fs.diff("train_v2.parquet", "train_v1.parquet")   # profiles both, returns DatasetDiffResult
-diff.summary.overall_health                              # "regressed" | "improved" | "unchanged"
-diff.schema.added_columns                                # columns present only in v2
-diff.distributions                                       # significant mean shifts
-diff.leakage                                             # leakage deltas when target_column was given
-
-from featuresmith.api import diff_findings
-findings = diff_findings(diff)                           # RuleFindings for exit-code gating
-
-leak_aware = fs.diff("train_v2.parquet", "train_v1.parquet", target_column="target")
+diff = fs.diff("train_v2.parquet", "train_v1.parquet")   # existing Phase 2 primitive, extended output
+result = fs.review("train_v2.parquet", previous="train_v1.parquet")  # diff as part of a full review
+print(result.diff.distribution_shifts)
+print(result.diff.quality_regressions)
 ```
 
 ```
 featuresmith diff train_v1.parquet train_v2.parquet
 featuresmith diff train_v1.parquet train_v2.parquet --format json
-featuresmith diff train_v1.parquet train_v2.parquet --target target
-featuresmith diff train_v1.parquet train_v2.parquet --fail-on warning
-featuresmith review train_v2.parquet --previous train_v1.parquet   # future work (DiffReviewer bridge)
+featuresmith review train_v2.parquet --previous train_v1.parquet
 ```
 
 ### Leakage Detection
@@ -239,22 +226,23 @@ for finding in result.sections_by_id["review.leakage"].findings:
 
 ```
 featuresmith review train.csv --only leakage
-featuresmith review train.csv --target target        # declare the target column for target-aware leakage detection
 featuresmith review train.csv --fail-below-dimension leakage_risk:90   # via ML Readiness Score, see ML-Readiness-Score.md
 ```
 
 ## 11. Design Decisions
 
-- **Dataset Diff ships as a standalone engine, not a reviewer.** `featuresmith.diff` is a self-contained package (engine, schema, findings, render) that produces one canonical `DatasetDiffResult`. This keeps the single-dataset Review Engine and the two-dataset Diff Engine as separate, independently-testable workflows; the `DiffReviewer` bridge (§8.3) can later adapt the same engine into the Review Engine without moving its logic.
-- **The Diff Engine reuses existing analysis rather than reimplementing statistics.** It consumes two `ProfileResult` snapshots from the existing profiling engine and the existing `LeakageReviewer` for leakage severities — consistent with the "no duplicated logic" principle. The engine never reads raw data itself.
+- **Dataset Diff extends `ProfileDiff` additively rather than replacing it.** Phase 2's schema and `fs.diff()` signature stay stable; new capability is new, optional fields, so existing Phase 2 integrations (dashboard diff view, any early CI usage) do not break (`Rules.md` §9).
+- **`DiffReviewer` calls `fs.diff()` rather than reimplementing comparison logic**, keeping exactly one diffing code path in the codebase — consistent with the "no duplicated logic" principle applied to a second capability building on the same primitive.
 - **Leakage detectors are pattern-named, not just threshold-named.** `TargetCorrelationDetector` is one detector among six, not the whole leakage system, so a single false positive on correlation doesn't take down trust in the entire leakage section — a deliberate correction to Phase 1's naive, single-signal approach.
 - **Detectors downgrade confidence rather than suppress.** This is the direct design answer to "potential false positives" in the original ask: the system remains honest about uncertainty instead of quietly hiding borderline cases, which would erode the "every dataset deserves a code review" trust model if a real leak were ever silently dropped.
 - **Leakage detectors remain under `rules/leakage/`, not a new module**, because they are unit-testable, side-effect-free functions exactly like every other rule (`Architecture.md` §9) — `LeakageReviewer` is the new orchestration layer; the detection logic itself doesn't need a new architectural home.
+- **Neither `DiffReviewer` nor any leakage pattern detector phrases its own recommendation.** Both feed findings into the same centralized Recommendation Engine (`Review-Engine-Architecture.md` §8.4) as every other reviewer category. This is a deliberate consistency choice: a user reading "consider re-validating before retraining" and a user reading a leakage remediation suggestion get recommendations with the same shape, confidence semantics, and ranking logic, even though they came from entirely different detection code.
 
 ## 12. Integration Points
 
-- **Review Engine (`Review-Engine-Architecture.md`):** the diff engine reuses the existing `LeakageReviewer` internally; the `review.diff` reviewer bridge that would make diff-aware review possible remains future work.
-- **Dataset Review (`Dataset-Review-PRD.md`):** leakage findings are always part of the default review; diff findings activate via the standalone `featuresmith diff` command (and, in future, via `review --previous`).
+- **Review Engine (`Review-Engine-Architecture.md`):** both capabilities are ordinary reviewers; no engine-level special-casing.
+- **Recommendation Engine (`Review-Engine-Architecture.md` §8.4):** the sole source of both the diff section's "before retraining" recommendation and the leakage section's remediation suggestions; neither reviewer generates these itself.
+- **Dataset Review (`Dataset-Review-PRD.md`):** leakage findings are always part of the default review; diff findings activate via `--previous`.
 - **ML Readiness Score (`ML-Readiness-Score.md`):** the Leakage Risk dimension consumes `LeakageReviewer`'s output directly; a future diff-derived scoring signal (e.g., "quality regression detected since last score") is a natural but not yet specified extension (§13).
 - **Phase 2 (`fs.diff()`, `ProfileDiff`):** the foundation this document extends, not forks.
 - **Phase 5 (Data Observability):** scheduled re-profiling naturally produces consecutive snapshots that `DiffReviewer` can compare automatically, turning "manual diff before retraining" into "automatic regression detection on a schedule" — the exact maturation path already anticipated in `Flagship-Capabilities.md` §3.
@@ -265,10 +253,61 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90   # via ML 
 - **Detector unit tests**, one positive and one negative fixture per leakage pattern detector (six detectors × 2 fixtures minimum), following the standard rule-testing pattern (`Rules.md` §5).
 - **Known-leaky benchmark tests**: run against the curated benchmark suite of known-leaky public datasets already referenced in `PRD.md` §12's success metrics, asserting precision/recall improves over the Phase 1 naive-threshold baseline, not just "still detects leakage."
 - **False-positive regression tests**: a fixture suite of legitimately predictive-but-not-leaky columns (e.g., a genuinely predictive numeric feature with high but legitimate correlation) that must NOT be flagged at high confidence, guarding the "fewer false positives" goal (§3) as a testable property, not just a narrative claim.
-- **Diff engine tests**: unit tests over synthetic snapshot pairs covering added/removed/renamed columns, dtype changes, missingness regression/improvement, duplicate deltas, constant-column changes, cardinality, statistics, distribution shifts, leakage new/removed/unchanged, empty snapshots, and deterministic output (`tests/diff/`).
-- **Diff SDK/CLI tests**: `fs.diff()` on pandas/Polars/Dataset sources with JSON serialization, and `featuresmith diff` covering help, JSON format, `--target`, `--fail-on` exit-code gating, `--output`, `--quiet`, and error paths (`tests/cli/test_cli_diff.py`).
-- **Backward-compatibility tests**: the Review Engine's `default_registry()` still ships exactly the eight Sprint 4 reviewers; no diff reviewer is registered, so existing review section/score counts are unchanged.
+- **Diff extension tests**: `ProfileDiff`'s new fields (`distribution_shifts`, `quality_regressions`) are covered by golden-file tests against fixture snapshot pairs with known, injected shifts and regressions.
+- **Backward-compatibility tests**: existing Phase 2 `fs.diff()` callers see byte-identical output for the fields that already existed prior to this design's additions.
 - **Dedup tests**: a column flagged by multiple leakage detectors produces exactly one merged `LeakageFinding` citing all contributing patterns, not duplicate findings.
+- **Detection-only structural tests**: `DiffReviewer` and every `LeakagePatternDetector` must produce findings with no populated recommendation/suggested-action field prior to the Recommendation Engine stage, per the same structural test required of every reviewer (`Review-Engine-Architecture.md` §14).
+
+## 13.1 Implementation Status (as of v0.2.0)
+
+### Leakage Detection — ✅ Fully Implemented
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| `LeakagePatternDetector` base interface | ✅ | `featuresmith/rules/leakage/base.py` |
+| `TargetCorrelationDetector` | ✅ | `featuresmith/rules/leakage/target_correlation.py` |
+| `IdentifierShapeDetector` | ✅ | `featuresmith/rules/leakage/identifier.py` |
+| `TimestampLeakageDetector` | ✅ | `featuresmith/rules/leakage/timestamp.py` |
+| `FutureInfoDetector` | ✅ | `featuresmith/rules/leakage/timestamp.py` |
+| `DuplicateTargetDetector` | ✅ | `featuresmith/rules/leakage/duplicate_target.py` |
+| `SuspiciousCorrelationDetector` | ✅ | `featuresmith/rules/leakage/suspicious.py` |
+| `LeakageReviewer` | ✅ | `featuresmith/review/reviewers/leakage.py` |
+| `LeakageFinding` schema | ✅ | `featuresmith/rules/leakage/schema.py` |
+| ML Readiness Score `LeakageRiskDimension` | ✅ | `featuresmith/scoring/dimensions/builtin.py` |
+
+All 6 detectors run and merge findings per column. The legacy `LeakageRuleTargetCorrelation` is preserved as a re-export for backward compatibility.
+
+### Dataset Diff — ✅ Fully Implemented as Standalone Engine
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| `DatasetDiffEngine` / `compute_diff()` | ✅ | `featuresmith/diff/engine.py` |
+| `DatasetDiffResult` schema | ✅ | `featuresmith/diff/schema.py` |
+| `fs.diff(old, new)` SDK | ✅ | `featuresmith/api.py` |
+| `featuresmith diff` CLI | ✅ | `featuresmith_cli/commands/diff.py` |
+| Schema diff (added/removed/renamed/type changes) | ✅ | |
+| Structure diff (row/column counts) | ✅ | |
+| Missing value changes | ✅ | |
+| Duplicate row changes | ✅ | |
+| Constant column changes | ✅ | |
+| Cardinality changes | ✅ | |
+| Basic statistics changes | ✅ | |
+| Distribution shifts (mean shift detection) | ✅ | |
+| Leakage deltas (new/removed/escalated/de-escalated) | ✅ | Requires `--target` |
+| Overall health verdict (regressed/improved/unchanged) | ✅ | |
+| Plain-language recommendation | ✅ | Engineering-focused summary |
+
+**Architectural Note:** Dataset Diff is implemented as a **standalone engine** (`featuresmith.diff` package), NOT as a `DiffReviewer` integrated into the Review Engine. This was a deliberate scope decision (Sprint 5): the Review Engine keeps its 8-reviewer `default_registry()`, `fs.review(previous=...)` raises `NotImplementedError`, and single-dataset review vs two-dataset diff remain separate workflows. `DiffReviewer` and `ReviewResult.diff` field are documented as future work.
+
+### Not Implemented / Deferred
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `DiffReviewer` (Review Engine integration) | ❌ Not Implemented | Future work; diff ships standalone |
+| `ReviewResult.diff` field | ❌ Reserved, always `None` | |
+| `ProfileDiff` extension fields (`distribution_shifts`, `quality_regressions`) | ❌ Not Implemented | Standalone `DatasetDiffResult` used instead |
+| Configurable leakage sensitivity profiles | 🚧 Deferred | `.featuresmith.yml` config not yet built |
+| Cross-dataset leakage detection | 🚧 Deferred | Future extension |
 
 ## 14. Future Extensions
 
