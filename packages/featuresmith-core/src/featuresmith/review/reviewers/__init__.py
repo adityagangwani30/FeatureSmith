@@ -4,8 +4,8 @@ This package ships the default reviewer set described in
 ``docs/features/Dataset-Review-PRD.md`` section 7.1, implemented incrementally
 across sprints. Sprint 2 ships the schema-health, type, missing-value,
 duplicate, constant-column, high-cardinality, and basic-statistics reviewers;
-outlier, distribution, feature-quality, leakage, and diff reviewers remain
-future work.
+Sprint 4 ships the leakage reviewer. Outlier, distribution, feature-quality,
+and diff reviewers remain future work.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from featuresmith.review.reviewers.basic_statistics import BasicStatisticsReview
 from featuresmith.review.reviewers.cardinality import CardinalityReviewer
 from featuresmith.review.reviewers.constants import ConstantColumnReviewer
 from featuresmith.review.reviewers.duplicates import DuplicateReviewer
+from featuresmith.review.reviewers.leakage import LeakageReviewer
 from featuresmith.review.reviewers.missing_value import MissingValueReviewer
 from featuresmith.review.reviewers.schema_health import SchemaHealthReviewer
 from featuresmith.review.reviewers.types import TypeReviewer
@@ -24,6 +25,7 @@ __all__ = [
     "CardinalityReviewer",
     "ConstantColumnReviewer",
     "DuplicateReviewer",
+    "LeakageReviewer",
     "MissingValueReviewer",
     "SchemaHealthReviewer",
     "TypeReviewer",
@@ -45,4 +47,5 @@ def builtin_reviewers() -> tuple[BaseReviewer, ...]:
         CardinalityReviewer(),
         TypeReviewer(),
         BasicStatisticsReviewer(),
+        LeakageReviewer(),
     )

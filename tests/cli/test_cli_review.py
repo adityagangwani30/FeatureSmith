@@ -83,7 +83,7 @@ def test_cli_review_no_score_json(tmp_path: Path) -> None:
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert data["score"] is None
-    assert len(data["sections"]) == 7
+    assert len(data["sections"]) == 8
 
 
 def test_cli_review_fail_on_warning(tmp_path: Path) -> None:
@@ -106,7 +106,7 @@ def test_cli_review_json_format(tmp_path: Path) -> None:
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert data["engine_version"] == "0.1.0"
-    assert len(data["sections"]) == 7
+    assert len(data["sections"]) == 8
     missingness = next(
         s for s in data["sections"] if s["id"] == "review.quality.missingness"
     )
@@ -239,7 +239,7 @@ def test_cli_review_output_file_json(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert output_file.exists()
     data = json.loads(output_file.read_text(encoding="utf-8"))
-    assert len(data["sections"]) == 7
+    assert len(data["sections"]) == 8
 
 
 def test_cli_review_quiet(tmp_path: Path) -> None:

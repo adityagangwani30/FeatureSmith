@@ -87,4 +87,5 @@ def test_default_registry_ships_builtin_reviewers() -> None:
         "review.quality.constants",
         "review.quality.cardinality",
         "review.quality.basic_statistics",
+        "review.leakage",
     }

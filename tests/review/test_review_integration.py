@@ -17,6 +17,7 @@ BUILTIN_REVIEWER_IDS = {
     "review.quality.constants",
     "review.quality.cardinality",
     "review.quality.basic_statistics",
+    "review.leakage",
 }
 
 
@@ -101,7 +102,7 @@ def test_review_clean_dataset_all_sections_pass() -> None:
     assert {section.id for section in result.sections} == BUILTIN_REVIEWER_IDS
     assert all(section.severity is Severity.PASSED for section in result.sections)
     assert result.overall_summary == (
-        "7 of 7 sections passed with 0 finding(s) identified across the review."
+        "8 of 8 sections passed with 0 finding(s) identified across the review."
     )
 
 
@@ -189,7 +190,7 @@ def test_review_result_json_serializable_with_findings() -> None:
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert len(parsed["sections"]) == 7
+    assert len(parsed["sections"]) == 8
     missingness = next(
         s for s in parsed["sections"] if s["id"] == "review.quality.missingness"
     )
@@ -201,5 +202,5 @@ def test_review_sections_never_absent() -> None:
     """Every built-in section renders even when it finds nothing."""
     result = fs.review(clean_df())
 
-    assert len(result.sections) == 7
+    assert len(result.sections) == 8
     assert all(section.severity is Severity.PASSED for section in result.sections)
