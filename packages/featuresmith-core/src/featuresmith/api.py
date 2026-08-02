@@ -21,6 +21,8 @@ from featuresmith.core.exceptions import (
 )
 from featuresmith.core.profile_result import ProfileResult as ProfileResult
 from featuresmith.core.rule_result import RuleResult as RuleResult
+from featuresmith.diff.render import render_diff as render_diff
+from featuresmith.diff.schema import DatasetDiffResult as DatasetDiffResult
 from featuresmith.profiling import profile_dataset
 from featuresmith.review.render import render as render
 from featuresmith.review.schema import (
@@ -200,6 +202,95 @@ def analyze(
     )
 
 
+def diff(
+    old: object,
+    new: object,
+    *,
+    target_column: str | None = None,
+    max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
+) -> DatasetDiffResult:
+    """Compare two versions of a dataset and summarize exactly what changed.
+
+    The Dataset Diff Engine profiles both snapshots through the existing
+    profiling engine, then reuses the leakage reviewers when a target column is
+    provided. No new analysis of raw data is performed here — the diff is
+    computed entirely from the two ``ProfileResult`` snapshots.
+
+    Args:
+        old: The older dataset snapshot. This can be a pre-loaded Dataset, a
+            string representing a local file path, or an in-memory dataframe.
+        new: The newer dataset snapshot, in the same accepted forms.
+        target_column: Optional name of the target column in both datasets,
+            used for the leakage comparison between snapshots.
+        max_correlation_columns: Limit correlation computations during
+            profiling (default 100).
+        max_frequency_table_size: Maximum entries to keep in categorical
+            frequency tables (default 1000).
+
+    Returns:
+        DatasetDiffResult: A frozen, serializable comparison of the two
+            snapshots including schema, structure, quality, and (when a target
+            is given) leakage deltas plus an overall health verdict.
+
+    Raises:
+        ConnectorError: If either snapshot fails to load before profiling.
+
+    Examples:
+        >>> import pandas as pd
+        >>> import featuresmith as fs
+        >>> old_df = pd.DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0]})
+        >>> new_df = pd.DataFrame({"a": [1, 2, 3, 4], "c": [1, 2, 3, 4]})
+        >>> diff = fs.diff(old_df, new_df)
+        >>> diff.summary.columns_added
+        1
+    """
+    if isinstance(old, Dataset):
+        old_dataset = old
+    else:
+        old_dataset = load(old)
+    if isinstance(new, Dataset):
+        new_dataset = new
+    else:
+        new_dataset = load(new)
+    previous = profile(
+        old_dataset,
+        max_correlation_columns=max_correlation_columns,
+        max_frequency_table_size=max_frequency_table_size,
+    )
+    current = profile(
+        new_dataset,
+        max_correlation_columns=max_correlation_columns,
+        max_frequency_table_size=max_frequency_table_size,
+    )
+
+    from featuresmith.diff.engine import compute_diff
+
+    return compute_diff(
+        previous,
+        current,
+        target_column=target_column,
+    )
+
+
+def diff_findings(result: DatasetDiffResult) -> list[Any]:
+    """Return the diff findings for an existing DatasetDiffResult.
+
+    Findings speak the same language as every other review finding and drive
+    severity-based exit-code gating on surfaces such as the CLI. This accessor
+    never re-runs a comparison.
+
+    Args:
+        result: An existing DatasetDiffResult.
+
+    Returns:
+        The list of RuleFinding objects derived from the diff.
+    """
+    from featuresmith.diff.findings import findings_from_diff
+
+    return findings_from_diff(result)
+
+
 def review(
     source: object,
     *,
@@ -251,8 +342,8 @@ def review(
     Notes:
         The review reuses ``fs.analyze()`` internally to obtain the profile and
         rule findings, so reviewers never re-read or re-profile the dataset.
-        This foundation sprint ships with no built-in reviewers; the engine
-        must complete successfully with zero reviewers registered.
+        The Dataset Diff capability ships as a standalone engine behind
+        ``fs.diff()``; the diff-aware review bridge remains future work.
 
     Examples:
         >>> import pandas as pd
@@ -260,12 +351,12 @@ def review(
         >>> df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         >>> result = fs.review(df)
         >>> result.overall_summary
-        'Review complete: no reviewers ran.'
+        '8 of 8 sections passed with 0 finding(s) identified across the review.'
     """
     if previous is not None:
         raise NotImplementedError(
             "Diff-aware review ('previous') is not available yet; "
-            "it ships with the Dataset Diff capability."
+            "use the standalone Dataset Diff capability via fs.diff()."
         )
     if isinstance(source, Dataset):
         dataset = source

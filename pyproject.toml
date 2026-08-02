@@ -133,4 +133,15 @@ ignore_imports = [
   "featuresmith.scoring.schema -> featuresmith.core.profile_result",
   "featuresmith.api -> featuresmith.scoring.aggregator",
   "featuresmith.scoring.aggregator -> featuresmith.core.rule_finding",
+  # Dataset Diff Engine (featuresmith.diff) lives under the root package and is
+  # reached through featuresmith.api; its reuse of profiling/rule schemas is the
+  # same sanctioned pattern as the Review Engine.
+  "featuresmith.api -> featuresmith.diff.engine",
+  "featuresmith.api -> featuresmith.diff.findings",
+  "featuresmith.api -> featuresmith.diff.schema",
+  "featuresmith.diff.engine -> featuresmith.core.profile_result",
+  "featuresmith.diff.engine -> featuresmith.review.context",
+  "featuresmith.diff.engine -> featuresmith.review.reviewers.leakage",
+  "featuresmith.diff.findings -> featuresmith.core.rule_finding",
+  "featuresmith.diff.schema -> featuresmith.core.profile_result",
 ]

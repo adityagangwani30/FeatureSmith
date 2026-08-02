@@ -4,7 +4,7 @@
 
 - Current Version: 0.1.0
 - Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
-- Current Sprint: Intelligent Leakage Detection (Sprint 4, complete) + Leakage Integration & Production Readiness (Sprint 4.1, complete)
+- Current Sprint: Review Engine — Dataset Diff (Sprint 5, complete)
 - Repository: `D:\FeatureSmith`
 - Last Updated: 2026-08-02
 
@@ -28,6 +28,7 @@
 | Review Engine — ML Readiness Score (Sprint 3) | Completed | 2026-08-02 |
 | Review Engine — Intelligent Leakage Detection (Sprint 4) | Completed | 2026-08-02 |
 | Review Engine — Leakage Integration & Production Readiness (Sprint 4.1) | Completed | 2026-08-02 |
+| Review Engine — Dataset Diff (Sprint 5) | Completed | 2026-08-02 |
 | Sprint 6 — SDK Hardening & Exporter Layer | Deferred | — |
 
 -------------------------------------------------
@@ -518,6 +519,63 @@
   (stable finding IDs, detector registry refactor, benchmark suite, advanced
   heuristics, polars-specific enhancements).
 
+### Review Engine — Dataset Diff (Sprint 5)
+
+- Objective: Ship dataset-to-dataset comparison as a standalone **Diff Engine**
+  (`featuresmith.diff`) exposed via `fs.diff(old, new)` and
+  `featuresmith diff old.csv new.csv`, reusing the profiling engine and the
+  leakage reviewer. Scope decision: the experimental `DiffReviewer` integration
+  was reverted — the Review Engine keeps its exact 8-reviewer
+  `default_registry()`, `fs.review(previous=...)` stays `NotImplementedError`,
+  and single-dataset review vs two-dataset diff remain separate workflows.
+- Major Deliverables:
+  - `featuresmith/diff/schema.py` — frozen models: `DiffConfig`,
+    `ColumnDiff`, `RowCountDiff`, `DatasetDiffSummary`, `SchemaDiff`,
+    `DatasetDiffResult`, `StructureDiff`, `DataQualityDiff`,
+    `DistributionDiff`, `LeakageDiff`, `DiffFindingsResult`;
+    `DIFF_ENGINE_VERSION = "0.1.0"`.
+  - `featuresmith/diff/engine.py` — `DatasetDiffEngine.diff(old, new)`
+    (pandas/Polars/Dataset sources) + `compute_diff()` facade; schema/dtype/
+    missing/duplicate/constant/statistics/distribution comparisons, threshold
+    gating, deterministic output.
+  - `featuresmith/diff/findings.py` — `findings_from_diff()` converting diff
+    deltas into `RuleFinding`s with stable rule IDs
+    (`diff.schema.*`, `diff.quality.*`, `diff.distribution.*`,
+    `diff.leakage.*`); leakage deltas reuse the existing `LeakageReviewer`.
+  - `featuresmith/diff/render.py` — `BaseDiffRenderer`,
+    `DiffConsoleRenderer`, `DiffRendererRegistry`, `render_diff()` (reuses
+    Rich; empty sections omitted; deterministic).
+  - `featuresmith/diff/__init__.py` — package exports; `featuresmith/__init__.py`
+    exports `diff` at the root.
+  - `api.py` — `diff(old, new, *, target_column=None)` and
+    `diff_findings(result)` (the latter imports from `featuresmith.api`, not the
+    root); `review()` reverted to raise `NotImplementedError` when `previous` is
+    passed (message points callers to `fs.diff()`).
+  - CLI `featuresmith diff` in `featuresmith_cli/commands/diff.py` (registered
+    in `main.py`): flags `--target`, `--format {table,json}`, `--output`,
+    `--fail-on`, `--quiet`, `--verbose`, `--version`; exit codes 0 (no gated
+    findings), 1 (gated findings, e.g. removed-column warning / leakage
+    critical), 2 (load/format/unknown-target), 3 (source not found), 4
+    (unexpected error).
+  - Tests: `tests/diff/` (schema, engine, findings, render, SDK) and
+    `tests/cli/test_cli_diff.py` — 69 new tests.
+  - `pyproject.toml` — import-linter `ignore_imports` edges for
+    `featuresmith.api -> featuresmith.diff.*` and diff→core/review transitive
+    paths; `ruff` files formatted.
+- Important Decisions:
+  - Diff ships as an independent engine, not a registered reviewer, per the
+    confirmed scope decision; a diff-aware review is documented as future work.
+  - Fixed semantics: `DatasetDiffSummary.columns_added/columns_removed` derive
+    from `SchemaDiff.added_columns/removed_columns` (not structure counts).
+  - `DatasetDiffResult` carries health at `summary.overall_health`, not on the
+    result directly; JSON serialization goes through `_asdict_custom`.
+- Full Validation: pytest (284 passed), ruff format/check clean, mypy strict
+  clean on packages (89 files), mypy tests back to only the 6 pre-existing
+  errors, lint-imports contract kept, wheels for featuresmith-core and
+  featuresmith-cli build, and CLI/SDK smoke tests (leakage section renders,
+  exit-code gating works, JSON serializes, `fs.review(previous=...)` still
+  raises as designed).
+
 ### Release Readiness Sprint 3 (RR-3) — Examples & Tutorials
 
 - Objective: Produce standard examples and tutorial materials demonstrating the full SDK & CLI workflows across common industry patterns.
@@ -626,6 +684,7 @@
 | Profiling | Completed |
 | Rules | Completed |
 | Review Engine | Built-in Reviewer Set Implemented |
+| Dataset Diff | Implemented |
 | Recommendation Engine | Not Started |
 | AI Layer | Not Started |
 | Exporters | Not Started |
@@ -662,6 +721,17 @@ primitives.
   `--only <categories>`, `--no-score`, `--quiet`, `--verbose`, `--version`.
   Exit codes: 0 (clean), 1 (finding ≥ `--fail-on`), 2 (usage / unknown category / `--previous`),
   3 (source missing/parse), 4 (unexpected error).
+- `fs.diff(old, new, *, target_column=None)` — compare two datasets and return a
+  `DatasetDiffResult` (schema, structure, data-quality, distribution, and
+  leakage deltas with `summary.overall_health`); accepts pandas, Polars, or
+  `Dataset` sources. Also exported: `render_diff`, `DiffFindingsResult`,
+  `DatasetDiffResult`, `DatasetDiffSummary`.
+- `diff_findings(result)` — convert a `DatasetDiffResult` into
+  `RuleFinding[]` (imported from `featuresmith.api`).
+- `featuresmith diff <old> <new>` — CLI command; thin Typer wrapper over
+  `fs.diff()`. Flags: `--target`, `--format {table,json}`, `--output`, `--fail-on`,
+  `--quiet`, `--verbose`, `--version`. Exit codes: 0 (clean), 1 (gated findings),
+  2 (usage/format/unknown target), 3 (source missing), 4 (unexpected error).
 
 -------------------------------------------------
 
@@ -699,6 +769,8 @@ primitives.
 | 2026-08-02 | Review Engine (Sprint 3) | Seven score dimensions map 1:1 to the seven Sprint-2 reviewers; uniform default weights (1.0); weighted-mean overall with renormalization when a dimension is inapplicable. | Every shipped dimension must trace to a shipped reviewer; formula and weights versioned under `scoring_version = "0.1.0"`. |
 | 2026-08-02 | Review Engine (Sprint 3) | Per-finding deductions: `critical` 30, `warning` 15, `info` 5; dimension starts at 100, clamped to [0, 100], rounded to 1 decimal. | Deterministic, explainable, and monotonic in findings. |
 | 2026-08-02 | Review Engine (Sprint 3) | `--no-score` renders `"score": null` in JSON (not 0), and `fs.score()` returns the attached score, never re-running analysis. | Keeps "not scored" distinct from "scored poorly" and preserves one-pass review semantics. |
+| 2026-08-02 | Dataset Diff (Sprint 5) | Dataset Diff ships as a standalone engine (`featuresmith.diff`), not a registered reviewer; `fs.review(previous=...)` stays `NotImplementedError`. | Confirmed scope decision — single-dataset review and two-dataset diff stay separate workflows; diff-aware review is future work. |
+| 2026-08-02 | Dataset Diff (Sprint 5) | `DatasetDiffResult.to_dict()` goes through `_asdict_custom`; health lives at `summary.overall_health`. | Keeps diff output JSON-clean and consistent with `ReviewResult`/`ProfileResult` serialization. |
 
 -------------------------------------------------
 
@@ -721,7 +793,12 @@ primitives.
       leakage); outliers, distribution, duplicate-column, feature-quality, and
       diff reviewers are still future work in `reviewers/`.
 - [ ] `fs.review(previous=...)` raises `NotImplementedError` — diff-aware review
-      (and the reserved `ReviewResult.diff` field) is future work.
+      (and the reserved `ReviewResult.diff` field) is future work; the standalone
+      `fs.diff()`/`featuresmith diff` covers the two-dataset workflow today.
+- [ ] Diff findings rule IDs (`diff.schema.*`, `diff.quality.*`,
+      `diff.distribution.*`, `diff.leakage.*`) are stable by construction but
+      not yet versioned into a findings schema; revisit when a stable finding
+      schema ships.
 - [ ] `ReviewResult.score` is populated by the Score Adapter when a dimension
       applies and stays `None` otherwise; `--fail-below`/`--fail-below-dimension`
       CI gating on the score is future work.
@@ -758,6 +835,27 @@ primitives.
 -------------------------------------------------
 
 ## Changelog
+
+### 2026-08-02 — Review Engine — Dataset Diff (Sprint 5)
+
+- Implemented the standalone Dataset Diff Engine in `featuresmith/diff/`
+  (`schema.py`, `engine.py`, `findings.py`, `render.py`, `__init__.py`) per
+  `docs/features/Dataset-Diff-And-Leakage-Detection.md`; exposed `fs.diff()` and
+  `diff_findings()` from `featuresmith.api` and `diff` at the package root.
+- Added the `featuresmith diff old.csv new.csv` CLI command (mirrors
+  analyze/review flags and exit codes); diff findings reuse the existing
+  `LeakageReviewer` and profile data.
+- Reverted the experimental `DiffReviewer` integration: `default_registry()`
+  keeps exactly eight reviewers and `fs.review(previous=...)` remains
+  `NotImplementedError`, per the confirmed scope decision; diff-aware review is
+  documented future work.
+- Added 69 tests (`tests/diff/` + `tests/cli/test_cli_diff.py`); full
+  validation passes: ruff format/check, mypy strict (89 files), pytest
+  (284 passed), lint-imports (1 kept, 0 broken), `uv build` for
+  featuresmith-core and featuresmith-cli, and CLI/SDK smoke tests.
+- Updated `Dataset-Diff-And-Leakage-Detection.md` and
+  `Review-Engine-Architecture.md` to the standalone-engine status; synchronized
+  `MEMORY.md`.
 
 ### 2026-08-02 — Review Engine — Leakage Integration & Production Readiness (Sprint 4.1)
 

@@ -1,6 +1,6 @@
 # Review Engine Architecture
 
-> **Status: Foundation implemented (see §14 "Implemented Foundation"); core reviewer set implemented (Sprint 2, see §14); ML Readiness Score implemented (Sprint 3, see §14); intelligent leakage detection implemented (Sprint 4, see §14); leakage scoring integrated (Sprint 4.1, see §14).** This document is the architectural contract for the next major phase of Featuresmith, written and reviewed before any implementation begins, per the Documentation-First workflow in `Rules.md` §4. It does not renumber or replace `Phases.md`; see §14 ("Roadmap Placement") for how this slots into the existing roadmap. The orchestration foundation described in §5-§13 is now implemented in `packages/featuresmith-core/src/featuresmith/review/`. As of Sprint 2, **seven of the built-in reviewers (§8.1) are implemented** (Schema Health, Missing Values, Duplicate Rows, Constant Columns, High Cardinality, Data Types, Basic Statistics) and ship in `default_registry()`; as of Sprint 4, the **`LeakageReviewer` (§8.1) is also implemented** (`Dataset-Diff-And-Leakage-Detection.md`), bringing the shipped set to eight. The remaining reviewers (outliers, distribution, duplicate columns, feature quality, diff) remain future work. As of Sprint 3, the **Score Adapter (§9) is implemented** and attaches the versioned ML Readiness Score (`featuresmith.scoring`, `ML-Readiness-Score.md`) onto `ReviewResult.score` after aggregation; as of Sprint 4.1 it consumes leakage findings through the **Leakage Risk** dimension (`score.leakage_risk`, `scoring_version` 0.2.0).
+> **Status: Foundation implemented (see §14 "Implemented Foundation"); core reviewer set implemented (Sprint 2, see §14); ML Readiness Score implemented (Sprint 3, see §14); intelligent leakage detection implemented (Sprint 4, see §14); leakage scoring integrated (Sprint 4.1, see §14).** This document is the architectural contract for the next major phase of Featuresmith, written and reviewed before any implementation begins, per the Documentation-First workflow in `Rules.md` §4. It does not renumber or replace `Phases.md`; see §14 ("Roadmap Placement") for how this slots into the existing roadmap. The orchestration foundation described in §5-§13 is now implemented in `packages/featuresmith-core/src/featuresmith/review/`. As of Sprint 2, **seven of the built-in reviewers (§8.1) are implemented** (Schema Health, Missing Values, Duplicate Rows, Constant Columns, High Cardinality, Data Types, Basic Statistics) and ship in `default_registry()`; as of Sprint 4, the **`LeakageReviewer` (§8.1) is also implemented** (`Dataset-Diff-And-Leakage-Detection.md`), bringing the shipped set to eight. The remaining reviewers (outliers, distribution, duplicate columns, feature quality, diff) remain future work. As of Sprint 3, the **Score Adapter (§9) is implemented** and attaches the versioned ML Readiness Score (`featuresmith.scoring`, `ML-Readiness-Score.md`) onto `ReviewResult.score` after aggregation; as of Sprint 4.1 it consumes leakage findings through the **Leakage Risk** dimension (`score.leakage_risk`, `scoring_version` 0.2.0). As of Sprint 5, **Dataset Diff ships as a standalone Diff Engine** (`featuresmith.diff`: `DatasetDiffEngine`, `fs.diff()`, `featuresmith diff old.csv new.csv`) that reuses the profiling engine and the `LeakageReviewer` internally — see `Dataset-Diff-And-Leakage-Detection.md`. The `DiffReviewer` (a `review.diff`-category reviewer) is deliberately **not** registered; the diff-aware review bridge (`fs.review(..., previous=...)`, `featuresmith review --previous`) remains future work.
 
 ## 1. Overview
 
@@ -20,10 +20,11 @@ flowchart TB
     RE --> DR["Dataset Review\n(Dataset-Review-PRD.md)"]
     RE --> MLR["ML Readiness Score\n(ML-Readiness-Score.md)"]
     RE --> ILD["Intelligent Leakage Detection\n(Dataset-Diff-And-Leakage-Detection.md)"]
-    RE --> DD["Dataset Diff\n(Dataset-Diff-And-Leakage-Detection.md)"]
+    DE["Dataset Diff Engine\n(featuresmith.diff, Sprint 5)"]
+    DE -.->|"future: DiffReviewer bridge"| RE
 ```
 
-None of the four are separate engines. Dataset Review is what the engine produces by default. ML Readiness Score is a number computed *from* the engine's findings, never computed independently of them. Dataset Diff and Intelligent Leakage Detection are categories of reviewer that plug into the same pipeline as every other reviewer. This is what "modular and extensible" means concretely: adding a fifth flagship capability later should mean writing one new reviewer, not touching the engine.
+Dataset Review is what the engine produces by default. ML Readiness Score is a number computed *from* the engine's findings, never computed independently of them. Intelligent Leakage Detection is a category of reviewer that plugs into the same pipeline as every other reviewer. As of Sprint 5, Dataset Diff ships as a **standalone Diff Engine** (`featuresmith.diff`) rather than a reviewer: it reuses the profiling engine and the `LeakageReviewer` internally, and the eventual `DiffReviewer` bridge (§8.1) is explicitly future work. This is what "modular and extensible" means concretely: adding a fifth flagship capability later should mean writing one new reviewer, not touching the engine.
 
 ## 3. Goals
 
@@ -299,6 +300,19 @@ Each reviewer reads only from the frozen `ReviewContext`, reuses the existing ru
 The `LeakageReviewer` (`review.reviewers.leakage`, id `review.leakage`, category `leakage`) ships in `default_registry()` and dispatches the six built-in `LeakagePatternDetector`s from `featuresmith.rules.leakage` (future-information, target-correlation, identifier-shape, duplicate-target, timestamp, and suspicious-correlation patterns; `Dataset-Diff-And-Leakage-Detection.md` §7.2). Findings that point at the same column are merged into one `RuleFinding` citing every contributing pattern. The reviewer reads `context.config.target_column`, so `fs.review(..., target_column=...)` (and the CLI's `--target`) activates target-aware detection.
 
 Still future work: `OutlierReviewer`, `DistributionReviewer`, `DuplicateColumnReviewer`, `FeatureQualityReviewer`, `DiffReviewer`, and any `requires_previous_snapshot = True` diff-category reviewers.
+
+### Implemented Dataset Diff (Sprint 5)
+
+Dataset Diff ships as a **standalone engine** in `packages/featuresmith-core/src/featuresmith/diff/`, deliberately outside the Review Engine's `default_registry()`:
+
+- **`featuresmith.diff.engine`** — `DatasetDiffEngine.diff(previous, current, *, target_column=None, config=None)` computes a typed `DatasetDiffResult` from two `ProfileResult` snapshots, plus a `compute_diff()` facade.
+- **`featuresmith.diff.schema`** — frozen, fully serializable models (`SchemaDiff`, `StructureDiff`, `MissingValueDiff`, `DuplicateDiff`, `ConstantColumnDiff`, `CardinalityDiff`, `StatisticDiff`, `DistributionDiff`, `LeakageDiff`, `DatasetDiffSummary`, `DatasetDiffResult`, `DiffConfig`), `DIFF_ENGINE_VERSION = "0.1.0"`.
+- **`featuresmith.diff.findings`** — `findings_from_diff()` maps the diff onto shared `RuleFinding`s (category `diff`) that drive severity-gated CLI exit codes.
+- **`featuresmith.diff.render`** — `DiffConsoleRenderer` + `render_diff()` produce a deterministic plain-text report.
+- **Reuse:** the engine consumes the existing profiling engine's `ProfileResult` (missingness, duplicates, constants, cardinality, statistics) and runs the existing `LeakageReviewer` against each snapshot for the leakage comparison (`--target`). No raw-data analysis is duplicated.
+- **SDK/CLI:** `fs.diff(old, new, *, target_column=...)` (plus `featuresmith.api.diff_findings`) and `featuresmith diff old.csv new.csv` (`--target`, `--format json`, `--output`, `--fail-on`, `--quiet`).
+
+The `DiffReviewer` bridge that would surface this inside `fs.review(..., previous=...)` is **not** shipped — `ReviewContext.previous_profile` and the `ReviewResult.diff` attachment point remain reserved for that future reviewer. The single-dataset Review Engine and the two-dataset Diff Engine stay separate workflows.
 
 ### Implemented ML Readiness Score (Sprint 3)
 
