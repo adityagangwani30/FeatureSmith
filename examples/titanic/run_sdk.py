@@ -5,28 +5,34 @@ import featuresmith as fs
 
 def main():
     dataset_path = os.path.join("examples", "data", "processed", "titanic.csv")
-    print(f"Analyzing Titanic dataset: {dataset_path}")
+    print(f"Reviewing Titanic dataset: {dataset_path}")
 
-    # Load dataset
+    # 1. Load dataset
     dataset = fs.load(dataset_path)
-    print(f"Row count: {dataset.row_count}")
-    print(f"Schema columns: {dataset.schema.names}")
+    print(f"Rows: {dataset.row_count} | Columns: {len(dataset.schema.names)}")
 
-    # Run analysis
-    # We specify 'survived' as the target column to check target leakage (though titanic features are mostly valid, we'll see rules run)
-    result = fs.analyze(dataset, target_column="survived")
-    print(f"\nRule evaluation complete. Total findings: {len(result.findings)}")
-    for finding in result.findings:
+    # 2. Run dataset review with target column
+    review_result = fs.review(dataset, target_column="survived")
+    print(f"\nReview complete across {len(review_result.sections)} sections.")
+
+    # 3. Extract ML Readiness Score
+    scorecard = fs.score(review_result)
+    if scorecard:
+        print(f"\nML Readiness Score: {scorecard.overall:.1f}/100")
+        print("Dimension Breakdown:")
+        for dim in scorecard.dimensions:
+            print(
+                f"  - {dim.label:<20}: {dim.score:5.1f}/100 ({len(dim.contributing_findings)} findings)"
+            )
+
+    # 4. Print findings
+    findings = [f for s in review_result.sections for f in s.findings]
+    print(f"\nTotal Findings Identified: {len(findings)}")
+    for finding in findings:
         print(
-            f"[{finding.severity.upper()}] Column: {finding.column_name} - Rule: {finding.rule_id}"
+            f"[{finding.severity.upper()}] Column: {finding.column_name or 'dataset'} - {finding.title}"
         )
-        print(f"  Title: {finding.title}")
         print(f"  Detail: {finding.description}")
-
-    # Print execution metadata
-    print(f"\nExecuted rules: {len(result.executed_rules)}")
-    print(f"Failed rules: {len(result.failed_rules)}")
-    print(f"Execution time: {result.execution_time_ms:.2f} ms")
 
 
 if __name__ == "__main__":

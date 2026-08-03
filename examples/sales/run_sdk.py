@@ -1,31 +1,41 @@
 import os
 
+import pandas as pd
+
 import featuresmith as fs
 
 
 def main():
     dataset_path = os.path.join("examples", "data", "processed", "sales.csv")
-    print(f"Analyzing Sales dataset: {dataset_path}")
+    print(f"Loading Sales dataset for Dataset Diff demonstration: {dataset_path}")
 
-    # Load dataset
-    dataset = fs.load(dataset_path)
-    print(f"Row count: {dataset.row_count}")
-    print(f"Schema columns: {dataset.schema.names}")
+    # 1. Load base dataset (v1)
+    sales_v1 = pd.read_csv(dataset_path)
 
-    # Run analysis
-    result = fs.analyze(dataset)
-    print(f"\nRule evaluation complete. Total findings: {len(result.findings)}")
-    for finding in result.findings:
-        print(
-            f"[{finding.severity.upper()}] Column: {finding.column_name} - Rule: {finding.rule_id}"
-        )
-        print(f"  Title: {finding.title}")
-        print(f"  Detail: {finding.description}")
+    # 2. Simulate dataset evolution (v2) with schema drift, missingness spike, and new rows
+    sales_v2 = sales_v1.copy()
+    sales_v2.drop(columns=["store_version"], inplace=True)  # Column dropped
+    sales_v2["promotional_code"] = "SUMMER2026"  # New column added
+    sales_v2.loc[:50, "discount"] = None  # Missingness spike
 
-    # Print execution metadata
-    print(f"\nExecuted rules: {len(result.executed_rules)}")
-    print(f"Failed rules: {len(result.failed_rules)}")
-    print(f"Execution time: {result.execution_time_ms:.2f} ms")
+    print(
+        f"Comparing Snapshot v1 ({sales_v1.shape}) vs Snapshot v2 ({sales_v2.shape})..."
+    )
+
+    # 3. Run Dataset Diff Engine
+    diff_res = fs.diff(sales_v1, sales_v2)
+
+    # 4. Print Diff summary & verdict
+    print(f"\nDataset Health Verdict : {diff_res.summary.overall_health.upper()}")
+    print(f"Recommendation         : {diff_res.summary.recommendation}")
+    print(
+        f"Columns Added          : {diff_res.summary.columns_added} ({diff_res.schema.added_columns})"
+    )
+    print(
+        f"Columns Removed        : {diff_res.summary.columns_removed} ({diff_res.schema.removed_columns})"
+    )
+    print(f"Missing Values Increased: {diff_res.summary.missing_values_increased}")
+    print(f"Overall Summary        : {diff_res.overall_summary}")
 
 
 if __name__ == "__main__":
