@@ -58,7 +58,7 @@ def test_review_result_is_json_serializable() -> None:
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert parsed["engine_version"] == "0.1.0"
+    assert parsed["engine_version"] == "0.2.0"
     assert len(parsed["sections"]) == 8
     assert all(section["severity"] == "passed" for section in parsed["sections"])
     assert "overall_summary" in parsed

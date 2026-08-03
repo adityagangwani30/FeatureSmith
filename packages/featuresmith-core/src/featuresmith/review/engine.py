@@ -16,7 +16,7 @@ from featuresmith.review.registry import ReviewerRegistry, default_registry
 from featuresmith.review.schema import ReviewCategory, ReviewResult, ReviewSection
 from featuresmith.review.scoring_adapter import ScoreAdapter
 
-REVIEW_ENGINE_VERSION = "0.1.0"
+REVIEW_ENGINE_VERSION = "0.2.0"
 
 
 class ReviewEngine:

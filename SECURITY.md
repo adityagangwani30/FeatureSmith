@@ -2,11 +2,11 @@
 
 ## Supported Versions
 
-Featuresmith is currently in active development (Phase 1). Security fixes are applied to the latest development version only.
+Featuresmith is currently in active development (Phase 2). Security fixes are applied to the latest development version only.
 
 | Version | Supported |
 |---------|-----------|
-| `0.1.0` (current) | ✅ Supported |
+| `0.2.0` (current) | ✅ Supported |
 | Earlier versions | ❌ Not maintained |
 
 ---

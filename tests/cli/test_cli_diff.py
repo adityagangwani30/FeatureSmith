@@ -102,7 +102,7 @@ def test_cli_diff_json_format(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     data = json.loads(result.stdout)
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "0.2.0"
     assert data["schema"]["added_columns"] == ["c"]
     assert data["schema"]["removed_columns"] == ["b"]
     assert data["summary"]["overall_health"] == "regressed"

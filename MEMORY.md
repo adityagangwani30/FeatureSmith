@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-- Current Version: 0.1.0
-- Current Phase: Phase 1 — SDK + CLI MVP (complete) / Release Readiness
-- Current Sprint: Review Engine — Dataset Diff (Sprint 5, complete)
+- Current Version: 0.2.0
+- Current Phase: Phase 2 — Dataset Review, ML Readiness Score, Dataset Diff & Leakage Detection (complete)
+- Current Status: v0.2.0 Release Candidate Finalized
 - Repository: `D:\FeatureSmith`
-- Last Updated: 2026-08-02
+- Last Updated: 2026-08-03
 
 -------------------------------------------------
 

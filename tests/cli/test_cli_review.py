@@ -127,7 +127,7 @@ def test_cli_review_json_format(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     data = json.loads(result.stdout)
-    assert data["engine_version"] == "0.1.0"
+    assert data["engine_version"] == "0.2.0"
     assert len(data["sections"]) == 8
     missingness = next(
         s for s in data["sections"] if s["id"] == "review.quality.missingness"

@@ -123,7 +123,7 @@ def test_dataset_diff_result_to_dict_is_json_serializable() -> None:
 
     data = result.to_dict()
 
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "0.2.0"
     assert data["schema"]["added_columns"] == ["c"]
     assert data["missing_values"][0]["column"] == "a"
     assert data["missing_values"][0]["missing_count"] == 1

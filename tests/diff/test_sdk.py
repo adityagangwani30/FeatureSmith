@@ -55,7 +55,7 @@ def test_diff_result_is_json_serializable() -> None:
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert parsed["version"] == "0.1.0"
+    assert parsed["version"] == "0.2.0"
     assert parsed["schema"]["added_columns"] == ["c"]
     assert parsed["summary"]["overall_health"] == "regressed"
 

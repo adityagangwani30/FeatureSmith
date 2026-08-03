@@ -14,7 +14,7 @@ from typing import Any
 
 from featuresmith.core.profile_result import _asdict_custom
 
-DIFF_ENGINE_VERSION = "0.1.0"
+DIFF_ENGINE_VERSION = "0.2.0"
 
 
 @dataclass(frozen=True, slots=True)
