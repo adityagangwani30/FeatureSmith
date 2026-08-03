@@ -16,34 +16,34 @@ import { Container } from "@/components/ui/container"
 import { AnimatedLogo } from "@/components/brand"
 
 const TERMINAL_LINES = [
-  { text: "$ featuresmith analyze customers.csv", type: "command" },
+  { text: "$ featuresmith review examples/data/processed/titanic.csv --target survived", type: "command" },
   { text: "", type: "blank" },
-  { text: "  Analyzing dataset...", type: "output" },
-  { text: "  ✓ 12,847 rows loaded in 0.2s", type: "success" },
-  { text: "  ✓ 23 columns detected", type: "success" },
-  { text: "  ✓ Profile complete in 0.8s", type: "success" },
+  { text: "  Featuresmith Dataset Review (v0.2.0)", type: "output" },
+  { text: "  Rows: 891 | Columns: 12 | Engine: v0.2.0", type: "dim" },
   { text: "", type: "blank" },
-  { text: "  ─── Summary ─────────────────────────────", type: "dim" },
-  { text: "  Numeric columns       14", type: "output" },
-  { text: "  Categorical columns    7", type: "output" },
-  { text: "  Missing values        2.3%", type: "output" },
-  { text: "  Memory usage          4.2 MB", type: "output" },
+  { text: "  [CRITICAL] Missing Values in column 'cabin' (77.1% missing)", type: "output" },
+  { text: "  [WARNING] High Skewness in column 'fare' (skewness 4.78)", type: "output" },
+  { text: "  [INFO] Identifier column 'passengerid' detected", type: "output" },
+  { text: "  [PASSED] Leakage Detection: No target leakage found", type: "success" },
+  { text: "", type: "blank" },
+  { text: "  ML Readiness Score: 86.9 / 100", type: "success" },
+  { text: "  Summary: 5 of 8 dimensions healthy; 3 with findings", type: "dim" },
   { text: "  ────────────────────────────────────────", type: "dim" },
 ]
 
 const typeColors: Record<string, string> = {
-  command: "text-zinc-200",
-  output: "text-zinc-400",
-  success: "text-emerald-400",
-  dim: "text-zinc-600",
+  command: "text-zinc-200 font-semibold",
+  output: "text-amber-400",
+  success: "text-emerald-400 font-medium",
+  dim: "text-zinc-500",
   blank: "text-transparent",
 }
 
 const STATS = [
   { icon: Scale, label: "License", value: "Apache 2.0" },
-  { icon: Code2, label: "Python", value: "3.11+" },
-  { icon: Star, label: "Type Safety", value: "Strict" },
-  { icon: Package, label: "Code Quality", value: "Ruff" },
+  { icon: Star, label: "Unit Tests", value: "284 Passing" },
+  { icon: Code2, label: "Type Safety", value: "Strict MyPy" },
+  { icon: Package, label: "Linter", value: "Ruff & Import Linter" },
 ]
 
 const fadeUp = {
@@ -88,7 +88,7 @@ export function Hero() {
           >
             <Badge variant="outline" className="gap-1.5 px-3 py-1 text-xs">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-              v0.2.0 &mdash; Open Source
+              v0.2.0 &mdash; Dataset Review Platform
             </Badge>
           </motion.div>
 
@@ -109,9 +109,8 @@ export function Hero() {
             transition={{ duration: 0.4, delay: 0.12 }}
             className="mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
-            Make data quality as routine as code quality. Featuresmith is an
-            open-source, developer-first toolkit for understanding, validating,
-            and improving structured data.
+            Most ML failures originate from dataset quality, not model architecture.
+            Featuresmith is an open-source Dataset Review Platform that brings automated code reviews, ML readiness scores, target leakage detection, and version diffing to tabular data.
           </motion.p>
 
           {/* CTAs */}
@@ -168,7 +167,7 @@ export function Hero() {
               <span className="h-3 w-3 rounded-full bg-red-500/70" aria-hidden />
               <span className="h-3 w-3 rounded-full bg-yellow-500/70" aria-hidden />
               <span className="h-3 w-3 rounded-full bg-green-500/70" aria-hidden />
-              <span className="ml-3 font-mono text-xs text-zinc-500">featuresmith</span>
+              <span className="ml-3 font-mono text-xs text-zinc-500">featuresmith review</span>
             </div>
 
             {/* Terminal body */}

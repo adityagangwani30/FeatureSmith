@@ -5,21 +5,31 @@ import { ShieldCheck, BarChart3, Wrench, AlertTriangle, Eye, Sparkles } from "lu
 import { Section, SectionHeader, SectionLabel } from "@/components/ui/section"
 import { Container } from "@/components/ui/container"
 
-const STEPS = [
+const FAILURE_MODES = [
   {
-    icon: BarChart3,
-    title: "1. Understand",
-    description: "Profile dataset shapes, column distributions, and pairwise relationships deterministically.",
+    icon: AlertTriangle,
+    title: "Hidden Target Leakage",
+    description: "Future timestamps, target correlations, or duplicate ID columns silently artificially inflate validation scores but crash in production.",
+  },
+  {
+    icon: Eye,
+    title: "Silent Schema Drift",
+    description: "Unannounced column type changes, null spikes, or unexpected categorical distributions breaking downstream feature pipelines.",
   },
   {
     icon: ShieldCheck,
-    title: "2. Validate",
-    description: "Catch critical data-quality regressions and target leakage issues with testable rules.",
+    title: "Missing Values & Outliers",
+    description: "Unchecked null ratios and extreme anomalous values degrading model weights and inference accuracy without throwing runtime errors.",
+  },
+  {
+    icon: BarChart3,
+    title: "Dataset Regressions",
+    description: "Quality drops between snapshot versions (v1 vs v2) going completely unnoticed before expensive model re-training runs.",
   },
   {
     icon: Wrench,
-    title: "3. Improve",
-    description: "Turn accepted findings into clean, reviewable preprocessing pipelines (sklearn / notebooks).",
+    title: "Bad Pre-training Assumptions",
+    description: "Training complex neural nets or tree models on datasets plagued by constant zero-variance columns or high-cardinality noise.",
   },
 ]
 
@@ -28,74 +38,49 @@ export function WhyExistsSection() {
     <Section id="why-exists" className="border-t border-border bg-card">
       <Container size="md">
         <SectionHeader centered>
-          <SectionLabel>Why Featuresmith?</SectionLabel>
+          <SectionLabel>The Problem</SectionLabel>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            One Toolkit, One Loop
+            Engineering discipline stops at the dataset's edge.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-balance text-base leading-relaxed text-muted-foreground">
-            Data understanding, validation, and improvement should not be five disconnected tools.
-            Featuresmith integrates them into a single engineering workflow.
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground">
+            Every serious codebase has linters, formatters, static analyzers, and CI/CD tests. But machine learning datasets—which are just as load-bearing as software code—get almost none of it.
           </p>
         </SectionHeader>
 
-        {/* The Loop Diagram/Cards */}
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {STEPS.map((step, i) => (
+        {/* 5 Failure modes grid */}
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {FAILURE_MODES.map((mode, i) => (
             <motion.div
-              key={step.title}
+              key={mode.title}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="relative rounded-xl border border-border bg-background p-6 text-center transition-all duration-200 hover:border-primary/20"
+              transition={{ duration: 0.4, delay: i * 0.06 }}
+              className="rounded-xl border border-border bg-background p-6 transition-all duration-200 hover:border-primary/20"
             >
-              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/8 text-primary">
-                <step.icon className="h-5 w-5" />
+              <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 text-red-500 ring-1 ring-red-500/20">
+                <mode.icon className="h-4 w-4" />
               </div>
-              <h3 className="mb-2 font-semibold text-foreground text-sm">{step.title}</h3>
-              <p className="text-xs leading-relaxed text-muted-foreground">{step.description}</p>
+              <h3 className="mb-2 font-semibold text-foreground text-sm">{mode.title}</h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">{mode.description}</p>
             </motion.div>
           ))}
-        </div>
 
-        {/* Detailed context sections */}
-        <div className="mt-16 grid gap-8 md:grid-cols-2">
+          {/* Solution card */}
           <motion.div
-            initial={{ opacity: 0, x: -16 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.45 }}
-            className="flex gap-4"
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="rounded-xl border border-primary/30 bg-primary/5 p-6 transition-all duration-200"
           >
-            <div className="mt-1 flex-shrink-0 text-primary">
-              <Eye className="h-5 w-5" />
+            <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+              <Sparkles className="h-4 w-4" />
             </div>
-            <div>
-              <h3 className="font-semibold text-sm text-foreground mb-1">Developer-First CI Integration</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Featuresmith is built to be run automatically. Just like <code>ruff</code> or <code>pytest</code>,
-                it runs as a gate in your CI/CD pipeline, failing the build on critical quality issues before they reach models.
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 16 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.45 }}
-            className="flex gap-4"
-          >
-            <div className="mt-1 flex-shrink-0 text-primary">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm text-foreground mb-1">AI as an Assistant, Not Identity</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                The deterministic engine works with the AI layer completely switched off.
-                When active, AI only receives precomputed statistical profiles (never raw dataset rows) to narrate findings.
-              </p>
-            </div>
+            <h3 className="mb-2 font-semibold text-foreground text-sm">Featuresmith Solution</h3>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Automated pre-training dataset code reviews, 0–100 ML readiness scorecards, and CI/CD gate checks to catch failures before they cost compute.
+            </p>
           </motion.div>
         </div>
       </Container>

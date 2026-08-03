@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { GitFork, Heart, Scale, BookOpen, Terminal } from "lucide-react"
+import { GitFork, Heart, Scale, BookOpen, Terminal, CheckCircle2, Code2, ShieldCheck } from "lucide-react"
 import { Section } from "@/components/ui/section"
 import { Container } from "@/components/ui/container"
 
@@ -16,8 +16,9 @@ function GithubIcon({ className }: { className?: string }) {
 
 const STATS = [
   { Icon: Scale, label: "License", value: "Apache 2.0" },
-  { Icon: GitFork, label: "Development", value: "Active" },
-  { Icon: Heart, label: "Contribution", value: "Open Source" },
+  { Icon: CheckCircle2, label: "Unit Tests", value: "284 Passing" },
+  { Icon: Code2, label: "Type Safety", value: "Strict MyPy" },
+  { Icon: ShieldCheck, label: "Data Security", value: "Local-Only" },
 ]
 
 export function OpenSourceSection() {

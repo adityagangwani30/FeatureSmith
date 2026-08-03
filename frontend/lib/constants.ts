@@ -11,40 +11,40 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const FEATURES: Feature[] = [
   {
-    icon: "Database",
-    title: "Dataset Layer",
-    description:
-      "Unified interface for loading tabular data from CSV, Parquet, Excel, pandas, and Polars DataFrames into a normalized contract.",
-  },
-  {
-    icon: "BarChart2",
-    title: "Profiling Engine",
-    description:
-      "Deterministic computation of 23 numeric metrics, categorical frequency, text profiles, datetime ranges, and Pearson correlations.",
-  },
-  {
     icon: "ShieldCheck",
-    title: "Rule Engine",
+    title: "Dataset Code Review",
     description:
-      "8 built-in deterministic validation and leakage rules covering duplicate rows, missingness ratios, empty columns, and target leakage.",
-  },
-  {
-    icon: "Terminal",
-    title: "CLI Wrapper",
-    description:
-      "Thin Typer command-line client enabling styled Rich tables, JSON export, and exit-code gating (0 = clean, 1 = findings) for CI pipelines.",
+      "Automate code reviews for your datasets before model training. 8 automated reviewers inspect schema, data types, missingness, duplicates, and distributions.",
   },
   {
     icon: "Sparkles",
-    title: "AI-Ready Architecture",
+    title: "ML Readiness Score",
     description:
-      "Core structure prepared for pluggable AI Providers (Ollama, OpenAI, Anthropic) to narrate results, rank recommendations, and run interactive Q&A.",
+      "Know whether your dataset is actually ready for machine learning with an explainable 0–100 quality scorecard across 8 health dimensions.",
+  },
+  {
+    icon: "BarChart2",
+    title: "Intelligent Leakage Detection",
+    description:
+      "Prevent target leakage, future timestamps, and ID correlation from silently corrupting model validation scores before training.",
+  },
+  {
+    icon: "Database",
+    title: "Dataset Diff Engine",
+    description:
+      "Understand exactly what changed between two dataset snapshot versions (schema, missingness, distribution shifts, quality deltas).",
+  },
+  {
+    icon: "Terminal",
+    title: "CI/CD Gate Integration",
+    description:
+      "Stop bad datasets in CI pipelines with deterministic exit-code gating (0 = clean, 1 = findings) and machine-readable JSON exports.",
   },
   {
     icon: "Puzzle",
-    title: "Extensible design",
+    title: "Extensible Architecture",
     description:
-      "Built-in extension points for registering custom connectors, rules, exporters, and AI providers using standard setuptools entry points.",
+      "Deterministic computation powered by Polars with extensible plugin points for custom reviewers, rules, connectors, and exporters.",
   },
 ]
 
@@ -262,41 +262,35 @@ export const DOC_SECTIONS: DocSection[] = [
 
 export const PYTHON_EXAMPLE_CODE = `import featuresmith as fs
 
-# ── Load ───────────────────────────────────────────────────
-# Load dataset from CSV, Excel, Parquet, or in-memory DataFrame
-dataset = fs.load("customers.csv")
-print(dataset.row_count)        # 50000
-print(dataset.schema.names)     # ['id', 'age', 'churn', ...]
+# 1. Load dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
+dataset = fs.load("examples/data/processed/titanic.csv")
+print(f"Loaded {dataset.row_count} rows across {len(dataset.schema.names)} columns.")
 
-# ── Profile ────────────────────────────────────────────────
-# Run deterministic profiling engine
-profile = fs.profile("customers.csv")
-for name, col in profile.column_profiles.items():
-    print(f"{name}: {col.missing_count} missing values")
+# 2. Run automated dataset code review with 8 reviewers
+review_res = fs.review(dataset, target_column="survived")
 
-# ── Analyze ────────────────────────────────────────────────
-# Run rule engine: loader → profiler → rules evaluation
-result = fs.analyze("customers.csv", target_column="churn")
+# 3. Extract 0-100 ML Readiness Scorecard
+scorecard = fs.score(review_res)
+if scorecard:
+    print(f"ML Readiness Score: {scorecard.overall}/100")
+    for dim in scorecard.dimensions:
+        print(f"  - {dim.label}: {dim.score}/100 ({len(dim.contributing_findings)} findings)")
 
-for finding in result.findings:
-    print(f"[{finding.severity.upper()}] {finding.title}")
-    print(f"  Column : {finding.column_name}")
-    print(f"  Rule   : {finding.rule_id}")
-    print(f"  Detail : {finding.description}")
+# 4. Compare dataset snapshots (Dataset Diff)
+diff_res = fs.diff("v1.csv", "v2.csv", target_column="survived")
+print(f"Health Verdict: {diff_res.summary.overall_health}")`
 
-print(f"Executed: {len(result.executed_rules)} rules in {result.execution_time_ms:.1f}ms")`
+export const CLI_EXAMPLE_CODE = `# Install Featuresmith CLI
+pip install featuresmith-cli
 
-export const CLI_EXAMPLE_CODE = `# Install featuresmith-core and featuresmith-cli packages
-pip install featuresmith-core featuresmith-cli
+# Run complete dataset review report with scorecard
+featuresmith review examples/data/processed/titanic.csv --target survived
 
-# Run basic analysis (styled Rich terminal tables)
-featuresmith analyze customers.csv
+# Run target leakage and quality rule analysis
+featuresmith analyze examples/data/processed/titanic.csv --target survived
 
-# Run leakage detection targeting churn with exit-code gating for CI/CD
-featuresmith analyze customers.csv --target churn --severity warning
+# Compare two snapshot profiles (Dataset Diff Engine)
+featuresmith diff train_v1.csv train_v2.csv --target survived
 
-# Output findings as machine-readable JSON to a report file
-featuresmith analyze customers.csv --format json --output report.json
-
-# Run analysis in quiet mode (useful for script integrations)
-featuresmith analyze customers.csv --output report.txt --quiet`
+# Export report to JSON for CI/CD gating (0 = clean, 1 = findings)
+featuresmith review train.csv --target survived --format json --output report.json`

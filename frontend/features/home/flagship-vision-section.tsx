@@ -10,26 +10,26 @@ const VISION_CARDS = [
   {
     icon: CheckSquare,
     title: "Dataset Review",
-    cmd: "featuresmith review <dataset>  ✅ v0.2.0",
-    description: "8/11 review sections implemented (schema, missingness, duplicates, types, constants, cardinality, basic stats, leakage). ML Readiness Score attached. Missing: recommendations, duplicate columns, outliers, distribution, feature quality.",
-  },
-  {
-    icon: ShieldAlert,
-    title: "Intelligent Leakage Detection",
-    cmd: "6 pattern detectors  ✅ v0.2.0",
-    description: "Target correlation, identifier shape, timestamp, future info, duplicate target, suspicious correlation — all implemented with merged per-column findings and scoring integration.",
-  },
-  {
-    icon: FileDiff,
-    title: "Dataset Diffing",
-    cmd: "featuresmith diff <v1> <v2>  ✅ v0.2.0",
-    description: "Standalone engine: schema, structure, quality, distribution, and leakage deltas with overall health verdict (regressed/improved/unchanged). Not integrated as Review Engine reviewer.",
+    cmd: "featuresmith review  ✅ v0.2.0",
+    description: "Automate code reviews for your datasets before model training. 8 automated reviewers inspect schema, missingness, duplicates, data types, constants, cardinality, basic statistics, and target leakage.",
   },
   {
     icon: Sparkles,
     title: "ML Readiness Score",
-    cmd: "8 dimensions  ✅ v0.2.0",
-    description: "Schema Health, Missing Values, Duplicate Records, Data Types, Constant Columns, High Cardinality, Dataset Structure, Leakage Risk. Per-dimension breakdown. Missing: Class Balance, Feature Quality, Distribution Health.",
+    cmd: "8 Health Dimensions  ✅ v0.2.0",
+    description: "Know whether your dataset is actually ready for machine learning. Deterministic 0–100 score computed across 8 health dimensions with per-dimension breakdowns and fix suggestions.",
+  },
+  {
+    icon: ShieldAlert,
+    title: "Intelligent Leakage Detection",
+    cmd: "6 Pattern Detectors  ✅ v0.2.0",
+    description: "Prevent target leakage and future information from corrupting validation scores. 6 pattern detectors merge column findings across correlation, identifier, timestamp, and duplicate targets.",
+  },
+  {
+    icon: FileDiff,
+    title: "Dataset Diff Engine",
+    cmd: "featuresmith diff  ✅ v0.2.0",
+    description: "Understand exactly what changed between two dataset snapshot versions. Standalone engine compares schema, missingness, distribution shifts, and overall dataset health verdicts.",
   },
 ]
 
@@ -40,16 +40,14 @@ export function FlagshipVisionSection() {
         <SectionHeader centered>
           <div className="flex justify-center mb-3">
             <Badge variant="outline" className="border-dashed border-primary/40 text-primary font-medium text-xs">
-              v0.2.0 — Partially Delivered
+              v0.2.0 &mdash; Flagship Capabilities
             </Badge>
           </div>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            The Flagship Vision
+            Flagship Capabilities
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-balance text-base leading-relaxed text-muted-foreground">
-            Featuresmith aims to become the standard engineering toolkit for the structured data lifecycle.
-            In v0.2.0, Dataset Review, ML Readiness Score, Dataset Diff, and Intelligent Leakage Detection
-            are partially delivered — see each card for implementation status.
+            Built for production ML engineering workflows. Featuresmith brings dataset review, readiness scoring, leakage detection, and snapshot diffing to your terminal and Python code.
           </p>
         </SectionHeader>
 

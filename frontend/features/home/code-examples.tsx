@@ -81,9 +81,9 @@ export function CodeExamples() {
           className="mt-6 flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
         >
           <span className="text-xs text-muted-foreground">Install via pip:</span>
-          <code className="font-mono text-sm text-foreground">pip install featuresmith-core</code>
+          <code className="font-mono text-sm text-foreground">pip install featuresmith-cli</code>
           <span className="ml-auto rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
-            latest: 0.1.0
+            latest: v0.2.0
           </span>
         </motion.div>
       </Container>
