@@ -197,6 +197,7 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "Introduction", href: "/docs" },
       { title: "Installation", href: "/docs/installation" },
       { title: "Quick Start", href: "/docs/quickstart" },
+      { title: "Tutorial Notebooks", href: "/examples#tutorial-notebooks" },
       { title: "Benchmarks", href: "/docs/benchmarks" },
       { title: "Development Setup", href: "/docs/dev-setup" },
       { title: "Contributing", href: "/docs/contributing" },

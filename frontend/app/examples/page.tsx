@@ -11,39 +11,32 @@ export const metadata: Metadata = {
   description: "Explore real-world Python SDK pipelines, CI/CD integrations, and custom rules written for Featuresmith.",
 }
 
-const SDK_EXAMPLE_CODE = `import json
-import featuresmith as fs
+const SDK_EXAMPLE_CODE = `import featuresmith as fs
 
 def run_featuresmith_pipeline(data_path: str, target: str):
-    # 1. Load data safely into Dataset layer
-    print(f"Loading data from {data_path}...")
+    # 1. Load data into normalized Dataset wrapper
+    print(f"Loading dataset from {data_path}...")
     dataset = fs.load(data_path)
+    print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 
-    # 2. Run data audit checks (load → profile → rules evaluation)
-    print("Running rule audit...")
-    result = fs.analyze(
-        dataset,
-        target_column=target,
-        rule_config={
-            "quality.missing_value_threshold": {"threshold": 10.0},
-            "statistical.high_correlation": {"threshold": 0.85}
-        }
-    )
+    # 2. Perform automated dataset code review with 8 reviewers
+    print("Running automated dataset review...")
+    review_result = fs.review(dataset, target_column=target)
 
-    # 3. Handle rules results
-    print(f"Audit completed. Findings: {len(result.findings)}")
-    for finding in result.findings:
-        print(f"[{finding.severity.upper()}] Column: {finding.column_name}")
-        print(f"  Issue  : {finding.title}")
-        print(f"  Detail : {finding.description}")
+    # 3. Extract explainable 0–100 ML Readiness Scorecard
+    scorecard = fs.score(review_result)
+    if scorecard:
+        print(f"ML Readiness Score: {scorecard.overall:.1f} / 100")
+        print("Dimension Breakdown:")
+        for dim in scorecard.dimensions:
+            print(f"  - {dim.label:<20}: {dim.score:5.1f}/100 ({len(dim.contributing_findings)} findings)")
 
-    # 4. Serialize result to dictionary/JSON
-    report_dict = result.to_dict()
-    with open("report.json", "w") as f:
-        json.dump(report_dict, f, indent=2, default=str)
+    # 4. Compare with baseline dataset snapshot (Dataset Diff)
+    diff_res = fs.diff(data_path, "baseline.csv", target_column=target)
+    print(f"Dataset Health Verdict: {diff_res.summary.overall_health.upper()}")
 
 if __name__ == "__main__":
-    run_featuresmith_pipeline("customers.csv", target="churn")`
+    run_featuresmith_pipeline("customer_churn.csv", target="churn_label")`
 
 const CICD_EXAMPLE_CODE = `# .github/workflows/data-quality-gate.yml
 name: Data Quality Gate
@@ -52,7 +45,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 0 * * *' # Run daily audits
+    - cron: '0 0 * * *' # Daily pipeline audits
 
 jobs:
   audit:
@@ -68,19 +61,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install featuresmith-core featuresmith-cli
+          pip install featuresmith-cli
 
-      - name: Audit dataset quality
+      - name: Audit dataset quality & leakage
         run: |
-          # Gate CI build: if critical rule violations exist, exit code 1 fails step
-          featuresmith analyze data/incoming_leads.csv --target converted --severity critical --output audit_report.txt
+          # Gate CI build on review findings
+          featuresmith review data/train.csv --target churn_label --format json --output report.json
 
       - name: Upload audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: data-audit-report
-          path: audit_report.txt`
+          path: report.json`
 
 const CUSTOM_RULE_CODE = `from featuresmith.core.profile_result import ProfileResult
 from featuresmith.rules.base import BaseRule
@@ -117,18 +110,18 @@ class ZeroVarianceRule(BaseRule):
         findings: list[RuleFinding] = []
         for col_name, numeric_profile in profile.numeric_profiles.items():
             if numeric_profile.std_dev == 0.0:
-                    findings.append(
-                        RuleFinding(
-                            rule_id=self.id,
-                            rule_name=self.name,
-                            category=self.category,
-                            severity=self.severity,
-                            column_name=col_name,
-                            title="Zero Variance Detected",
-                            description=f"Column '{col_name}' has standard deviation of 0.0 (no variance).",
-                            evidence={"std_dev": numeric_profile.std_dev}
-                        )
+                findings.append(
+                    RuleFinding(
+                        rule_id=self.id,
+                        rule_name=self.name,
+                        category=self.category,
+                        severity=self.severity,
+                        column_name=col_name,
+                        title="Zero Variance Detected",
+                        description=f"Column '{col_name}' has standard deviation of 0.0.",
+                        evidence={"std_dev": numeric_profile.std_dev}
                     )
+                )
         return findings`
 
 export default function ExamplesPage() {
@@ -147,13 +140,91 @@ export default function ExamplesPage() {
           {/* Page header */}
           <header className="mb-12 border-b border-border pb-8">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Examples
+              Examples & Tutorials
             </h1>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">
               Production-grade implementations demonstrating Featuresmith SDK pipelines,
-              automated CI/CD quality gates, and custom rule design.
+              interactive Jupyter tutorials, automated CI/CD quality gates, and custom rule design.
             </p>
           </header>
+
+          {/* Educational Notebooks Section */}
+          <section className="mb-14" aria-labelledby="tutorial-notebooks">
+            <div className="mb-6">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                  <Code className="h-4.5 w-4.5" aria-hidden />
+                </div>
+                <h2 id="tutorial-notebooks" className="text-xl font-semibold text-foreground">
+                  Official Jupyter Tutorial Notebooks
+                </h2>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Follow our step-by-step interactive learning path located in <code>examples/notebooks/</code>. Every notebook includes real code, problem statements, output interpretations, and best practices.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                {
+                  filename: "01_getting_started.ipynb",
+                  title: "01. Getting Started with Featuresmith",
+                  topic: "Getting Started & Dataset Profiling",
+                  description: "Learn how to load datasets (fs.load), run deterministic profiling (fs.profile), conduct automated reviews (fs.review), and extract ML readiness scores (fs.score)."
+                },
+                {
+                  filename: "02_dataset_review.ipynb",
+                  title: "02. Complete Dataset Review Walkthrough",
+                  topic: "Dataset Review Engine & 8 Reviewers",
+                  description: "Explore the 8 automated reviewers evaluating schema health, data types, missingness spikes, duplicate records, constant columns, high cardinality, distributions, and leakage risk."
+                },
+                {
+                  filename: "03_ml_readiness_score.ipynb",
+                  title: "03. Understanding the ML Readiness Score",
+                  topic: "ML Readiness Score & Health Dimensions",
+                  description: "Deep dive into the 0–100 quality scorecard, mathematical dimension weights, category breakdowns, and actionable remediation suggestions."
+                },
+                {
+                  filename: "04_leakage_detection.ipynb",
+                  title: "04. Detecting Data Leakage before Training",
+                  topic: "Intelligent Leakage Detection",
+                  description: "Master target correlation detectors, timestamp anomalies, identifier shapes, post-outcome names, and duplicate target copies using 6 specialized pattern detectors."
+                },
+                {
+                  filename: "05_dataset_diff.ipynb",
+                  title: "05. Comparing Dataset Versions with Dataset Diff",
+                  topic: "Dataset Diff Engine (fs.diff)",
+                  description: "Compare dataset snapshot versions (v1 vs v2) to detect schema drift, missingness spikes, distribution shifts, and receive an overall health verdict."
+                },
+                {
+                  filename: "06_end_to_end_workflow.ipynb",
+                  title: "06. End-to-End ML Dataset Validation Workflow",
+                  topic: "End-to-End Validation Pipeline Gate",
+                  description: "Build an automated Python pre-training quality gate function that validates datasets, enforces score thresholds, and halts pipelines on critical findings."
+                }
+              ].map((nb) => (
+                <div key={nb.filename} className="rounded-lg border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-primary/30">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{nb.topic}</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground">{nb.title}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{nb.description}</p>
+                    <code className="mt-2 block w-fit font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">{nb.filename}</code>
+                  </div>
+                  <Link
+                    href={`https://github.com/adityagangwani30/FeatureSmith/blob/main/examples/notebooks/${nb.filename}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-3.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-all"
+                  >
+                    View Source
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* Python SDK Pipeline Example */}
           <section className="mb-14" aria-labelledby="sdk-pipeline">
@@ -164,7 +235,7 @@ export default function ExamplesPage() {
               <h2 id="sdk-pipeline" className="text-xl font-semibold text-foreground">Python SDK Pipeline</h2>
             </div>
             <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-              This script illustrates loading a CSV dataset, executing deterministic audits targeting a leakage column, handling rule findings, and writing serialized reports to disk.
+              This pipeline script demonstrates loading data, executing automated dataset code reviews, extracting scorecards, and running snapshot comparisons via <code>fs.diff()</code>.
             </p>
             <CodeBlock code={SDK_EXAMPLE_CODE} language="python" filename="pipeline.py" showCopy />
           </section>
@@ -178,7 +249,7 @@ export default function ExamplesPage() {
               <h2 id="cicd-gate" className="text-xl font-semibold text-foreground">CI/CD Quality Gate</h2>
             </div>
             <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-              Integrate the Featuresmith CLI into your GitHub Actions workflow. Exit code 1 gates the build on critical quality or leakage violations, and uploads the generated text reports.
+              Integrate the Featuresmith CLI into your GitHub Actions workflow. Deterministic exit code gating ensures broken or leaked datasets never reach training.
             </p>
             <CodeBlock code={CICD_EXAMPLE_CODE} language="yaml" filename="data-quality-gate.yml" showCopy />
           </section>
@@ -192,7 +263,7 @@ export default function ExamplesPage() {
               <h2 id="custom-rule" className="text-xl font-semibold text-foreground">Designing Custom Rules</h2>
             </div>
             <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-              Extend the <code>BaseRule</code> abstraction to create your own deterministic validation checks. This example detects numeric columns with zero standard deviation.
+              Extend the <code>BaseRule</code> abstraction to create custom deterministic check rules. This example detects numeric columns with zero standard deviation.
             </p>
             <CodeBlock code={CUSTOM_RULE_CODE} language="python" filename="zero_variance.py" showCopy />
           </section>
@@ -200,33 +271,33 @@ export default function ExamplesPage() {
           {/* Example Datasets Grid */}
           <section className="mb-14" aria-labelledby="example-datasets">
             <div className="mb-6 border-t border-border pt-10">
-              <h2 id="example-datasets" className="text-xl font-semibold text-foreground">Included Example Datasets</h2>
+              <h2 id="example-datasets" className="text-xl font-semibold text-foreground">Included Real-World Example Datasets</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Run the downloader utility in the root workspace to fetch and prepare these datasets programmatically:
+                Run the dataset generation script in the root repository to generate normalized CSV test files:
               </p>
               <div className="mt-2 font-mono text-xs text-muted-foreground bg-muted/50 p-3 rounded border border-border">
-                python examples/download_datasets.py && python examples/prepare_datasets.py
+                python examples/prepare_datasets.py
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 {
-                  title: "Iris",
+                  title: "Iris Classification",
                   source: "scikit-learn (load_iris)",
                   rows: "150",
                   cols: "5",
-                  description: "Canonical clean machine learning dataset containing no missing values or outliers. Serves as a perfect baseline.",
-                  findings: "0 findings",
-                  target: "N/A"
+                  description: "Canonical clean benchmark dataset containing 0 missing values and clean feature ranges. Serves as a 100/100 baseline.",
+                  score: "100.0/100 (PASSED)",
+                  target: "species"
                 },
                 {
-                  title: "Titanic",
+                  title: "Titanic Classification",
                   source: "OpenML (titanic)",
-                  rows: "1,309",
-                  cols: "14",
-                  description: "Messy historical log containing missing ages and duplicate tickets. Triggers missing value threshold rules.",
-                  findings: "Warnings (Missingness, Duplicates)",
+                  rows: "891",
+                  cols: "12",
+                  description: "Historical survival dataset containing cabin null spikes, free text columns, and age missingness. Triggers missing value and data type findings.",
+                  score: "86.9/100 (WARNINGS)",
                   target: "survived"
                 },
                 {
@@ -234,26 +305,26 @@ export default function ExamplesPage() {
                   source: "scikit-learn (fetch_california_housing)",
                   rows: "20,640",
                   cols: "9",
-                  description: "Continuous spatial housing metrics with extreme values. Triggers numeric outlier detection and correlation rules.",
-                  findings: "Warnings (Outliers, Correlation)",
+                  description: "Continuous spatial housing metrics for regression. Triggers distribution skewness and kurtosis structural findings.",
+                  score: "90.0/100 (WARNINGS)",
                   target: "median_house_value"
                 },
                 {
-                  title: "Customer Churn",
-                  source: "OpenML (Telco-Customer-Churn)",
+                  title: "Customer Churn & Leakage",
+                  source: "Telco Churn Dataset",
                   rows: "7,043",
                   cols: "24",
-                  description: "IBM subscriber records containing synthetic correlation columns. Triggers critical target leakage validations.",
-                  findings: "Critical (Target Leakage)",
+                  description: "Telecom subscriber records containing synthetic target leakage columns. Triggers 4 intelligent leakage pattern detectors.",
+                  score: "94.4/100 (CRITICAL LEAKAGE)",
                   target: "churn_label"
                 },
                 {
-                  title: "Retail Sales",
-                  source: "Synthetic Simulation (Superstore)",
+                  title: "Retail Sales Snapshot",
+                  source: "Superstore Transactions",
                   rows: "1,000",
                   cols: "10",
-                  description: "Transactional orders with datetime strings and empty fields. Triggers constant and fully empty column rules.",
-                  findings: "Critical (Empty), Warnings (Constant)",
+                  description: "Transactional sales dataset used to demonstrate Dataset Diff (fs.diff) snapshot version comparisons (v1 vs v2).",
+                  score: "Verdict: REGRESSED",
                   target: "N/A"
                 }
               ].map((ds) => (
@@ -265,60 +336,8 @@ export default function ExamplesPage() {
                     <div>Rows: <span className="text-foreground">{ds.rows}</span></div>
                     <div>Cols: <span className="text-foreground">{ds.cols}</span></div>
                     {ds.target !== "N/A" && <div>Target: <span className="text-foreground">{ds.target}</span></div>}
-                    <div className="w-full mt-1 text-primary">Audit: {ds.findings}</div>
+                    <div className="w-full mt-1 text-primary">Score: {ds.score}</div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Educational Notebooks List */}
-          <section className="mb-14" aria-labelledby="tutorial-notebooks">
-            <div className="mb-6 border-t border-border pt-10">
-              <h2 id="tutorial-notebooks" className="text-xl font-semibold text-foreground">Jupyter Tutorial Notebooks</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Step-by-step interactive notebooks located in <code>examples/notebooks/</code>:
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                {
-                  filename: "01_getting_started.ipynb",
-                  title: "Getting Started",
-                  description: "Learn how to install Featuresmith, load datasets from CSV or DataFrame, run profiling, and view audit summaries."
-                },
-                {
-                  filename: "02_exploring_datasets.ipynb",
-                  title: "Exploring Datasets & Statistical Profiling",
-                  description: "Deep dive into continuous numeric summaries, categorical value distributions, datetime spans, and Pearson correlation matrices."
-                },
-                {
-                  filename: "03_understanding_rule_findings.ipynb",
-                  title: "Rule Engine Configs & Gating",
-                  description: "Inspect validation findings, customize rule parameters (e.g. missingness ratios), gate specific check rules, and isolate exceptions."
-                },
-                {
-                  filename: "04_data_science_workflows.ipynb",
-                  title: "Target Leakage & Modeling Pipelines",
-                  description: "Set up pre-modeling filters to automatically detect and prune target leakage features before passing variables to estimators."
-                }
-              ].map((nb) => (
-                <div key={nb.filename} className="rounded-lg border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{nb.title}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">{nb.description}</p>
-                    <code className="mt-2 block w-fit font-mono text-[10px] text-zinc-500 bg-muted px-1.5 py-0.5 rounded">{nb.filename}</code>
-                  </div>
-                  <Link
-                    href={`https://github.com/adityagangwani30/FeatureSmith/blob/main/examples/notebooks/${nb.filename}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-all"
-                  >
-                    View Source
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
                 </div>
               ))}
             </div>
@@ -328,7 +347,7 @@ export default function ExamplesPage() {
           <div className="mt-16 rounded-xl border border-border bg-muted/20 p-6 md:p-8 text-center">
             <h3 className="text-base font-semibold text-foreground">Ready to inspect performance?</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Review Featuresmith's loading, profiling, and rule engine benchmarks.
+              Review Featuresmith's loading, profiling, review, and score benchmarks.
             </p>
             <div className="mt-5 flex justify-center gap-4">
               <Link

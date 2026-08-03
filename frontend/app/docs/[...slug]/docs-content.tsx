@@ -75,9 +75,37 @@ pre-commit install`} language="bash" showCopy />
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith is designed to serve identical results whether you are running
-          scripted pipelines in Python or triggering quick inspections in the terminal.
+          Featuresmith is designed to serve identical, deterministic results whether you are running
+          scripted pipelines in Python, exploring interactive Jupyter notebooks, or triggering quality gates in the terminal.
         </p>
+
+        <section className="mb-8" aria-labelledby="qs-notebooks">
+          <h3 id="qs-notebooks" className="mb-3 text-lg font-semibold text-foreground">Interactive Tutorial Notebooks (Recommended)</h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            The fastest way to master Featuresmith v0.2.0 is through our official hands-on Jupyter notebook series in <code>examples/notebooks/</code>:
+          </p>
+          <div className="space-y-2.5 mb-6">
+            {[
+              { file: "01_getting_started.ipynb", title: "01. Getting Started", desc: "Dataset loading (fs.load), statistical profiling (fs.profile), automated review (fs.review), and readiness scoring (fs.score)." },
+              { file: "02_dataset_review.ipynb", title: "02. Complete Dataset Review", desc: "Deep dive into the 8 automated reviewers, finding severities, and section categories." },
+              { file: "03_ml_readiness_score.ipynb", title: "03. ML Readiness Score", desc: "Understanding 0–100 scorecards, mathematical dimension weights, and actionable remediation suggestions." },
+              { file: "04_leakage_detection.ipynb", title: "04. Intelligent Leakage Detection", desc: "Catching target correlations, future timestamps, identifier shapes, and duplicate target copies." },
+              { file: "05_dataset_diff.ipynb", title: "05. Dataset Diff Engine", desc: "Comparing dataset versions (fs.diff) to detect schema drift, missingness spikes, and quality regressions." },
+              { file: "06_end_to_end_workflow.ipynb", title: "06. End-to-End Validation Gate", desc: "Building a production Python pre-training quality gate function to protect model training jobs." }
+            ].map((nb) => (
+              <div key={nb.file} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border bg-card/60 gap-2">
+                <div>
+                  <span className="font-semibold text-xs text-foreground">{nb.title}</span>
+                  <p className="text-[11px] text-muted-foreground">{nb.desc}</p>
+                </div>
+                <code className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded w-fit">{nb.file}</code>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Explore all interactive tutorials on the <a href="/examples" className="text-primary hover:underline">Examples & Tutorials Page</a> or on <a href="https://github.com/adityagangwani30/FeatureSmith/tree/main/examples/notebooks" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub</a>.
+          </p>
+        </section>
 
         <section className="mb-8" aria-labelledby="qs-sdk">
           <h3 id="qs-sdk" className="mb-3 text-lg font-semibold text-foreground">Python SDK Quick Start</h3>
@@ -88,20 +116,20 @@ pre-commit install`} language="bash" showCopy />
 
 # 1. Load the dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
 dataset = fs.load("examples/data/processed/titanic.csv")
-print(f"Loaded {dataset.row_count} rows across columns: {dataset.schema.names}")
+print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 
-# 2. Extract profile statistics
+# 2. Extract deterministic statistical profile
 profile = fs.profile(dataset)
-for col_name, col in profile.column_profiles.items():
-    if col.missing_count > 0:
-        print(f"Column '{col_name}' has {col.missing_count} missing values")
+print(f"Missingness: {profile.dataset_summary.missing_percentage:.2f}%")
 
-# 3. Perform a comprehensive review with ML Readiness Scorecard
-result = fs.review(dataset, target_column="survived")
-print(result.overall_summary)
+# 3. Perform automated dataset code review with 8 reviewers
+review_result = fs.review(dataset, target_column="survived")
+print(review_result.overall_summary)
 
-if result.score:
-    print(f"ML Readiness Score: {result.score.overall}/100")`} language="python" showCopy />
+# 4. Extract explainable 0–100 ML Readiness Scorecard
+scorecard = fs.score(review_result)
+if scorecard:
+    print(f"ML Readiness Score: {scorecard.overall:.1f}/100")`} language="python" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="qs-cli">
@@ -109,17 +137,14 @@ if result.score:
           <p className="mb-3 text-sm text-muted-foreground">
             Verify dataset issues inside your shell:
           </p>
-          <CodeBlock code={`# Analyze a local CSV dataset
-featuresmith analyze examples/data/processed/titanic.csv
-
-# Run leakage checks targeting the 'survived' column
-featuresmith analyze examples/data/processed/titanic.csv --target survived
-
-# Run a complete review report with scorecard
+          <CodeBlock code={`# Run a complete review report with scorecard
 featuresmith review examples/data/processed/titanic.csv --target survived
 
-# Compare two snapshot profiles (Dataset Diff)
-featuresmith diff examples/data/processed/titanic.csv examples/data/processed/titanic.csv --target survived`} language="bash" showCopy />
+# Run target leakage and quality rule analysis
+featuresmith analyze examples/data/processed/titanic.csv --target survived
+
+# Compare two snapshot profiles (Dataset Diff Engine)
+featuresmith diff examples/data/processed/sales.csv examples/data/processed/sales.csv --target store_id`} language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="qs-exitcodes">

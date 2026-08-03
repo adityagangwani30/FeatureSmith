@@ -16,43 +16,44 @@ pip install featuresmith-cli`
 
 const QUICKSTART_CODE = `import featuresmith as fs
 
-# 1. Load the dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
+# 1. Load dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
 dataset = fs.load("examples/data/processed/titanic.csv")
-print(f"Loaded {dataset.row_count} rows across columns: {dataset.schema.names}")
+print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 
-# 2. Extract profile statistics
-profile = fs.profile(dataset)
-for col_name, col in profile.column_profiles.items():
-    if col.missing_count > 0:
-        print(f"Column '{col_name}' has {col.missing_count} missing values")
+# 2. Perform automated dataset code review with 8 reviewers
+review_res = fs.review(dataset, target_column="survived")
+print(review_res.overall_summary)
 
-# 3. Perform a comprehensive review with ML Readiness Scorecard
-result = fs.review(dataset, target_column="survived")
-print(result.overall_summary)
-
-if result.score:
-    print(f"ML Readiness Score: {result.score.overall}/100")`
+# 3. Extract 0–100 ML Readiness Scorecard
+scorecard = fs.score(review_res)
+if scorecard:
+    print(f"ML Readiness Score: {scorecard.overall:.1f}/100")`
 
 const QUICK_LINKS = [
   {
     title: "Installation",
-    description: "Install Featuresmith via pip or from source.",
+    description: "Install Featuresmith via pip, uv, or build from source.",
     href: "/docs/installation",
   },
   {
     title: "Quick Start",
-    description: "Load a dataset, run your first profile, and validate in minutes.",
+    description: "Load a dataset, run automated reviews, and score in minutes.",
     href: "/docs/quickstart",
   },
   {
-    title: "Python SDK",
-    description: "Full API reference for the Dataset, Profile, and Rule classes.",
-    href: "/docs/sdk",
+    title: "Interactive Notebooks",
+    description: "Hands-on Jupyter notebooks covering review, leakage, score, and diff.",
+    href: "/examples#tutorial-notebooks",
+  },
+  {
+    title: "Python SDK Reference",
+    description: "Full API reference for load(), profile(), review(), score(), and diff().",
+    href: "/docs/sdk/load",
   },
   {
     title: "CLI Reference",
-    description: "Command-line interface for analyze, profile, and validate.",
-    href: "/docs/cli",
+    description: "Command-line interface for review, analyze, diff, and score.",
+    href: "/docs/cli/review",
   },
 ]
 
