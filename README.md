@@ -69,16 +69,26 @@ An LLM is used solely to turn structured findings into plain-language explanatio
 
 ## Installation
 
-Install Featuresmith from PyPI:
+Featuresmith is split into two packages depending on your surface requirements:
+*   **Python SDK** only: Install `featuresmith-core`
+*   **CLI** and **Python SDK**: Install `featuresmith-cli` (which automatically pulls in `featuresmith-core` as a dependency)
 
 **Using pip**
 ```bash
-pip install featuresmith-core featuresmith-cli
+# Python SDK only
+pip install featuresmith-core
+
+# CLI & SDK
+pip install featuresmith-cli
 ```
 
 **Using uv**
 ```bash
-uv add featuresmith-core featuresmith-cli
+# Python SDK only
+uv add featuresmith-core
+
+# CLI & SDK
+uv add featuresmith-cli
 ```
 
 **From Source (Development)**
@@ -92,23 +102,27 @@ uv sync
 
 ## Quick Start
 
+Run your first dataset review using the pre-packaged `titanic.csv` dataset:
+
 ```python
 import featuresmith as fs
 
-# 1. Load data normalized
-dataset = fs.load("customers.csv")
+# 1. Load the dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
+dataset = fs.load("examples/data/processed/titanic.csv")
 print(f"Loaded {dataset.row_count} rows across columns: {dataset.schema.names}")
 
-# 2. Run deterministic profiling
-profile = fs.profile("customers.csv")
+# 2. Extract profile statistics
+profile = fs.profile(dataset)
 for col_name, col in profile.column_profiles.items():
-    print(f"{col_name}: {col.missing_count} missing values")
+    if col.missing_count > 0:
+        print(f"Column '{col_name}' has {col.missing_count} missing values")
 
-# 3. Analyze against rules (with target leakage detection)
-result = fs.analyze("customers.csv", target_column="churn")
-for finding in result.findings:
-    print(f"[{finding.severity.upper()}] {finding.title} on column '{finding.column_name}'")
-    print(f"  Details: {finding.description}")
+# 3. Perform a comprehensive review with ML Readiness Scorecard
+result = fs.review(dataset, target_column="survived")
+print(result.overall_summary)
+
+if result.score:
+    print(f"ML Readiness Score: {result.score.overall}/100")
 ```
 
 ---

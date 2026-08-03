@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,12 @@ from typer.testing import CliRunner
 
 from featuresmith_cli.commands.diff import _diff_exit_code
 from featuresmith_cli.main import app
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences from text."""
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 def _write_csv(tmp_path: Path, name: str, data: dict[str, Any]) -> Path:
@@ -30,14 +37,15 @@ def _datasets(tmp_path: Path) -> tuple[Path, Path]:
 def test_cli_diff_help() -> None:
     """Diff help shows the two snapshot arguments and its options."""
     runner = CliRunner()
-    result = runner.invoke(app, ["diff", "--help"])
+    result = runner.invoke(app, ["diff", "--help"], env={"COLUMNS": "120"})
 
     assert result.exit_code == 0
-    assert "{old}" in result.stdout
-    assert "{new}" in result.stdout
-    assert "--target" in result.stdout
-    assert "--fail-on" in result.stdout
-    assert "--format" in result.stdout
+    clean_stdout = _strip_ansi(result.stdout)
+    assert "{old}" in clean_stdout
+    assert "{new}" in clean_stdout
+    assert "--target" in clean_stdout
+    assert "--fail-on" in clean_stdout
+    assert "--format" in clean_stdout
 
 
 def test_cli_diff_version() -> None:

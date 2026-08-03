@@ -8,17 +8,30 @@ export const metadata: Metadata = {
   description: "Get started with Featuresmith — the open-source Python library for data profiling and validation.",
 }
 
-const INSTALL_CODE = `pip install featuresmith-core featuresmith-cli`
+const INSTALL_CODE = `# Python SDK only (import featuresmith)
+pip install featuresmith-core
+
+# CLI & Python SDK (featuresmith CLI command)
+pip install featuresmith-cli`
 
 const QUICKSTART_CODE = `import featuresmith as fs
 
-# Load a CSV file
-dataset = fs.load("data.csv")
+# 1. Load the dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
+dataset = fs.load("examples/data/processed/titanic.csv")
+print(f"Loaded {dataset.row_count} rows across columns: {dataset.schema.names}")
 
-# Profile your data
+# 2. Extract profile statistics
 profile = fs.profile(dataset)
-for name, col in profile.column_profiles.items():
-    print(f"{name}: {col.missing_count} missing values")`
+for col_name, col in profile.column_profiles.items():
+    if col.missing_count > 0:
+        print(f"Column '{col_name}' has {col.missing_count} missing values")
+
+# 3. Perform a comprehensive review with ML Readiness Scorecard
+result = fs.review(dataset, target_column="survived")
+print(result.overall_summary)
+
+if result.score:
+    print(f"ML Readiness Score: {result.score.overall}/100")`
 
 const QUICK_LINKS = [
   {
@@ -117,7 +130,7 @@ export default function DocsPage() {
           Quick Start
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-          Load a dataset and run your first profile in three lines:
+          Run your first dataset review using the pre-packaged <code>titanic.csv</code> dataset:
         </p>
         <CodeBlock code={QUICKSTART_CODE} language="python" filename="quickstart.py" showCopy />
       </section>

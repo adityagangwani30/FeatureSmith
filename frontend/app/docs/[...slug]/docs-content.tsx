@@ -28,9 +28,17 @@ export const DOCS_MAP: Record<string, DocContent> = {
         <section className="mb-8" aria-labelledby="install-pip">
           <h3 id="install-pip" className="mb-3 text-lg font-semibold text-foreground">Using pip</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Install the latest version of the core library and the CLI from PyPI:
+            Featuresmith is split into two packages depending on your surface requirements:
           </p>
-          <CodeBlock code="pip install featuresmith-core featuresmith-cli" language="bash" showCopy />
+          <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Python SDK</strong> only: Install <code>featuresmith-core</code></li>
+            <li><strong>CLI & SDK</strong>: Install <code>featuresmith-cli</code></li>
+          </ul>
+          <CodeBlock code={`# Install Python SDK only
+pip install featuresmith-core
+
+# Install CLI & Python SDK
+pip install featuresmith-cli`} language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-uv">
@@ -38,7 +46,11 @@ export const DOCS_MAP: Record<string, DocContent> = {
           <p className="mb-3 text-sm text-muted-foreground">
             Add Featuresmith to your workspace dependencies:
           </p>
-          <CodeBlock code="uv add featuresmith-core featuresmith-cli" language="bash" showCopy />
+          <CodeBlock code={`# Add Python SDK only
+uv add featuresmith-core
+
+# Add CLI & Python SDK
+uv add featuresmith-cli`} language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="install-source">
@@ -70,23 +82,26 @@ pre-commit install`} language="bash" showCopy />
         <section className="mb-8" aria-labelledby="qs-sdk">
           <h3 id="qs-sdk" className="mb-3 text-lg font-semibold text-foreground">Python SDK Quick Start</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Analyze a dataset and print quality findings:
+            Run a dataset review using the pre-packaged <code>titanic.csv</code> dataset:
           </p>
           <CodeBlock code={`import featuresmith as fs
 
-# 1. Load a tabular dataset (CSV, Parquet, Excel, or DataFrames)
-dataset = fs.load("customers.csv")
-print(f"Loaded {dataset.row_count} rows.")
+# 1. Load the dataset (CSV, Parquet, Excel, pandas/Polars DataFrame)
+dataset = fs.load("examples/data/processed/titanic.csv")
+print(f"Loaded {dataset.row_count} rows across columns: {dataset.schema.names}")
 
-# 2. Extract deterministic statistical profiles
-profile = fs.profile("customers.csv")
+# 2. Extract profile statistics
+profile = fs.profile(dataset)
+for col_name, col in profile.column_profiles.items():
+    if col.missing_count > 0:
+        print(f"Column '{col_name}' has {col.missing_count} missing values")
 
-# 3. Perform rule-based data quality & target leakage checks
-result = fs.analyze("customers.csv", target_column="churn")
+# 3. Perform a comprehensive review with ML Readiness Scorecard
+result = fs.review(dataset, target_column="survived")
+print(result.overall_summary)
 
-for finding in result.findings:
-    print(f"[{finding.severity.upper()}] {finding.title} in column '{finding.column_name}'")
-    print(f"  Reason: {finding.description}")`} language="python" showCopy />
+if result.score:
+    print(f"ML Readiness Score: {result.score.overall}/100")`} language="python" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="qs-cli">
@@ -95,13 +110,16 @@ for finding in result.findings:
             Verify dataset issues inside your shell:
           </p>
           <CodeBlock code={`# Analyze a local CSV dataset
-featuresmith analyze customers.csv
+featuresmith analyze examples/data/processed/titanic.csv
 
-# Run leakage checks targeting the 'churn' column
-featuresmith analyze customers.csv --target churn
+# Run leakage checks targeting the 'survived' column
+featuresmith analyze examples/data/processed/titanic.csv --target survived
 
-# Export findings to report.json in machine-readable format
-featuresmith analyze customers.csv --format json --output report.json`} language="bash" showCopy />
+# Run a complete review report with scorecard
+featuresmith review examples/data/processed/titanic.csv --target survived
+
+# Compare two snapshot profiles (Dataset Diff)
+featuresmith diff examples/data/processed/titanic.csv examples/data/processed/titanic.csv --target survived`} language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="qs-exitcodes">

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,12 @@ import featuresmith as fs
 from featuresmith.review.aggregator import ResultAggregator
 from featuresmith_cli.commands.review import _parse_categories, _review_exit_code
 from featuresmith_cli.main import app
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences from text."""
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 def sample_csv(tmp_path: Path) -> Path:
@@ -44,13 +51,14 @@ def leaky_csv(tmp_path: Path) -> Path:
 def test_cli_review_help() -> None:
     """Review help displays the new command's options."""
     runner = CliRunner()
-    result = runner.invoke(app, ["review", "--help"])
+    result = runner.invoke(app, ["review", "--help"], env={"COLUMNS": "120"})
 
     assert result.exit_code == 0
-    assert "Path to the local tabular dataset" in result.stdout
-    assert "--target" in result.stdout
-    assert "--fail-on" in result.stdout
-    assert "--only" in result.stdout
+    clean_stdout = _strip_ansi(result.stdout)
+    assert "Path to the local tabular dataset" in clean_stdout
+    assert "--target" in clean_stdout
+    assert "--fail-on" in clean_stdout
+    assert "--only" in clean_stdout
 
 
 def test_cli_review_version() -> None:
