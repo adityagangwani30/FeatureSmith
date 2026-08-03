@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import pandas as pd
 import pytest
 
@@ -19,7 +17,7 @@ from featuresmith.diff.render import (
 def _render(old_df: pd.DataFrame, new_df: pd.DataFrame) -> str:
     """Render the diff between two dataframes to the console format."""
     result = fs.diff(old_df, new_df)
-    return cast(str, render_diff(result, "console"))
+    return render_diff(result, "console")
 
 
 def test_render_console_header_and_health() -> None:

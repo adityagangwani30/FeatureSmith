@@ -38,7 +38,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "featuresmith-core>=0.1.0",
+  "featuresmith-core>=0.2.0",
   "typer~=0.12",
   "rich>=13.7",
 ]

@@ -88,7 +88,7 @@ export function Hero() {
           >
             <Badge variant="outline" className="gap-1.5 px-3 py-1 text-xs">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-              v0.1.0 &mdash; Open Source
+              v0.2.0 &mdash; Open Source
             </Badge>
           </motion.div>
 
@@ -136,7 +136,7 @@ export function Hero() {
               <GithubIcon className="h-4 w-4" />
               View on GitHub
               <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                v0.1.0
+                v0.2.0
               </span>
             </Link>
           </motion.div>

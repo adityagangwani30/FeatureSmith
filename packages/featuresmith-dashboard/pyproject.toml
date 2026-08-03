@@ -3,11 +3,11 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # NOTE: This is an unreleased, internal-only workspace package.
-# It is excluded from the v0.1.0 release and should not be published to PyPI.
+# It is excluded from the v0.2.0 release and should not be published to PyPI.
 
 [project]
 name = "featuresmith-dashboard"
-version = "0.1.0"
+version = "0.2.0"
 description = "Thin dashboard surface for Featuresmith (Unreleased / Internal)."
 readme = "README.md"
 license = "Apache-2.0"
@@ -25,7 +25,7 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
-  "featuresmith-core>=0.1.0",
+  "featuresmith-core>=0.2.0",
 ]
 
 [project.urls]

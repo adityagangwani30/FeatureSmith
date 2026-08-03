@@ -1012,7 +1012,7 @@ except SourceNotFoundError:
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith v0.1.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
+          Featuresmith v0.2.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
         </p>
 
         <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex gap-3">
@@ -1240,6 +1240,21 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
           Featuresmith release schedules and packaged capabilities are tracked below.
         </p>
 
+        <section className="mb-8" aria-labelledby="rel-v020">
+          <h3 id="rel-v020" className="mb-3 text-lg font-semibold text-foreground">Featuresmith v0.2.0</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Featuresmith v0.2.0 introduces the Review Engine, Dataset Diff comparison framework, ML Readiness Scorecard, and Intelligent Leakage Detection.
+          </p>
+          <h4 className="mt-4 mb-2 text-sm font-semibold text-foreground">Highlights:</h4>
+          <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Review Engine</strong>: Orchestrates multiple parallel dataset reviewers in a 5-stage pipeline, outputting structured reports.</li>
+            <li><strong>ML Readiness Score</strong>: Calculates a deterministic 0–100 score across 8 dimensions (Missing Values, Duplicates, Leakage, etc.) with actionable feedback.</li>
+            <li><strong>Dataset Diff Engine</strong>: Compares two snapshot profiles to identify schema changes, distribution shifts, and quality regressions.</li>
+            <li><strong>Intelligent Leakage Detection</strong>: Features 6 pattern-matching detectors to catch target leakage, duplicate targets, and future information leaks.</li>
+            <li><strong>CLI Expansion</strong>: Introduces <code>featuresmith review</code> and <code>featuresmith diff</code> subcommands for terminal validation and CI/CD gating.</li>
+          </ul>
+        </section>
+
         <section className="mb-8" aria-labelledby="rel-v010">
           <h3 id="rel-v010" className="mb-3 text-lg font-semibold text-foreground">Featuresmith v0.1.0 (First Public Release)</h3>
           <p className="mb-3 text-sm text-muted-foreground">
@@ -1257,14 +1272,14 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="rel-distribution">
           <h3 id="rel-distribution" className="mb-3 text-lg font-semibold text-foreground">Distribution Packages Scope</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            The following packages are officially published on PyPI for <code>v0.1.0</code>:
+            The following packages are officially published on PyPI for <code>v0.2.0</code>:
           </p>
           <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
             <li><code>featuresmith-core</code>: Core engine library.</li>
             <li><code>featuresmith-cli</code>: CLI thin wrapper client.</li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 3) and is not published in <code>v0.1.0</code>.
+            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 3) and is not published in <code>v0.2.0</code>.
           </p>
         </section>
       </>
@@ -1281,7 +1296,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-privacy">
           <h3 id="faq-privacy" className="mb-2 text-base font-semibold text-foreground">Does Featuresmith send my dataset to third-party AI APIs?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <strong>No.</strong> Featuresmith v0.1.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 6+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
+            <strong>No.</strong> Featuresmith v0.2.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 6+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
           </p>
         </section>
 
@@ -1329,6 +1344,610 @@ uv run pytest`} language="bash" showCopy />
           </p>
           <p className="mb-3 text-sm text-muted-foreground">
             <strong>Solution:</strong> Ensure your custom CLI or dashboard modifications only import from <code>featuresmith.api</code>. Importing from internal submodules (like <code>featuresmith.rules.engine</code> or <code>featuresmith.connectors.csv_connector</code>) is forbidden.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "sdk/review": {
+    title: "fs.review()",
+    subtitle: "SDK Reference: run a complete engineering review",
+    category: "Python SDK",
+    seoTitle: "fs.review() API Reference",
+    seoDescription: "API documentation and parameter reference for featuresmith.review().",
+    render: () => (
+      <>
+        <CodeBlock code={`def review(
+    source: object,
+    *,
+    previous: object | None = None,
+    target_column: str | None = None,
+    enabled_reviewers: Sequence[str] | None = None,
+    enabled_categories: Sequence[ReviewCategory] | None = None,
+    reviewer_config: Mapping[str, Mapping[str, Any]] | None = None,
+    max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
+) -> ReviewResult:`} language="python" showCopy={false} />
+
+        <section className="mb-8 mt-6" aria-labelledby="review-overview">
+          <h3 id="review-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Performs a comprehensive engineering review of a dataset. It orchestrates a multi-stage pipeline: resolving inputs, constructing context, executing registered built-in reviewers in isolation, and computing the deterministic ML Readiness Score. The review reuses computed rule findings and profiles under the hood so no raw data is re-read or re-profiled during reviewer dispatch.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-when-use">
+          <h3 id="review-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use in Python scripts, data ingestion pipelines, or notebooks to evaluate a dataset's readiness for ML modeling in a single call. It consolidates schema checks, data quality audits, and target leakage diagnostics into a single structured result.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-params">
+          <h3 id="review-params" className="mb-3 text-lg font-semibold text-foreground">Parameters</h3>
+          <ul className="space-y-3 text-sm text-muted-foreground" role="list">
+            <li><strong>source</strong>: <code>Dataset</code> | <code>str</code> | <code>DataFrame</code>. The input dataset path (CSV, Parquet, Excel) or in-memory DataFrame (pandas, Polars).</li>
+            <li><strong>previous</strong>: <code>object | None</code> (default None). Prior snapshot for diff-aware reviews. <em>Note: Providing a value raises a <code>NotImplementedError</code>; use the standalone <code>fs.diff()</code> instead.</em></li>
+            <li><strong>target_column</strong>: <code>str | None</code> (default None). Name of the target column. Highly recommended to enable target leakage checks.</li>
+            <li><strong>enabled_reviewers</strong>: <code>Sequence[str] | None</code> (default None). Optional list of specific reviewer IDs to execute.</li>
+            <li><strong>enabled_categories</strong>: <code>Sequence[ReviewCategory] | None</code> (default None). Optional list of reviewer categories to execute (schema, quality, leakage, custom).</li>
+            <li><strong>reviewer_config</strong>: <code>Mapping[str, Mapping[str, Any]] | None</code> (default None). Parameter overrides for specific reviewers (e.g. customized thresholds).</li>
+            <li><strong>max_correlation_columns</strong>: <code>int</code> (default 100). Cap limit for correlation matrix computation during profiling.</li>
+            <li><strong>max_frequency_table_size</strong>: <code>int</code> (default 1000). Frequency table storage cap.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-returns">
+          <h3 id="review-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Returns a frozen <code>ReviewResult</code> dataclass containing:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.1.0"</code>).</li>
+            <li><code>dataset_summary</code>: <code>DatasetSummary</code> with row and column count descriptors.</li>
+            <li><code>generated_at</code>: UTC timestamp.</li>
+            <li><code>sections</code>: Sorted sequence of <code>ReviewSection</code> objects representing the active reviewers' sections (sorted from critical to passed).</li>
+            <li><code>overall_summary</code>: Concise plain-text roll-up.</li>
+            <li><code>score</code>: An optional <code>MLReadinessScore</code> containing overall rating and per-dimension breakdown.</li>
+            <li><code>diff</code>: Reserved for future diff-aware reviews (currently always <code>None</code>).</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-example">
+          <h3 id="review-example" className="mb-3 text-lg font-semibold text-foreground">SDK Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.review(
+    "train.csv",
+    target_column="churn",
+    reviewer_config={
+        "review.quality.missingness": {"threshold": 25.0},
+        "review.quality.cardinality": {"threshold": 0.40}
+    }
+)
+
+# Output summary and score
+print(result.overall_summary)
+if result.score:
+    print(f"ML Readiness: {result.score.overall}/100")
+    for dim in result.score.dimensions:
+        print(f"  {dim.label}: {dim.score}/100")`} language="python" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-output-ex">
+          <h3 id="review-output-ex" className="mb-3 text-lg font-semibold text-foreground">Output Example</h3>
+          <CodeBlock code={`# result.overall_summary
+'8 of 8 sections passed with 0 finding(s) identified across the review.'
+
+# result.score.overall
+100.0`} showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-workflows">
+          <h3 id="review-workflows" className="mb-3 text-lg font-semibold text-foreground">Common Workflows</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+            <li>
+              <strong>Continuous Integration Gates</strong>: Validate loaded files in pipeline tests and inspect findings programmatically to block merges when critical errors are uncovered.
+            </li>
+            <li>
+              <strong>Dataset Triage</strong>: Run a quick review over multiple candidate datasets to determine which has the highest data quality and lowest target leakage before selecting a source.
+            </li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-limitations">
+          <h3 id="review-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>No Diff-Aware Review</strong>: Passing a prior snapshot to <code>previous</code> raises a <code>NotImplementedError</code>. Comparing snapshots requires the standalone <code>fs.diff()</code> engine.</li>
+            <li><strong>Deferred Features</strong>: Centralized recommendation generation is not implemented. Reviewers output findings only. Observability trend logs and HTML static reports are planned for future releases.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-cross-links">
+          <h3 id="review-cross-links" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the CLI counterpart <a href="/docs/cli/review" className="text-primary hover:underline">featuresmith review</a> and the ML score reference <a href="/docs/sdk/score" className="text-primary hover:underline">fs.score()</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "sdk/diff": {
+    title: "fs.diff()",
+    subtitle: "SDK Reference: compare two dataset snapshots",
+    category: "Python SDK",
+    seoTitle: "fs.diff() API Reference",
+    seoDescription: "API documentation and parameter reference for featuresmith.diff().",
+    render: () => (
+      <>
+        <CodeBlock code={`def diff(
+    old: object,
+    new: object,
+    *,
+    target_column: str | None = None,
+    max_correlation_columns: int = 100,
+    max_frequency_table_size: int = 1000,
+) -> DatasetDiffResult:`} language="python" showCopy={false} />
+
+        <section className="mb-8 mt-6" aria-labelledby="diff-overview">
+          <h3 id="diff-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Compares two versions (older vs. newer) of a dataset. It profiles both versions and computes statistical deltas, schema additions/deletions, missingness drifts, cardinality deltas, constant column status changes, basic distribution shifts, and target leakage status changes (when a target column is specified).
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-when-use">
+          <h3 id="diff-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use before retraining a machine learning model. If a new version of the training dataset contains removed columns or severe missing value regressions, this function catches them before a model training run is initiated.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-params">
+          <h3 id="diff-params" className="mb-3 text-lg font-semibold text-foreground">Parameters</h3>
+          <ul className="space-y-3 text-sm text-muted-foreground" role="list">
+            <li><strong>old</strong>: <code>Dataset</code> | <code>str</code> | <code>DataFrame</code>. The older snapshot path or object.</li>
+            <li><strong>new</strong>: <code>Dataset</code> | <code>str</code> | <code>DataFrame</code>. The newer snapshot path or object.</li>
+            <li><strong>target_column</strong>: <code>str | None</code> (default None). The target column for target-aware leakage comparisons.</li>
+            <li><strong>max_correlation_columns</strong>: <code>int</code> (default 100). Cap limit for correlation computations during snapshot profiling.</li>
+            <li><strong>max_frequency_table_size</strong>: <code>int</code> (default 1000). Frequency table size limit.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-returns">
+          <h3 id="diff-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Returns a frozen <code>DatasetDiffResult</code> dataclass containing:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>version</code>: <code>str</code> (currently <code>"0.1.0"</code>).</li>
+            <li><code>schema</code>: <code>SchemaDiff</code> containing columns added, removed, renamed, and data type changes.</li>
+            <li><code>structure</code>: <code>StructureDiff</code> showing row/column deltas.</li>
+            <li><code>missing_values</code>: Delinquent missing ratio shifts.</li>
+            <li><code>duplicates</code>: Duplicate rows count and percentage shifts.</li>
+            <li><code>constant_columns</code>: Newly constant and no longer constant columns.</li>
+            <li><code>cardinality</code>: Per-column cardinality changes.</li>
+            <li><code>statistics</code>: Deltas for basic numeric metrics (mean, median, std_dev, min, max).</li>
+            <li><code>distributions</code>: Significant mean shifts.</li>
+            <li><code>leakage</code>: Target leakage deltas (new, removed, escalated, or de-escalated patterns).</li>
+            <li><code>summary</code>: <code>DatasetDiffSummary</code> showing counts and overall health (<code>regressed</code>, <code>improved</code>, or <code>unchanged</code>).</li>
+            <li><code>overall_summary</code>: One-line templated summary.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-example">
+          <h3 id="diff-example" className="mb-3 text-lg font-semibold text-foreground">SDK Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.diff("v1.csv", "v2.csv", target_column="churn")
+
+print(result.overall_summary)
+print(f"Status: {result.summary.overall_health}")
+print(f"Recommendation: {result.summary.recommendation}")`} language="python" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-output-ex">
+          <h3 id="diff-output-ex" className="mb-3 text-lg font-semibold text-foreground">Output Example</h3>
+          <CodeBlock code={`# result.overall_summary
+'Rows 0 removed, 100 added; columns 0 removed, 1 added; overall health: improved.'
+
+# result.summary.recommendation
+'Dataset improved: missingness reduced in 2 column(s). No blocking regressions detected.'`} showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-workflows">
+          <h3 id="diff-workflows" className="mb-3 text-lg font-semibold text-foreground">Common Workflows</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+            <li>
+              <strong>Retraining Pipeline Gates</strong>: Programmatically diff input versions before initiating a training loop, rejecting the job if the overall health returns <code>"regressed"</code>.
+            </li>
+            <li>
+              <strong>Schema Drift Detection</strong>: Verify that no data types were silently modified or key features dropped during upstream extraction updates.
+            </li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-limitations">
+          <h3 id="diff-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>Standalone Operation</strong>: Dataset Diff is implemented as a standalone engine. It is not integrated as a reviewer inside the Review Engine pipeline. Calling <code>fs.review(previous=...)</code> raises a <code>NotImplementedError</code>.</li>
+            <li><strong>Advisory Recommendations</strong>: Findings and overall health recommendations are purely advisory and do not automatically mutate data or abort processes unless coded into your caller logic.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-cross-links">
+          <h3 id="diff-cross-links" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the CLI counterpart <a href="/docs/cli/diff" className="text-primary hover:underline">featuresmith diff</a> and the review reference <a href="/docs/sdk/review" className="text-primary hover:underline">fs.review()</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "sdk/score": {
+    title: "fs.score()",
+    subtitle: "SDK Reference: extract or calculate ML Readiness Score",
+    category: "Python SDK",
+    seoTitle: "fs.score() API Reference",
+    seoDescription: "API documentation and parameter reference for featuresmith.score().",
+    render: () => (
+      <>
+        <CodeBlock code={`def score(result: ReviewResult) -> MLReadinessScore | None:`} language="python" showCopy={false} />
+
+        <section className="mb-8 mt-6" aria-labelledby="score-overview">
+          <h3 id="score-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Extracts or computes the ML Readiness Score of a dataset. When the provided <code>ReviewResult</code> already carries a score, it is returned directly; otherwise, the score is calculated deterministically from the findings in the result's review sections. This function is a lightweight read-only accessor and never re-runs the data profiling or rule execution stages.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-when-use">
+          <h3 id="score-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use when you need to inspect the quality breakdown of a dataset across named dimensions after a review has run. It allows you to check specific dimension ratings, review why points were deducted, and gather suggestions on how to improve the overall score.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-params">
+          <h3 id="score-params" className="mb-3 text-lg font-semibold text-foreground">Parameters</h3>
+          <ul className="space-y-3 text-sm text-muted-foreground" role="list">
+            <li><strong>result</strong>: <code>ReviewResult</code>. An existing result object produced by <code>fs.review()</code>.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-returns">
+          <h3 id="score-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Returns an <code>MLReadinessScore</code> dataclass (or <code>None</code> if no dimensions are applicable) containing:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>scoring_version</code>: <code>str</code> (currently <code>"0.2.0"</code>).</li>
+            <li><code>overall</code>: <code>float</code> score scaled from 0.0 to 100.0, representing the weighted average of all applicable dimensions.</li>
+            <li><code>dimensions</code>: Sequence of <code>DimensionScore</code> objects carrying metrics for Schema Health, Missing Values, Duplicate Records, Data Types, Constant Columns, High Cardinality, Dataset Structure, and Leakage Risk.</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Each <code>DimensionScore</code> includes a <code>score</code>, <code>weight</code>, <code>rationale</code>, <code>contributing_findings</code>, and <code>suggested_actions</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-example">
+          <h3 id="score-example" className="mb-3 text-lg font-semibold text-foreground">SDK Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.review("data.csv", target_column="label")
+score = fs.score(result)
+
+if score:
+    print(f"Overall Score: {score.overall}/100")
+    for dim in score.dimensions:
+        if dim.score < 100.0:
+            print(f"[{dim.label}] Rationale: {dim.rationale}")
+            print(f"  Actions to improve: {dim.suggested_actions}")`} language="python" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-math">
+          <h3 id="score-math" className="mb-3 text-lg font-semibold text-foreground">Scoring Formula</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Each dimension starts at a perfect score of 100.0. Deductions are subtracted based on the severity of the findings in the corresponding section:
+          </p>
+          <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Critical Finding</strong>: -30.0 points</li>
+            <li><strong>Warning Finding</strong>: -15.0 points</li>
+            <li><strong>Info Finding</strong>: -5.0 points</li>
+          </ul>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            The overall score is calculated as the weighted average:
+          </p>
+          <div className="my-4 bg-muted p-3 rounded font-mono text-xs text-center border border-border">
+            overall = sum(dim.score * dim.weight) / sum(dim.weight)
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Inapplicable dimensions are omitted and their weights are renormalized automatically, ensuring that regression-only datasets are not unfairly penalized for missing classification-specific metrics.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-limitations">
+          <h3 id="score-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>Read-Only Accessor</strong>: <code>fs.score()</code> does not trigger any profiling or rule-evaluation runs. It is completely derived from pre-existing findings.</li>
+            <li><strong>Configuration Status</strong>: Configuration of custom weights in a <code>.featuresmith.yml</code> file is deferred. The score currently uses uniform default weights (1.0).</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-cross-links">
+          <h3 id="score-cross-links" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the review SDK reference <a href="/docs/sdk/review" className="text-primary hover:underline">fs.review()</a> and the CLI scorecard overview <a href="/docs/cli/score" className="text-primary hover:underline">featuresmith score</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "cli/review": {
+    title: "featuresmith review",
+    subtitle: "CLI command reference for comprehensive reviews",
+    category: "CLI Reference",
+    seoTitle: "CLI Review Command Reference",
+    seoDescription: "Examine flags and options of the featuresmith review command.",
+    render: () => (
+      <>
+        <CodeBlock code={`featuresmith review <source> [options]`} language="bash" showCopy={false} />
+        <p className="mt-4 mb-6 text-sm leading-relaxed text-muted-foreground">
+          Runs a dataset review and prints a structured, severity-sorted findings tree alongside the ML Readiness Score.
+        </p>
+
+        <section className="mb-8" aria-labelledby="review-flags">
+          <h3 id="review-flags" className="mb-4 text-lg font-semibold text-foreground">Flags and Options</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--target TEXT</td>
+                  <td className="px-4 py-3 text-sm">Name of the target column in the dataset to validate and enable leakage reviewers.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--previous PATH</td>
+                  <td className="px-4 py-3 text-sm">Path to a prior snapshot for diff-aware reviews. <em>Note: Not yet available; triggers an error.</em></td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--format [table|json]</td>
+                  <td className="px-4 py-3 text-sm">Output format to display (default: <code>table</code>).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--output PATH</td>
+                  <td className="px-4 py-3 text-sm">Path to save the plain report or JSON structure.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--fail-on [info|warning|critical]</td>
+                  <td className="px-4 py-3 text-sm">Severity threshold for CI-gating exit codes (default: <code>critical</code>).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--only TEXT</td>
+                  <td className="px-4 py-3 text-sm">Comma-separated reviewer categories to run (schema, quality, leakage, custom).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--no-score</td>
+                  <td className="px-4 py-3 text-sm">Omit the ML Readiness Score scorecard from the report.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet / --no-quiet</td>
+                  <td className="px-4 py-3 text-sm">Suppress all standard console report output.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose / --no-verbose</td>
+                  <td className="px-4 py-3 text-sm">Show full Python tracebacks on error instead of generic messages.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--version</td>
+                  <td className="px-4 py-3 text-sm">Show version info and exit.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-exit-codes">
+          <h3 id="review-exit-codes" className="mb-3 text-lg font-semibold text-foreground">Exit Codes</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            The command returns standardized exit codes matching the analyze conventions:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>0</code>: Clean — no findings meet or exceed the severity threshold specified in <code>--fail-on</code>.</li>
+            <li><code>1</code>: Findings meeting or exceeding the threshold were detected (gating CI/CD pipelines).</li>
+            <li><code>2</code>: Invalid usage, bad configuration, unknown target column, or unsupported format.</li>
+            <li><code>3</code>: File not found or failed to parse.</li>
+            <li><code>4</code>: Unexpected internal error.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-cli-example">
+          <h3 id="review-cli-example" className="mb-3 text-lg font-semibold text-foreground">CLI Syntax Examples</h3>
+          <CodeBlock code={`# 1. Standard review with leakage target
+featuresmith review train.csv --target churn
+
+# 2. Category filtering with CI gating
+featuresmith review train.csv --only schema,leakage --fail-on warning --no-score
+
+# 3. JSON format save
+featuresmith review train.csv --format json --output review_report.json`} language="bash" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-cli-limitations">
+          <h3 id="review-cli-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>--previous Unavailable</strong>: The review CLI does not support diff-aware audits yet. Providing the flag displays an error message and exits with code 2. Use <code>featuresmith diff</code> instead.</li>
+            <li><strong>Target column validation</strong>: When <code>--target</code> is specified, the CLI actively checks for column presence in the schema and fails early with code 2 if not found.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-cli-cross">
+          <h3 id="review-cli-cross" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the SDK equivalent <a href="/docs/sdk/review" className="text-primary hover:underline">fs.review()</a> and the diff CLI reference <a href="/docs/cli/diff" className="text-primary hover:underline">featuresmith diff</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "cli/diff": {
+    title: "featuresmith diff",
+    subtitle: "CLI command reference for snapshot diffs",
+    category: "CLI Reference",
+    seoTitle: "CLI Diff Command Reference",
+    seoDescription: "Examine flags and options of the featuresmith diff command.",
+    render: () => (
+      <>
+        <CodeBlock code={`featuresmith diff <old> <new> [options]`} language="bash" showCopy={false} />
+        <p className="mt-4 mb-6 text-sm leading-relaxed text-muted-foreground">
+          Compares two dataset snapshots and outputs structural, schema, missingness, duplicate, cardinality, and distribution shifts.
+        </p>
+
+        <section className="mb-8" aria-labelledby="diff-flags">
+          <h3 id="diff-flags" className="mb-4 text-lg font-semibold text-foreground">Flags and Options</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">&lt;old&gt;</td>
+                  <td className="px-4 py-3 text-sm">Required argument: path to the older dataset version (CSV, Excel, Parquet).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">&lt;new&gt;</td>
+                  <td className="px-4 py-3 text-sm">Required argument: path to the newer dataset version.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--target TEXT</td>
+                  <td className="px-4 py-3 text-sm">Name of the target column in both datasets to compare target leakage changes.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--format [table|json]</td>
+                  <td className="px-4 py-3 text-sm">Output format to display (default: <code>table</code>).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--output PATH</td>
+                  <td className="px-4 py-3 text-sm">Path to save the plain report or JSON output.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--fail-on [info|warning|critical]</td>
+                  <td className="px-4 py-3 text-sm">Severity threshold for CI-gating exit codes (default: <code>critical</code>).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet / --no-quiet</td>
+                  <td className="px-4 py-3 text-sm">Suppress all standard console report output.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose / --no-verbose</td>
+                  <td className="px-4 py-3 text-sm">Show full Python tracebacks on error instead of generic messages.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--version</td>
+                  <td className="px-4 py-3 text-sm">Show version info and exit.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-exit-codes">
+          <h3 id="diff-exit-codes" className="mb-3 text-lg font-semibold text-foreground">Exit Codes</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            The command returns exit codes based on structural regressions and quality drops:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>0</code>: Clean — no regression or quality drop meets or exceeds the severity threshold specified in <code>--fail-on</code>.</li>
+            <li><code>1</code>: Regressions (e.g. dropped columns, dtype mismatches, increased missingness, or target leakage escalation) meeting or exceeding the threshold were detected.</li>
+            <li><code>2</code>: Invalid usage, bad configuration, or target column missing.</li>
+            <li><code>3</code>: Source files missing or failed to parse.</li>
+            <li><code>4</code>: Internal error.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-cli-example">
+          <h3 id="diff-cli-example" className="mb-3 text-lg font-semibold text-foreground">CLI Syntax Examples</h3>
+          <CodeBlock code={`# Compare two dataset snapshots
+featuresmith diff train_v1.csv train_v2.csv
+
+# Diff target leakage status changes
+featuresmith diff train_v1.csv train_v2.csv --target churn --fail-on warning
+
+# Output JSON report
+featuresmith diff train_v1.csv train_v2.csv --format json --output diff_report.json`} language="bash" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-cli-limitations">
+          <h3 id="diff-cli-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>Target validation</strong>: The target column is validated against the schema of both snapshot versions. Missing columns in either version result in an exit code 2.</li>
+            <li><strong>Deterministic summary</strong>: Deliberately uses the deterministic statistical profiling engine to generate snapshots, avoiding raw-data re-reads during comparisons.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-cli-cross">
+          <h3 id="diff-cli-cross" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the SDK equivalent <a href="/docs/sdk/diff" className="text-primary hover:underline">fs.diff()</a> and the review CLI reference <a href="/docs/cli/review" className="text-primary hover:underline">featuresmith review</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "cli/score": {
+    title: "featuresmith score",
+    subtitle: "Understanding ML Readiness Score CLI integration",
+    category: "CLI Reference",
+    seoTitle: "CLI Score Reference",
+    seoDescription: "Learn how the ML Readiness Score is rendered in the CLI report.",
+    render: () => (
+      <>
+        <section className="mb-8" aria-labelledby="score-cli-overview">
+          <h3 id="score-cli-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            There is no standalone <code>featuresmith score</code> CLI subcommand. Instead, the versioned, explainable ML Readiness Score is computed automatically and displayed inline as a section at the end of the standard <code>featuresmith review</code> report.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-cli-use">
+          <h3 id="score-cli-use" className="mb-3 text-lg font-semibold text-foreground">How it is Used</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            By default, running a review includes the scorecard output. To prevent calculating or rendering the score scorecard (useful for clean log outputs or minimal JSON size), call the review command with the <code>--no-score</code> flag.
+          </p>
+          <CodeBlock code={`featuresmith review train.csv --no-score`} language="bash" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-cli-output">
+          <h3 id="score-cli-output" className="mb-3 text-lg font-semibold text-foreground">Console Scorecard Example</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            When computed, the CLI console renderer formats the score and displays contributing issues dynamically:
+          </p>
+          <CodeBlock code={`ML Readiness Score (scoring v0.2.0)
+Overall: 85/100
+
+  Schema Health: 100/100
+  Missing Values: 85/100 (1 finding(s))
+  Duplicate Records: 100/100
+  Data Types: 100/100
+  Constant Columns: 100/100
+  High Cardinality: 100/100
+  Dataset Structure: 100/100
+  Leakage Risk: 100/100
+
+Summary: Missing Values scored 85/100; 1 finding(s) lowered the score (1 warning).
+
+What would improve this score:
+  - Address the flagged issue: Missing value threshold exceeded in column 'age'.`} showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-cli-json">
+          <h3 id="score-cli-json" className="mb-3 text-lg font-semibold text-foreground">JSON Integration</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            If the review is output with <code>--format json</code>, the score object is nested as the <code>score</code> field in the output payload. If <code>--no-score</code> is requested, the field yields <code>null</code> rather than <code>0</code>, keeping "not scored" distinct from "scored poorly".
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-cli-cross">
+          <h3 id="score-cli-cross" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the SDK equivalent <a href="/docs/sdk/score" className="text-primary hover:underline">fs.score()</a> and the review CLI reference <a href="/docs/cli/review" className="text-primary hover:underline">featuresmith review</a>.
           </p>
         </section>
       </>

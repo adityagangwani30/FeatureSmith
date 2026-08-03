@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import pytest
@@ -12,7 +12,7 @@ from featuresmith.core.dataset import Dataset
 from featuresmith.core.profile_result import ProfileResult
 from featuresmith.review.context import ReviewConfig, ReviewContext
 from featuresmith.review.reviewers.leakage import LeakageReviewer
-from featuresmith.review.schema import ReviewSection, Severity
+from featuresmith.review.schema import ReviewResult, ReviewSection, Severity
 from featuresmith.rules.leakage import (
     DuplicateTargetDetector,
     FutureInfoDetector,
@@ -37,7 +37,7 @@ def clean_df() -> pd.DataFrame:
     )
 
 
-def leakage_section(result: Any) -> ReviewSection:
+def leakage_section(result: ReviewResult) -> ReviewSection:
     """Return the leakage section from a review result."""
     for section in result.sections:
         if section.id == "review.leakage":
@@ -92,7 +92,7 @@ def test_leakage_finding_is_frozen() -> None:
     )
 
     with pytest.raises(TypeError):
-        finding.evidence["correlation"] = 0.0
+        cast(Any, finding.evidence)["correlation"] = 0.0
 
 
 # ---------------------------------------------------------------- detectors

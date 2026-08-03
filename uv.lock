@@ -341,7 +341,7 @@ requires-dist = [
 
 [[package]]
 name = "featuresmith-dashboard"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/featuresmith-dashboard" }
 dependencies = [
     { name = "featuresmith-core" },
