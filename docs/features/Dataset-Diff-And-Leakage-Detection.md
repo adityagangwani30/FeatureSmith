@@ -315,6 +315,7 @@ All 6 detectors run and merge findings per column. The legacy `LeakageRuleTarget
 - **Distribution-shift-triggered scoring signal**: once both this document and `ML-Readiness-Score.md` exist, a "stability" or "drift-adjusted" scoring input that factors in recent diff history, contingent on Phase 5's `QualityHistory`.
 - **Configurable leakage sensitivity profiles** (e.g., "strict" vs. "permissive") via `.featuresmith.yml`, letting teams tune the confidence threshold at which a finding surfaces as critical vs. informational.
 - **Cross-dataset leakage detection** (e.g., train/test overlap detection, already scoped conceptually in `Architecture.md` §9's rule categories) as a natural extension of the identifier-shape detector to a two-dataset comparison, bridging Diff and Leakage Detection further.
+- **`fs.diff()` as the Dataset Contract's comparison primitive**: `features/Dataset-Contracts-And-Planning.md` reuses this exact engine for two purposes — validating that an applied transformation improved a dataset (pre/post-apply diff) and diffing two `featuresmith.lock` files (`featuresmith contract diff`). Neither introduces a second diff implementation; both call this document's `fs.diff()` unmodified.
 
 ## 15. Open Questions
 

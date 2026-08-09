@@ -91,7 +91,7 @@ Rationale: a restrained, desaturated neutral base with a single accent blue (ass
 
 ## 11. Interaction Patterns
 
-- Accept/reject on recommendation cards is a single toggle with immediate visual state change (no confirmation modal — reversibility makes confirmation friction unnecessary).
+- Accept/reject on recommendation cards is a single toggle with immediate visual state change (no confirmation modal — reversibility makes confirmation friction unnecessary). This is the same pattern a future Plan-review panel reuses per step, before Apply — see `features/Dataset-Contracts-And-Planning.md` §14.
 - Drill-down (card → detail panel) is expand-in-place on desktop, navigates to a detail view on narrow/mobile layouts.
 - Filtering (by severity, by column, by rule category) persists in the URL/CLI-flag state so a filtered view is shareable/scriptable.
 - Every finding card and chart has a small "ask about this" affordance that pre-fills the chat input with a scoped question (e.g., "Why is `signup_ts` flagged?") — the primary bridge between passive report-reading and the Interactive AI Chat.

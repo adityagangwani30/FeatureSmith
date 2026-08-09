@@ -71,6 +71,47 @@ export function PhilosophySection() {
             </motion.div>
           ))}
         </div>
+
+        {/* Permanent Boundaries */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="mt-14 rounded-xl border border-border bg-muted/30 p-6 md:p-8"
+        >
+          <span className="text-xs font-semibold uppercase tracking-widest text-primary">Permanent Boundaries</span>
+          <h3 className="text-lg font-semibold text-foreground mt-1 mb-3">What Featuresmith Will Intentionally NOT Become</h3>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+            Featuresmith owns the loop of understanding, planning, validating, and proving dataset state — and deliberately stops at the edge of executing transformations or orchestrating jobs.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 text-xs text-muted-foreground">
+            <div className="rounded-lg border border-border bg-background p-4">
+              <span className="font-semibold text-foreground block mb-1">Not an Orchestrator</span>
+              We leave DAG scheduling and retries to Airflow, Dagster, and Prefect.
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <span className="font-semibold text-foreground block mb-1">Not an Execution Engine</span>
+              No proprietary runtime. Recommendations compile to real Polars, pandas, and scikit-learn code.
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <span className="font-semibold text-foreground block mb-1">Not a Feature Store</span>
+              Featuresmith certifies data state, exporting to existing feature stores for online serving.
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <span className="font-semibold text-foreground block mb-1">Not an AutoML / Training System</span>
+              Recommendations focus purely on dataset health and readiness, never hyperparameter tuning.
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <span className="font-semibold text-foreground block mb-1">Not a No-Code Platform</span>
+              Developer-first design: importable, scriptable, and pipeable before any UI surface.
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <span className="font-semibold text-foreground block mb-1">Not a Replacement for Judgment</span>
+              All plans and recommendations are advisory — reviewable and editable before human approval.
+            </div>
+          </div>
+        </motion.div>
       </Container>
     </Section>
   )

@@ -183,6 +183,32 @@ Dataset Diff is a **standalone engine** (`featuresmith.diff` package), NOT a `Di
 
 ---
 
+## Connectors
+
+### Implemented
+- **Local connector registry** (`fs.load()`, `featuresmith/connectors/`) — explicit, static registration; no entry-point discovery yet
+- `CsvConnector` (Polars backend)
+- `ExcelConnector` (`.xlsx`/`.xls`/`.xlsm`, pandas backend)
+- `ParquetConnector` (`.pq`/`.parquet`, Polars backend)
+- `DataFrameConnector` (accepts both pandas and Polars `DataFrame` in-memory, no file I/O)
+- File-type/path validation with `featuresmith.core.ConnectorError` raised on invalid, corrupted, or unsupported sources with an actionable message
+- File-backed `Dataset`s carry source path and byte size; in-memory `Dataset`s leave those fields `None`
+
+### Deferred (Intentionally Not Yet Implemented)
+- **Entry-point-based plugin discovery** for third-party connectors (`Architecture.md` §6, §16) — registry is static this release
+- **SQL connector** (SQLAlchemy) — planned Phase 3
+- Cloud/warehouse connectors (Snowflake, BigQuery, S3, GCS) — planned Phase 8
+
+---
+
+## Dataset Contracts & Plan/Apply Lifecycle
+
+### Status: Not Started — Design Complete
+
+Full specification in `features/Dataset-Contracts-And-Planning.md`; no code exists yet. Roadmap placement: Phase 4 (Recommendation Engine, Plan), Phase 5 (Apply, Validation, `featuresmith.lock`), Phase 6 (Certification, Observability). Listed here so this tracker stays the single place implementation status is checked, rather than requiring a second lookup in `Phases.md` for "has this actually started."
+
+---
+
 ## Summary: v0.2.0 Release Readiness
 
 | Capability | Implementation % | Release Ready |
@@ -192,6 +218,8 @@ Dataset Diff is a **standalone engine** (`featuresmith.diff` package), NOT a `Di
 | ML Readiness Score | ~80% | ✅ Yes (8 dims, CLI, SDK) |
 | Leakage Detection | 100% | ✅ Yes (6 detectors, reviewer, scoring) |
 | Dataset Diff | 100% | ✅ Yes (standalone engine, CLI, SDK) |
+| Connectors (CSV/Excel/Parquet/DataFrame) | 100% | ✅ Yes (static registry) |
+| Dataset Contracts / Plan / Apply | 0% | ⛔ Not started — design complete, see `features/Dataset-Contracts-And-Planning.md` |
 
 ### Known Gaps for v0.2.0 (Documented, Not Blockers)
 1. No centralized Recommendation Engine — findings only, no actionable recommendations
@@ -201,5 +229,6 @@ Dataset Diff is a **standalone engine** (`featuresmith.diff` package), NOT a `Di
 5. No `.featuresmith.yml` config system
 6. No dashboard, HTML report, or JSON renderer for review
 7. No CI score gating (`--fail-below`)
+8. No Plan/Apply/Contract lifecycle (`features/Dataset-Contracts-And-Planning.md`) — this is a Phase 4-6 addition, not a v0.2.0 gap; listed for completeness
 
 All gaps are documented in the architecture documents as deferred/future work and do not block the v0.2.0 release.

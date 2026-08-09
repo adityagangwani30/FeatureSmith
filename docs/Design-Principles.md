@@ -1,5 +1,7 @@
 # Design Principles
 
+> These principles operationalize `VISION.md` — most directly §3 (what Featuresmith will not become). They're the day-to-day decision rules that follow from that vision, not a restatement of it.
+
 These are the principles that decide what Featuresmith builds and how, across every phase of `Phases.md`. When a design decision is ambiguous, these principles — alongside `Rules.md` — are what should settle it, for contributors and maintainers alike.
 
 ## Developer-first
@@ -12,7 +14,11 @@ Featuresmith is shaped like `ruff`, `pytest`, or `pre-commit` — a check that r
 
 ## AI assists, never replaces
 
-The deterministic engine — profiling, rules, quality scoring, feature engineering, export — works completely with the AI layer switched off. AI narrates, ranks, and answers questions about facts that engine already computed; it never computes a number itself, and it's never a hard dependency for a core capability (`Architecture.md` §7.2, §7.4).
+The deterministic engine — profiling, rules, quality scoring, leakage detection, diffing, planning, export — works completely with the AI layer switched off. AI narrates, ranks, and translates natural language into an inspectable plan grounded in facts that engine already computed; it never computes a number itself, never executes a transformation, and it's never a hard dependency for a core capability (`Architecture.md` §7.2, §7.4).
+
+## Prove state, don't own execution
+
+Featuresmith's differentiation is proof — that a dataset's state is understood, has been reviewed, and can be trusted — not execution. Every capability that touches a transformation (recommend, plan, apply, export) generates real, readable code for an ecosystem the user already runs (Polars, pandas, scikit-learn, dbt); none of them run inside a Featuresmith-owned runtime, and none of them silently apply anything without an explicit, human-reviewed accept step (`Architecture.md` §20, `features/Dataset-Contracts-And-Planning.md` §4). This is the boundary that keeps Featuresmith from drifting into orchestration, distributed execution, feature-store, or AutoML territory it has no structural advantage in.
 
 ## Local-first, cloud-optional
 

@@ -103,7 +103,16 @@ export function Footer() {
               .
             </p>
             <p className="text-xs text-muted-foreground">
-              Built in the open &mdash; contributions welcome.
+              Built by{" "}
+              <Link
+                href="https://adityagangwani.me"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-foreground font-medium"
+              >
+                Aditya Gangwani
+              </Link>{" "}
+              in the open.
             </p>
           </div>
         </div>

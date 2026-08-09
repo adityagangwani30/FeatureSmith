@@ -10,7 +10,7 @@ This document defines the complete user-facing workflow, CLI experience, SDK exp
 
 ## 2. Vision
 
-**Every dataset deserves a code review.** Code review didn't happen because code was assumed untrustworthy — it happened because catching problems before they ship is cheaper than catching them after (`Why-Featuresmith-Exists.md`, `Project_Plan.md` §0). Dataset Review is what that discipline looks like applied to data: run automatically, every time, before a dataset touches a model, producing the same kind of actionable, prioritized feedback a thoughtful reviewer would leave — never just a wall of numbers.
+**Every dataset deserves a code review.** Code review didn't happen because code was assumed untrustworthy — it happened because catching problems before they ship is cheaper than catching them after (`VISION.md` §1). Dataset Review is what that discipline looks like applied to data: run automatically, every time, before a dataset touches a model, producing the same kind of actionable, prioritized feedback a thoughtful reviewer would leave — never just a wall of numbers. It is also, per `features/Dataset-Contracts-And-Planning.md`, the first stage of a longer lifecycle — a review's findings are what a Plan is eventually built from — but Dataset Review itself remains complete and independently valuable with none of that later lifecycle present.
 
 Long-term, running `featuresmith review` should feel as natural, and as unremarkable, as running a test suite before a merge.
 
@@ -20,7 +20,7 @@ Long-term, running `featuresmith review` should feel as natural, and as unremark
 - Cover, at minimum: schema health, missing values, duplicate rows, duplicate columns, data types, constant columns, high-cardinality columns, outliers, distribution issues, feature quality, target leakage warnings, and an overall dataset summary — each ending in a concrete recommendation, not just an observation.
 - Make the output legible to two audiences at once: an engineer who wants to drill into evidence, and a stakeholder who wants the one-paragraph summary.
 - Make the review identical in substance across every surface it's accessed from (CLI, SDK, dashboard, CI), per the existing surface-parity guarantee (`PRD.md` §12).
-- Make `featuresmith review` CI-gateable from day one, the same way `featuresmith analyze` already is (`Why-Featuresmith-Exists.md`).
+- Make `featuresmith review` CI-gateable from day one, the same way `featuresmith analyze` already is (`Why-Featuresmith-Exists.md`, "why this has to be a developer tool").
 
 ## 4. Non-Goals
 
@@ -224,6 +224,7 @@ A new "Review" tab, alongside the existing Overview/Data Quality/Recommendations
 - **Review history and trend view**, once Phase 5's `QualityHistory` exists — "this review vs. the last 5 reviews of this dataset."
 - **Inline review in the VS Code extension** (Phase 7), rendering the same `ReviewResult` on file open.
 - **Team-shareable review links** from the dashboard, once a hosted tier exists (Phase 8) — explicitly out of scope until then.
+- **Feeding a `ReviewResult` into a Plan** (`features/Dataset-Contracts-And-Planning.md`) — Dataset Review is unchanged by this; it is simply the upstream input the Plan/Apply/Contract lifecycle (Phases 4-5) consumes, and this document introduces no logic in service of that future consumer.
 
 ## 15. Open Questions
 

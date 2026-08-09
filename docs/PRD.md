@@ -1,16 +1,16 @@
 # PRD — Featuresmith
 
-> The Developer Toolkit for Trustworthy Structured Data — built around a single reusable Python core.
+> The Dataset Contract layer for structured data — built around a single reusable Python core.
 
 ## 1. Vision
 
-Software engineering has spent decades building discipline into the development loop — tests, linters, formatters, CI gates that catch problems before they reach production. Datasets have never gotten the same treatment, and the cost of that gap is paid quietly, in models trained on leakage or drift nobody caught. Featuresmith's mission is to **make data quality as routine as code quality** — because every dataset deserves a code review, run automatically, the way tests and linters run before every merge. See `Project_Plan.md` §0 for the full philosophy.
+> The full case for why this exists, what category it's building, and its permanent boundaries lives in `VISION.md`. This section states, concretely, what that vision means as a product.
 
-Every ML project starts the same way: a raw dataset and a blank notebook. Engineers spend 60-80% of project time on EDA, cleaning, and feature engineering — most of it repetitive, undocumented, and re-invented per project. Featuresmith's vision is to become **the engineering layer between raw datasets and trustworthy machine learning** — a tool that doesn't just compute statistics, but *understands* the dataset, explains what it means, answers follow-up questions about it, and produces reviewable, production-grade code to act on that understanding.
+**"Every dataset deserves a code review" is Featuresmith's acquisition message** — the five words that explain the product to someone who has never heard of it. It is not the ceiling of what Featuresmith is building (`VISION.md` §1). Featuresmith's actual mission is broader: **make the state of a dataset as versioned, provable, and reviewable as the state of code.** Review is the entry point — the moment a user first sees Featuresmith catch something real. What Featuresmith becomes after that first review is a continuous lifecycle: a dataset is reviewed, a fix is recommended, a transformation is planned, that plan is applied through the tools a team already uses (pandas, Polars, scikit-learn, dbt), the result is reviewed again, the before/after is diffed, the change is documented, and the whole thing is locked into a versioned **Dataset Contract** — the artifact that lets a team, a CI pipeline, or a teammate six months from now answer "what exactly was this dataset, and is it safe to build on" without re-deriving the answer from scratch.
 
-The end state: an engineer connects a dataset — from a Python script, the CLI, a dashboard, or an IDE — gets a structured report of what's wrong and what's promising, asks follow-up questions in natural language, and exports a versioned, testable preprocessing pipeline — not a wall of disconnected charts.
+The end state: an engineer runs `featuresmith review` on a dataset the way they'd run a linter before a commit, gets a prioritized, evidence-backed verdict, accepts a plan to fix what's wrong, applies it with the dataframe library they already use, and walks away with a committed `featuresmith.lock` that is now part of the project's history — reviewable in a pull request exactly like a dependency-lockfile change is.
 
-Critically, this experience must be **identical in substance no matter which surface it's accessed from**, because all surfaces are thin clients over one Python core. See `Architecture.md` §2 for the core-first architecture this PRD assumes throughout.
+Critically, this experience must be **identical in substance no matter which surface it's accessed from**, because all surfaces are thin clients over one Python core. See `Architecture.md` §2 for the core-first architecture this PRD assumes throughout, and `features/Dataset-Contracts-And-Planning.md` for the full design of the Contract/Plan/Apply lifecycle referenced throughout this document.
 
 ## 2. Problem Statement
 
@@ -37,22 +37,31 @@ They all stop at **description**. None of them close the loop from "here's a cha
 ## 5. Goals
 
 - Provide automatic, statistically rigorous EDA across tabular data of any reasonable size (local-first, scaling to distributed later).
-- Detect data-quality issues (missingness patterns, drift, skew, cardinality problems, target leakage, duplicate/near-duplicate rows, outliers) with explanations, not just flags.
-- Generate natural-language narrative summaries of a dataset that a non-specialist stakeholder could read.
-- Let users ask follow-up questions about the analysis in natural language (Interactive AI Chat), grounded entirely in the already-computed profile — never a fresh, ungrounded pass over the raw data.
-- Recommend concrete feature engineering actions, each with a rationale and confidence.
-- Generate production-ready, versioned preprocessing code (sklearn-compatible pipelines) and notebooks from the recommendations a user accepts.
+- Detect data-quality issues (missingness patterns, drift, skew, cardinality problems, target leakage, duplicate/near-duplicate rows, outliers) with explanations, not just flags — the shipped Review Engine (`features/Review-Engine-Architecture.md`).
+- Compare two dataset snapshots the way `git diff` compares two commits, and make that comparison a persistable, git-native artifact — not just a one-off CLI report.
+- Recommend concrete transformations for accepted findings, each with a rationale and confidence, and represent every recommendation as an inspectable, deterministic **Plan** before anything is applied (`features/Dataset-Contracts-And-Planning.md`).
+- Apply an accepted plan by generating real, readable code for the ecosystem the user already runs — a `sklearn.Pipeline`, a Polars expression, a dbt model — never by executing it inside a Featuresmith-owned runtime.
+- Re-review and diff a dataset after a transformation is applied, so "did this fix actually work" is answered by the same deterministic engine that found the problem, not by trust.
+- Persist dataset state — schema fingerprint, readiness score, leakage findings, transformation lineage — into a versioned, diffable **Dataset Contract** (`featuresmith.lock`) that a team commits to git and a CI pipeline gates on, the same way a dependency lockfile is committed and diffed today.
+- Let a natural-language instruction populate a Plan the same way a rule-based recommendation would, so the deterministic Plan/Apply loop has exactly one shape regardless of how the plan was authored.
 - Ship one Python core library that every interface — SDK, CLI, dashboard, IDE extension — calls identically, with zero duplicated business logic (`Architecture.md` §2).
-- Be modular and pluggable enough to sustain a large open-source contributor base for 5+ years, across both the analysis engine and the AI provider layer.
+- Be modular and pluggable enough to sustain a large open-source contributor base for 5+ years, across the analysis engine, the export/apply layer, and the AI provider layer.
 
-## 6. Non-Goals (v1–v2)
+## 6. Non-Goals
 
-- Not a full AutoML system — it recommends and prepares features; it does not select/tune models.
-- Not a data warehouse or storage product — it connects to existing sources, it doesn't replace them.
-- Not a real-time streaming analytics tool in early phases.
-- Not a replacement for domain expertise — recommendations are advisory, always reviewable/rejectable, never silently auto-applied in production paths.
-- Not initially multi-modal (image/text/audio) — tabular-first, with NLP-column support as a stretch goal.
-- The AI Chat is not a general-purpose data-analysis chatbot with live dataframe access — it answers questions grounded in the precomputed profile only (see §10 and `Architecture.md` §7).
+These are not phase-limited caveats — they are permanent boundaries, restated here at product-spec level; the philosophy behind them is in `VISION.md` §3. Featuresmith's core differentiation is *proof*, not *execution*; every non-goal below exists to keep the product from drifting into infrastructure categories it has no structural advantage in. See `Architecture.md` §20 for the corresponding integration model (how Featuresmith cooperates with the tools it deliberately does not replace).
+
+- **Not an orchestration or scheduling engine.** No DAG runner, no job scheduler for its own sake. Featuresmith plans and validates transformations; Airflow, Dagster, Prefect, and dbt's own scheduler run them.
+- **Not a distributed execution engine.** No Featuresmith-branded Spark/Ray runtime. Large-scale compute is delegated to backends Featuresmith pushes down to (DuckDB, Spark, Snowflake, BigQuery — Phase 8), never reimplemented.
+- **Not a proprietary transformation runtime or DSL.** Recommended transformations compile to real, readable Polars expressions or a real `sklearn.Pipeline` — code a user can run, read, and own outside Featuresmith entirely — never a Featuresmith-only mini-language.
+- **Not a feature store.** Featuresmith does not serve features online or manage feature versioning at serving time; it exports to feature stores (Feast) that already own that job.
+- **Not an AutoML or model-training system.** It recommends and validates data fixes; it never selects, tunes, or trains a model. The moment a recommendation is about hyperparameters instead of data, it's out of scope.
+- **Not a no-code/low-code platform.** Every capability is developer-first: importable, scriptable, and pipeable before it has a UI (`Design-Principles.md`).
+- **Not a data warehouse or storage product** — it connects to and certifies existing sources, it doesn't replace them.
+- **Not a real-time streaming analytics tool** in early phases.
+- **Not a replacement for domain expertise** — recommendations and transformation plans are advisory, always reviewable/rejectable, never silently applied without an explicit `apply` step.
+- **Not initially multi-modal** (image/text/audio) — tabular-first, with NLP-column support as a stretch goal.
+- **The AI layer is not a general-purpose data-analysis chatbot with live dataframe access** — it narrates, ranks, and translates natural language into an inspectable Plan grounded in the precomputed profile only; it never computes a number and never executes a transformation directly (see §10, `Architecture.md` §7, `features/Dataset-Contracts-And-Planning.md` §7).
 
 ## 7. Target Users
 
@@ -87,26 +96,31 @@ Wants a plugin architecture with clear extension points (a new connector, a new 
 - As a data engineer, I want to diff two snapshots of the same dataset and get a plain-language summary of what changed (schema, distributions, missingness).
 - As a product stakeholder, I want a narrative report I can read without knowing pandas, summarizing what the data says and where it's risky, and to be able to ask it a plain-language question if something is unclear.
 
-## 10. Core Features (v1 scope)
+## 10. Core Features
 
-1. **Featuresmith Core**: a single, importable Python library (`import featuresmith as fs`) containing all business logic — profiling, rules, feature engineering, AI reasoning, export. Every other interface is a thin wrapper over this library (`Architecture.md` §2).
-2. Multi-format ingestion: CSV, Excel, Parquet, SQL (via SQLAlchemy), plus in-memory Polars/pandas dataframes passed directly through the SDK.
-3. Statistical EDA engine: univariate/bivariate stats, correlations, distributions, missingness patterns.
-4. Rule-based data quality engine: leakage heuristics, cardinality issues, duplicate/near-duplicate detection, outlier detection, type-mismatch detection.
-5. **AI Provider Interface**: a pluggable abstraction (Ollama default/local, OpenAI and Anthropic as opt-in, bring-your-own-key) that supplies two capabilities — narration/ranking of precomputed findings, and the Interactive AI Chat below. Provider switching is config-only, never a code change (`Architecture.md` §7).
-6. AI narrative layer: LLM-generated plain-language summary grounded in the computed statistics (never hallucinated numbers — the LLM narrates facts the rule engine already computed).
-7. **Interactive AI Chat**: after analysis, users can ask natural-language follow-up questions ("Why is this feature leakage?", "Explain this chart", "What encoding should I use?", "Explain this to a beginner", "Generate sklearn preprocessing for this column", "Compare these two columns") — all answered from the already-computed profile object, never by re-reading the raw dataset.
-8. Feature engineering recommendation engine: ranked, explainable suggestions (encoding strategy, binning, interaction candidates, scaling needs).
-9. Pipeline/code export: generates a runnable sklearn-compatible `Pipeline`/`ColumnTransformer` plus a Jupyter notebook.
-10. **Four equivalent interfaces**, all calling the same core with no duplicated logic: the Python SDK, the CLI (`featuresmith analyze data.csv`), the Streamlit dashboard (`featuresmith dashboard`), and a future VS Code extension (`Architecture.md` §2, §13-14).
-11. Config-driven, plugin-based architecture from day one (even if only 2-3 plugins ship in v1), spanning connectors, rules, exporters, *and* AI providers.
+Ordered by where each capability sits in the lifecycle (`VISION.md` §2), not by release date. Status is tracked per-feature in each feature's own document and in `implementation/IMPLEMENTATION_STATUS.md` — this list is the product surface, not a delivery schedule (see `Phases.md` for sequencing).
 
-## 11. Nice-to-Have Features (v2+)
+1. **Featuresmith Core**: a single, importable Python library (`import featuresmith as fs`) containing all business logic — profiling, rules, review, scoring, diffing, planning, and export. Every other interface is a thin wrapper over this library (`Architecture.md` §2).
+2. Multi-format ingestion: CSV, Excel, Parquet, SQL (via SQLAlchemy), plus in-memory Polars/pandas dataframes passed directly through the SDK (`Architecture.md` §4, `implementation/IMPLEMENTATION_STATUS.md`).
+3. Statistical profiling engine: univariate/bivariate stats, correlations, distributions, missingness patterns — deterministic, Polars-first.
+4. **Review Engine**: deterministic, rule-based reviewers (schema, quality, statistics, leakage) orchestrated into one structured, prioritized `ReviewResult` (`features/Review-Engine-Architecture.md`) — the deterministic core every other capability below builds on.
+5. **ML Readiness Score**: a 0–100 composite score with a per-dimension breakdown, always shown with its underlying findings, never as a standalone number (`features/ML-Readiness-Score.md`).
+6. **Intelligent Leakage Detection**: named, inspectable leakage patterns (target correlation, identifier shape, timestamp anomalies, duplicate targets) rather than a single correlation threshold (`features/Dataset-Diff-And-Leakage-Detection.md`).
+7. **Dataset Diff**: compare two dataset snapshots — schema, distributions, missingness, quality — the way `git diff` compares two commits (`features/Dataset-Diff-And-Leakage-Detection.md`).
+8. **Recommendation & Plan Engine**: rule findings and (later) AI-ranked suggestions merge into a single ranked, explainable list; each accepted item compiles into an inspectable, deterministic **Plan** before anything runs (`features/Dataset-Contracts-And-Planning.md` §7-8).
+9. **Apply layer**: turns an accepted Plan into real, generated code for an ecosystem the user already runs — `sklearn.Pipeline`/`ColumnTransformer`, a Polars expression chain, a Jupyter notebook, or a dbt model stub — never a Featuresmith-owned execution engine (`features/Dataset-Contracts-And-Planning.md` §9).
+10. **Dataset Contract (`featuresmith.lock`)**: the versioned, diffable artifact recording a dataset's schema fingerprint, readiness score, leakage state, and transformation lineage — committed to git, diffed in PRs, gated in CI (`features/Dataset-Contracts-And-Planning.md` §5-6).
+11. **AI Provider Interface** *(thin, optional layer — see `Design-Principles.md` "AI assists, never replaces")*: a pluggable abstraction (Ollama default/local, OpenAI and Anthropic as opt-in, bring-your-own-key) supplying plain-language narration of findings, ranking rationale, and translation of natural-language instructions into an inspectable Plan. Provider switching is config-only, never a code change (`Architecture.md` §7).
+12. **Four equivalent interfaces**, all calling the same core with no duplicated logic: the Python SDK, the CLI (`featuresmith review data.csv`), the Streamlit dashboard, and a future VS Code extension (`Architecture.md` §2, §13-14).
+13. **CI/CD gating**: deterministic exit codes and machine-readable JSON output, so `featuresmith review` and, later, a contract-diff check sit in CI next to a project's other gates from day one.
+14. Config-driven, plugin-based architecture spanning connectors, rules, reviewers, exporters, and AI providers.
 
-- Dataset diffing/drift detection across snapshots.
-- VS Code / Jupyter extension for inline recommendations and inline AI chat (Phase 7).
+## 11. Nice-to-Have Features (later phases)
+
+- A "Featuresmith-verified" certification badge and portable artifact referencing a specific Dataset Contract, for READMEs, dataset cards, and model-registry metadata (`features/Dataset-Contracts-And-Planning.md` §11).
+- VS Code / Jupyter extension for inline findings and inline chat.
 - Data warehouse & cloud storage connectors (Snowflake, BigQuery, S3, GCS).
-- Multi-framework export (PySpark, Polars-native pipelines, Feature Store schemas — Feast).
+- Deeper ecosystem exporters — a Feast feature-definition exporter, a dbt model exporter, an MLflow/Weights & Biases run-metadata attachment for a Dataset Contract's fingerprint (`Architecture.md` §20).
 - Team dashboard with shareable, versioned reports and shared chat threads per dataset.
 - Automated feature synthesis integration (Featuretools) as an optional heavy-compute plugin.
 - Additional AI providers (Azure OpenAI, Google Gemini, self-hosted vLLM endpoints) contributed via the provider plugin interface.
@@ -135,7 +149,7 @@ Wants a plugin architecture with clear extension points (a new connector, a new 
 
 ## 14. Future Vision
 
-A long-term ecosystem where: connectors, rules, exporters, and AI providers are largely community-maintained; a hosted SaaS/dashboard tier funds core maintenance; Featuresmith reports and chat transcripts become a standard artifact attached to model cards and PRs, the way `README.md` is standard today.
+A long-term ecosystem where: connectors, rules, reviewers, exporters, and AI providers are largely community-maintained; a hosted SaaS/dashboard tier funds core maintenance; and a `featuresmith.lock` file sits next to `pyproject.toml`/`package-lock.json` in every serious ML repo — diffed in every PR that touches training data, referenced from dataset cards and model-registry metadata, and gated in CI the same unremarkable way a type-check gate is today. Success looks like a team being able to answer "what changed in this data, and is it safe" in one command instead of an afternoon, and a "Featuresmith-verified" badge being as legible a trust signal on a dataset card as a green CI badge is on a repo. See `features/Dataset-Contracts-And-Planning.md` §12 for the concrete shape of that artifact and `Architecture.md` §20 for how it plugs into the wider ecosystem (MLflow, Weights & Biases, Hugging Face dataset cards) without Featuresmith owning any of them.
 
 ## 15. Open Source Strategy
 
@@ -153,4 +167,4 @@ A long-term ecosystem where: connectors, rules, exporters, and AI providers are 
 
 ## 17. Competitive Differentiation
 
-Featuresmith is not a "prettier ydata-profiling." Its differentiation is the **closed loop, delivered identically from any surface**: statistically grounded finding → natural-language explanation → conversational follow-up → ranked, explainable recommendation → reviewable, production-grade code artifact — whether invoked as `fs.analyze(df)` in a notebook, `featuresmith analyze data.csv` in CI, or through the dashboard. No existing open-source tool spans that entire loop today, and none offer a conversational, grounded chat over an already-computed profile. Secondary differentiators: leakage detection as a first-class citizen (not an afterthought), a plugin architecture designed for community contributions across rules *and* AI providers, and pipeline export that produces CI-testable code rather than notebook-only output.
+The category Featuresmith is building, and why it's evaluated against git/Terraform/dbt/Ruff rather than other profiling tools, is set out in `VISION.md` §2. At the product level, that translates into a concrete claim: Featuresmith's differentiation is the **closed loop, delivered identically from any surface, ending in a persisted artifact** — statistically grounded finding → ranked, explainable recommendation → an inspectable Plan → an applied transformation via the ecosystem the user already runs → re-review and diff → a versioned Dataset Contract — whether invoked as `fs.review(df)` in a notebook, `featuresmith review data.csv` in CI, or through the dashboard. No existing open-source tool spans that entire loop today. Secondary differentiators: leakage detection as a first-class citizen (not an afterthought), a plugin architecture designed for community contributions across rules, reviewers, exporters, *and* AI providers, and an apply layer that generates real, CI-testable code in ecosystems teams already trust rather than a proprietary transformation runtime.

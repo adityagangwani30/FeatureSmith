@@ -244,6 +244,7 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 - **Non-linear aggregation option** (e.g., a hard floor: any dimension below a critical threshold caps the overall score regardless of weighting) as an opt-in alternate formula, versioned separately from the default weighted-mean formula.
 - **Score trend visualization** in the dashboard once Phase 5's history store exists — "this dataset's score over the last 10 runs, by dimension."
 - **Per-column score contribution view** — beyond dimension-level rationale, letting a user see which specific columns are most responsible for a low Feature Quality or Consistency score.
+- **The score as a Dataset Contract field** — once `features/Dataset-Contracts-And-Planning.md` ships, a `featuresmith.lock` entry's readiness score is exactly this document's `MLReadinessScore`, unmodified; validation-gating an Apply on "did the score improve" (`Dataset-Contracts-And-Planning.md` §7.3) reads this object directly rather than recomputing anything.
 
 ## 15. Open Questions
 

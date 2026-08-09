@@ -435,6 +435,7 @@ A future revision of `Phases.md` should formalize this as its own milestone once
 - **Custom review "profiles"** (e.g., a `pre-training` review profile vs. a `production-monitoring` review profile) that select a named subset of categories — useful once Phase 5 needs a lighter, faster recurring check than a full review.
 - **Cross-reviewer dependencies** (e.g., a `LeakageReviewer` that reads the `FeatureQualityReviewer`'s section to avoid double-flagging) — deferred until real usage shows it's needed, to avoid over-engineering reviewer ordering prematurely.
 - **Streaming/partial rendering** of sections as they complete, for large datasets where some reviewers finish long before others (dashboard progressive-loading pattern, `Design.md` §12).
+- **`ReviewResult` as the sole input to Plan authoring**: once `features/Dataset-Contracts-And-Planning.md` ships (Phase 4), a `Plan` is built from an accepted set of this engine's findings and nothing else — this engine requires no changes to support that, since `ReviewResult`'s existing serializable, versioned schema (§7) already is the stable interface Plan authoring depends on.
 
 ## 17. Open Questions
 

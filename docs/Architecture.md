@@ -1,5 +1,7 @@
 # Architecture — Featuresmith
 
+> System design in service of `VISION.md` — this document is the "how," not the "why." See `VISION.md` if a design choice here seems arbitrary; it almost certainly follows from a boundary or category decision made there.
+
 ## 1. Design Principles Behind the Architecture
 
 1. **One core, many thin surfaces.** All business logic — profiling, rules, feature engineering, AI reasoning, chat, export — lives in a single importable Python library, `featuresmith-core`. The CLI, the Streamlit dashboard, and the future VS Code extension are thin clients that call this library and render its output. No surface is permitted to reimplement or fork logic that belongs in core.
@@ -7,6 +9,7 @@
 3. **Everything is a plugin.** Connectors, rules, recommenders, exporters, *and AI providers* implement small stable interfaces so the core never needs to know about a specific data source, output format, or LLM vendor.
 4. **Local-first, cloud-optional.** The system must produce full value with zero network calls (Ollama/local LLM, local files). Cloud LLMs and cloud connectors are opt-in, switched entirely through configuration.
 5. **Size-tiered execution.** The same API behaves differently under the hood for a 10K-row CSV vs. a 500M-row Parquet dataset (in-memory vs. lazy/streaming Polars execution) — this is invisible to the plugin author and to every surface.
+6. **Featuresmith proves state; it does not execute transformations.** Recommendations compile into a deterministic, inspectable `Plan`; applying a plan always generates real code for an ecosystem the user already runs (Polars, sklearn, dbt) rather than executing inside a Featuresmith-owned runtime. See §20 for the full non-goals and ecosystem-integration model this principle implies.
 
 ## 2. Overall System Architecture
 
@@ -304,3 +307,87 @@ A later, fully optional SaaS/hosted tier would decompose into: an API service (F
 - **AI providers promoted to a first-class plugin category** (§6, §16), symmetric with connectors/rules/exporters, rather than a special-cased internal abstraction — this is what makes "add a new provider" a community-contributable task instead of a core-team-only change.
 - **`ChatSession` as a distinct, explicitly-scoped object** (§7.3) rather than folding chat into the narrator — keeps the "never re-reads raw data" guarantee simple to reason about and test in isolation.
 - **A single public `api.py`** (§5) as the one contract every surface depends on, which is also the natural seam for the future hosted API tier (§18) to reuse without a rewrite.
+
+## 20. Dataset Contract Architecture, Ecosystem Integration & Non-Goals
+
+This section formalizes the architectural consequence of `VISION.md` §2-3: Featuresmith's core differentiation is *proof of dataset state*, not *execution of dataset transformations*. Full product-level design for this layer lives in `features/Dataset-Contracts-And-Planning.md`; this section covers only how it fits the architecture already described in §1-19.
+
+### 20.1 The lifecycle as a state machine, not five subsystems
+
+The Contract/Plan/Apply capability is not a new engine parallel to Review — it is the existing Review + Diff pipeline (§8-9, `features/Review-Engine-Architecture.md`) invoked twice, with a code-generation step in between, and a persistence step at the end:
+
+```mermaid
+flowchart TB
+    A["Dataset"] --> B["Review + Score\n(existing ReviewEngine)"]
+    B --> C["Recommendation Engine\n(existing, §8)"]
+    C --> D["Plan\n(new: deterministic, inspectable,\nNL-translatable — featuresmith.plan)"]
+    D --> E["Apply\n(new, thin: generates real\nPolars/sklearn/dbt code —\nexecuted by those tools, not by Featuresmith)"]
+    E --> F["Review + Score again\n(same ReviewEngine, second pass)"]
+    F --> G["Diff\n(existing fs.diff(), §5 internal contract)"]
+    G --> H["Dataset Contract\n(new: featuresmith.lock —\npersists state + lineage)"]
+```
+
+No new "Transformation Engine" module is introduced. `plan/` and `contract/` are the only new top-level modules in `featuresmith-core`; `apply/` is deliberately thin — a dispatcher to exporters, not a runtime.
+
+### 20.2 New modules
+
+| Module | Responsibility | Owned Interfaces |
+|---|---|---|
+| `featuresmith.plan` | Turn accepted recommendations (rule-based or AI-translated) into a deterministic, serializable `Plan` object | `Plan`, `PlanStep`, `BasePlanTranslator` |
+| `featuresmith.contract` | Persist, load, and diff `featuresmith.lock` — the versioned Dataset Contract | `DatasetContract`, `ContractStore` |
+
+`featuresmith.exporters` (§12, unchanged) is what `apply` calls into — sklearn/Polars/dbt code generation is exporter work, not new architecture. `featuresmith.ai` (§7) is what NL plan authoring calls into — a `Plan` produced from natural language and a `Plan` produced from a rule-based recommendation are the same object, reviewed and applied identically (§20.4).
+
+### 20.3 What Featuresmith intentionally does not own
+
+The philosophy behind this boundary is in `VISION.md` §3; this table is its architectural enforcement mechanism.
+
+| Category | Why it's out of scope | What Featuresmith does instead |
+|---|---|---|
+| Orchestration / scheduling (Airflow, Dagster, Prefect) | No structural advantage; would compete with entrenched infra teams already run | Exports plans as code these tools can invoke as a step; Phase 5's scheduler (§18-era design) is for *re-checking*, never for running transformations |
+| Distributed execution (Spark, Ray, a Featuresmith-branded runtime) | Same reasoning; Featuresmith pushes down, never reimplements | Pushdown/sampling execution model (§17); optional Spark/Ray *backends* for profiling, never for applying transformations |
+| Proprietary transformation DSL/runtime | Would fork the "read the exact code that will run" promise that makes Apply trustworthy | Apply always generates real Polars expressions or a real `sklearn.Pipeline` — inspectable, runnable, and owned by the user outside Featuresmith entirely |
+| Feature stores (Feast, Tecton) | Serving-time feature management is a different, mature category | Exports feature definitions/schemas *to* a feature store; never serves features itself |
+| Model training / AutoML | Different job to be done; the instant a recommendation is about hyperparameters, it's out of scope | Stops at the data/model boundary — every recommendation is about the dataset, never the model |
+| No-code/low-code UI as primary interface | Contradicts developer-first DNA (`Design-Principles.md`) and the "read the generated code" trust model | Every surface (SDK, CLI, dashboard) calls the same typed core; the dashboard visualizes, it never becomes a drag-and-drop builder |
+
+### 20.4 Ecosystem integration model
+
+Featuresmith integrates with, rather than replaces, the tools in the table below. Integration is always one of two shapes: **(a) connector** — Featuresmith reads from the tool — or **(b) exporter** — Featuresmith generates code/artifacts the tool consumes. No integration in either direction ever requires the target tool to depend on a Featuresmith runtime.
+
+| Tool | Integration shape | What crosses the boundary |
+|---|---|---|
+| Polars / pandas | Connector + Apply target | Native dataframe ingestion (§4); generated transformation code targets Polars expressions or a pandas-compatible `sklearn.Pipeline` |
+| scikit-learn | Apply/export target | Generated `ColumnTransformer`/`Pipeline` (§12), the lowest-common-denominator production format |
+| dbt | Apply/export target (planned) | A dbt model stub generated from an accepted Plan, so a team already standardized on dbt applies the transformation inside their existing dbt project |
+| Airflow / Dagster / Prefect | Downstream consumer, not an integration Featuresmith initiates | Exported pipeline code (sklearn/notebook/dbt) is a step these orchestrators call; Featuresmith never registers a DAG itself |
+| Feast | Export target (planned) | Feature definitions/schemas generated from a certified Dataset Contract, so a feature store's inputs are provably reviewed before serving |
+| MLflow / Weights & Biases | Metadata attachment (planned) | A Dataset Contract's fingerprint and readiness score attached as run metadata/tags — provenance a training run can point back to, without Featuresmith hosting any run data itself |
+
+### 20.5 Tech Stack
+
+Consolidated here (previously split across a separate planning document) since these are architectural commitments, not planning notes.
+
+| Area | Recommendation | Reasoning |
+|---|---|---|
+| Core language | Python 3.11+ | Ecosystem fit for ML audience; non-negotiable for adoption |
+| DataFrame engine | **Polars (primary), Pandas (compat shim only)** | Polars' lazy execution and multi-threaded performance matter directly for size-tiered scalability (§17); pandas is kept only as an interop layer since much of the ecosystem (sklearn, some connectors) still expects it |
+| Large-data query engine | **DuckDB** (Planned, Phase 8) | Zero-infra SQL/analytical engine, exceptional for out-of-core aggregation and a natural pushdown layer for SQL/warehouse connectors |
+| Columnar interchange | **Apache Arrow** | Zero-copy interop between Polars, DuckDB (planned), and Parquet |
+| Monorepo/workspace tooling | **uv workspaces** | Manages `featuresmith-core`, `featuresmith-cli`, `featuresmith-dashboard` as independently versioned packages sharing one lockfile-driven dev environment — directly supports the hard package boundary (§4) |
+| API layer (future hosted tier) | **FastAPI** | Type-hint-driven, async-native, pairs naturally with the Pydantic schemas already used internally; becomes just another thin surface over `featuresmith.api` |
+| Dashboard (v1) | **Streamlit**, not Next.js | Fastest path to a Python-native, plugin-author-friendly interactive UI during early, fast-iterating phases (§14); a Next.js rewrite is explicitly deferred, not rejected |
+| Charting | **Plotly/Altair (Vega-Lite specs)** | Declarative chart specs render consistently across CLI, dashboard, and static HTML report (§11) |
+| Validation/schema | **Pydantic v2** | Already the contract layer for every internal stage boundary, including `Plan` and `DatasetContract` (§20.2); validates config too |
+| Modeling utilities | **scikit-learn** | Lowest-common-denominator Apply/export target; nearly every downstream framework can consume a sklearn-compatible pipeline |
+| Data validation (export target) | **Great Expectations** — as an *export format* only, never a dependency | Valuable for teams already standardized on it; Featuresmith does not depend on it to validate its own findings |
+| Experiment/artifact tracking | **MLflow, Weights & Biases — metadata attachment only** | Not core — Featuresmith produces the contract, it doesn't own experiment tracking (§20.4) |
+| **AI provider abstraction** | **Custom lightweight `AIProvider` protocol** (narrate, rank, chat/plan-translate) | A full agent framework (LangChain, LlamaIndex) would pull in far more surface area than a few narrowly-scoped methods need, and would make the "AI never touches raw data, never executes" grounding guarantee harder to audit |
+| Local LLM runner | **Ollama** (default) | Simplest, most widely adopted way to run local models with a stable HTTP API |
+| Cloud LLM providers | **OpenAI, Anthropic** (opt-in, BYO key) | Added as optional `pyproject.toml` extras so the core install stays dependency-light |
+| Containerization | **Docker**, multi-stage build | Standard for reproducible dev environments and eventual hosted-tier deployment |
+| CI/CD | **GitHub Actions** | Free for OSS, tight PyPI trusted-publishing integration |
+| Package distribution | **PyPI, trusted publishing (OIDC)**, independently per package | No long-lived API tokens to leak |
+| Docs site | **MkDocs (Material theme)** | Python-native tooling keeps the docs build in the same language as the project |
+
+**What to avoid early:** don't build a custom plugin-discovery mechanism (`entry_points` already solves this, §6); don't adopt a heavyweight agent framework for the AI layer; don't adopt Featuretools or Great Expectations as hard dependencies; don't start a Next.js dashboard in parallel with Streamlit; don't let the CLI or dashboard implement any logic beyond argument parsing and rendering — and, new in this revision, **don't let `apply/` grow into an execution engine** — the moment Apply needs its own scheduler, retry logic, or state beyond "which exporter to call," that's a sign the design has drifted from §20.1's intent.
