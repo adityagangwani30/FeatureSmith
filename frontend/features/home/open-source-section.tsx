@@ -16,7 +16,7 @@ function GithubIcon({ className }: { className?: string }) {
 
 const STATS = [
   { Icon: Scale, label: "License", value: "Apache 2.0" },
-  { Icon: CheckCircle2, label: "Unit Tests", value: "284 Passing" },
+  { Icon: CheckCircle2, label: "Unit Tests", value: "291 Passing" },
   { Icon: Code2, label: "Type Safety", value: "Strict MyPy" },
   { Icon: ShieldCheck, label: "Data Security", value: "Local-Only" },
 ]
@@ -76,7 +76,7 @@ export function OpenSourceSection() {
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Add Featuresmith SDK and CLI to your environment.</p>
               </div>
               <code className="block bg-muted px-2 py-1 rounded text-[10px] font-mono text-foreground select-all text-center">
-                pip install featuresmith-core
+                pip install featuresmith-cli
               </code>
             </div>
 

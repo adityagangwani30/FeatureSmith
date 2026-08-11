@@ -144,7 +144,11 @@ featuresmith review examples/data/processed/titanic.csv --target survived
 featuresmith analyze examples/data/processed/titanic.csv --target survived
 
 # Compare two snapshot profiles (Dataset Diff Engine)
-featuresmith diff examples/data/processed/sales.csv examples/data/processed/sales.csv --target order_id`} language="bash" showCopy />
+featuresmith diff examples/data/processed/titanic.csv examples/data/processed/titanic.csv --target survived`} language="bash" showCopy />
+          <p className="mt-3 text-xs text-muted-foreground">
+            The diff example compares the bundled <code>titanic.csv</code> against itself, returning an
+            <code> unchanged</code> verdict. Point <code>featuresmith diff</code> at two different snapshots to detect schema and quality drift.
+          </p>
         </section>
 
         <section className="mb-8" aria-labelledby="qs-exitcodes">

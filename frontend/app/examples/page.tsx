@@ -273,9 +273,11 @@ export default function ExamplesPage() {
             <div className="mb-6 border-t border-border pt-10">
               <h2 id="example-datasets" className="text-xl font-semibold text-foreground">Included Real-World Example Datasets</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Run the dataset generation script in the root repository to generate normalized CSV test files:
+                The Titanic dataset is bundled in the repository (no setup needed). The other datasets are
+                generated or downloaded with the example preparation scripts in the project root:
               </p>
               <div className="mt-2 font-mono text-xs text-muted-foreground bg-muted/50 p-3 rounded border border-border">
+                python examples/download_datasets.py   # optional: network fetch for raw datasets
                 python examples/prepare_datasets.py
               </div>
             </div>

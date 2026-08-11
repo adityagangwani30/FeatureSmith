@@ -33,9 +33,16 @@ Executable scripts using real-world datasets:
 
 ## ⚙️ Running the Examples
 
+### 0. Dataset Availability
+
+- **Bundled (no setup)**: `examples/data/processed/titanic.csv` is committed to the repository, so the Titanic example and the [Quick Start](../README.md#quick-start) run immediately.
+- **Generated (no network)**: `examples/prepare_datasets.py` reproducibly generates `iris.csv` and `sales.csv` locally (Iris falls back to a synthetic sample if scikit-learn is unavailable).
+- **Downloaded (requires network)**: `examples/download_datasets.py` fetches the raw Iris, California Housing, Titanic, and Customer Churn data from scikit-learn / OpenML (with GitHub mirror fallbacks). This is required before `prepare_datasets.py` can produce `california_housing.csv` and `customer_churn.csv`.
+
 ### 1. Prepare Data
 
 ```bash
+python examples/download_datasets.py   # optional: network fetch for raw datasets
 python examples/prepare_datasets.py
 ```
 
