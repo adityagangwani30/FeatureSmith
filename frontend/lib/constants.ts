@@ -228,6 +228,7 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "review()", href: "/docs/sdk/review" },
       { title: "diff()", href: "/docs/sdk/diff" },
       { title: "score()", href: "/docs/sdk/score" },
+      { title: "Dataset", href: "/docs/sdk/dataset" },
       { title: "Data Models", href: "/docs/sdk/models" },
       { title: "Exceptions", href: "/docs/sdk/exceptions" },
       { title: "Plugins", href: "/docs/sdk/plugins" },

@@ -892,7 +892,7 @@ class ProfileResult:
 class RuleFinding:
     rule_id: str
     rule_name: str
-    category: str  # "quality" | "statistical" | "leakage"
+    category: str  # "quality" | "statistical" | "leakage" | "diff"
     severity: str  # "info" | "warning" | "critical"
     column_name: str | None
     title: str
@@ -1446,7 +1446,7 @@ uv run pytest`} language="bash" showCopy />
             Returns a frozen <code>ReviewResult</code> dataclass containing:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.1.0"</code>).</li>
+            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.2.0"</code>).</li>
             <li><code>dataset_summary</code>: <code>DatasetSummary</code> with row and column count descriptors.</li>
             <li><code>generated_at</code>: UTC timestamp.</li>
             <li><code>sections</code>: Sorted sequence of <code>ReviewSection</code> objects representing the active reviewers' sections (sorted from critical to passed).</li>
@@ -1563,7 +1563,7 @@ if result.score:
             Returns a frozen <code>DatasetDiffResult</code> dataclass containing:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-            <li><code>version</code>: <code>str</code> (currently <code>"0.1.0"</code>).</li>
+            <li><code>version</code>: <code>str</code> (currently <code>"0.2.0"</code>).</li>
             <li><code>schema</code>: <code>SchemaDiff</code> containing columns added, removed, renamed, and data type changes.</li>
             <li><code>structure</code>: <code>StructureDiff</code> showing row/column deltas.</li>
             <li><code>missing_values</code>: Delinquent missing ratio shifts.</li>
@@ -1615,6 +1615,7 @@ print(f"Recommendation: {result.summary.recommendation}")`} language="python" sh
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
             <li><strong>Standalone Operation</strong>: Dataset Diff is implemented as a standalone engine. It is not integrated as a reviewer inside the Review Engine pipeline. Calling <code>fs.review(previous=...)</code> raises a <code>NotImplementedError</code>.</li>
             <li><strong>Advisory Recommendations</strong>: Findings and overall health recommendations are purely advisory and do not automatically mutate data or abort processes unless coded into your caller logic.</li>
+            <li><strong>Diff Findings</strong>: There is no public <code>fs.diff_findings()</code> in v0.2.0. To derive <code>RuleFinding</code> objects from an existing diff result, use <code>featuresmith.diff.findings.findings_from_diff(diff_result)</code>. The CLI's diff command consumes these findings for severity-based exit-code gating.</li>
           </ul>
         </section>
 
@@ -1722,6 +1723,94 @@ if score:
           <p className="text-sm text-muted-foreground">
             See the review SDK reference <a href="/docs/sdk/review" className="text-primary hover:underline">fs.review()</a> and the CLI scorecard overview <a href="/docs/cli/score" className="text-primary hover:underline">featuresmith score</a>.
           </p>
+        </section>
+      </>
+    )
+  },
+  "sdk/dataset": {
+    title: "Dataset",
+    subtitle: "SDK Reference: the normalized dataset model",
+    category: "Python SDK",
+    seoTitle: "Dataset Model",
+    seoDescription: "Reference for the featuresmith Dataset model, including its nine dataclass fields, from_dataframe(), and preview().",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          A normalized, immutable view of a loaded tabular dataset. <code>fs.load()</code> returns a
+          <code> Dataset</code>, and it is also what <code>fs.profile()</code>, <code>fs.analyze()</code>,
+          and <code>fs.review()</code> accept as their primary input. The class is a frozen,
+          slotted dataclass so every instance is read-only and safely serializable.
+        </p>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          The <code>Dataset</code> type lives in <code>featuresmith.core.dataset</code>. It is not
+          re-exported from the top-level <code>featuresmith</code> package, so import it explicitly:
+        </p>
+        <CodeBlock code={`from featuresmith.core.dataset import Dataset`} language="python" showCopy />
+
+        <section className="mb-8" aria-labelledby="ds-fields">
+          <h3 id="ds-fields" className="mb-3 text-lg font-semibold text-foreground">Dataclass Fields</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class Dataset:
+    dataframe: Any                # pandas or Polars dataframe (memory is not copied)
+    backend: str                  # "pandas" or "polars"
+    schema: DatasetSchema         # columns: tuple[ColumnSchema(name, dtype), ...]
+    metadata: Mapping[str, object]
+    row_count: int                # default 0
+    column_count: int             # default 0
+    dtypes: Mapping[str, str]     # column name -> backend dtype string
+    source: str | None            # original local file path, if any (default None)
+    file_size: int | None         # source file size in bytes, if known (default None)`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            In practice every field except <code>dataframe</code>, <code>backend</code>, and <code>schema</code> is
+            computed for you during loading, so you normally construct a <code>Dataset</code> via
+            <code> fs.load()</code> or <code>Dataset.from_dataframe()</code> rather than directly.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="ds-from-dataframe">
+          <h3 id="ds-from-dataframe" className="mb-3 text-lg font-semibold text-foreground">from_dataframe()</h3>
+          <CodeBlock code={`@classmethod
+def from_dataframe(
+    cls,
+    dataframe: Any,
+    *,
+    backend: str,
+    source: str | None = None,
+    file_size: int | None = None,
+    metadata: Mapping[str, object] | None = None,
+) -> Dataset:`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Creates a normalized dataset from a pandas or Polars dataframe, inferring the schema and dtype
+            mapping. Used internally by the connectors; the public way to obtain a <code>Dataset</code> is
+            <code> fs.load()</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="ds-preview">
+          <h3 id="ds-preview" className="mb-3 text-lg font-semibold text-foreground">preview(rows=5)</h3>
+          <CodeBlock code={`def preview(self, rows: int = 5) -> Any:`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Returns the first <code>rows</code> rows of the underlying dataframe (same backend as the source).
+            Raises <code>ValueError</code> when <code>rows</code> is negative.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="ds-example">
+          <h3 id="ds-example" className="mb-3 text-lg font-semibold text-foreground">Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+dataset = fs.load("train.parquet")
+
+print(dataset.row_count)        # number of rows
+print(dataset.column_count)     # number of columns
+print(dataset.backend)          # "pandas" or "polars"
+print(dataset.source)           # original file path, if loaded from disk
+
+# Inspect the normalized schema and preview rows
+for column in dataset.schema.columns:
+    print(column.name, column.dtype)
+
+print(dataset.preview(5))       # first 5 rows as a dataframe`} language="python" showCopy />
         </section>
       </>
     )
