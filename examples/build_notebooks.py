@@ -209,6 +209,15 @@ def build_all_notebooks():
                 ]
             },
             {
+                "markdown": [
+                    "### Prerequisite: Prepare the Sales Dataset\n",
+                    "This notebook loads `examples/data/processed/sales.csv`, which `examples/prepare_datasets.py` generates deterministically (no network). From the repository root, run:\n\n",
+                    "```bash\n",
+                    "python examples/prepare_datasets.py\n",
+                    "```\n",
+                ]
+            },
+            {
                 "markdown": ["### Step 1: Load Dataset & Run Complete Review"],
                 "code": [
                     "import featuresmith as fs\n",
@@ -233,12 +242,16 @@ def build_all_notebooks():
             {
                 "markdown": [
                     "### Step 3: Filter Review Categories & Configure Reviewers\n",
-                    "You can specify `enabled_categories` (e.g. `['quality', 'leakage']`) or configure specific reviewer thresholds via `reviewer_config`.",
+                    "You can pass `enabled_categories` as a list of the public `fs.ReviewCategory` enum members (e.g. `[fs.ReviewCategory.QUALITY, fs.ReviewCategory.LEAKAGE]`) or configure specific reviewer thresholds via `reviewer_config`.\n\n",
+                    "Filtering to the `QUALITY` and `LEAKAGE` categories runs the 5 quality reviewers plus the leakage reviewer, for 6 sections total.",
                 ],
                 "code": [
                     "custom_review = fs.review(\n",
                     "    dataset,\n",
-                    '    enabled_categories=["quality", "leakage"],\n',
+                    "    enabled_categories=[\n",
+                    "        fs.ReviewCategory.QUALITY,\n",
+                    "        fs.ReviewCategory.LEAKAGE,\n",
+                    "    ],\n",
                     "    reviewer_config={\n",
                     '        "review.quality.missingness": {"threshold": 10.0}\n',
                     "    }\n",
@@ -279,20 +292,32 @@ def build_all_notebooks():
                 "markdown": [
                     "## 1. What is the ML Readiness Score?\n",
                     "The ML Readiness Score answers a fundamental question: *'Is this dataset ready for model training?'*\n\n",
-                    "It translates complex statistical findings into a single, explainable 0–100 score supported by 8 weighted health dimensions:\n",
-                    "- **Schema Health** (Weight: 15%)\n",
-                    "- **Missing Values** (Weight: 15%)\n",
-                    "- **Duplicate Records** (Weight: 10%)\n",
-                    "- **Data Types** (Weight: 10%)\n",
-                    "- **Constant Columns** (Weight: 10%)\n",
-                    "- **High Cardinality** (Weight: 10%)\n",
-                    "- **Dataset Structure** (Weight: 10%)\n",
-                    "- **Leakage Risk** (Weight: 20%)\n\n",
+                    "It translates complex statistical findings into a single, explainable 0–100 score supported by 8 health dimensions:\n",
+                    "- **Schema Health**\n",
+                    "- **Missing Values**\n",
+                    "- **Duplicate Records**\n",
+                    "- **Data Types**\n",
+                    "- **Constant Columns**\n",
+                    "- **High Cardinality**\n",
+                    "- **Dataset Structure**\n",
+                    "- **Leakage Risk**\n\n",
+                    "In v0.2.0 every dimension carries the same default weight of `1.0`, so the overall score is the plain arithmetic mean of the applicable dimension scores. (Per-dimension weight configuration is a documented future capability, not yet configurable.)\n\n",
                     "### Deduction Rules\n",
                     "Base score per dimension starts at 100. Findings deduct points based on severity:\n",
                     "- **CRITICAL finding**: -30 points\n",
                     "- **WARNING finding**: -15 points\n",
-                    "- **INFO finding**: -5 points",
+                    "- **INFO finding**: -5 points\n",
+                    "Scores are clamped to [0, 100] and rounded to one decimal place.",
+                ]
+            },
+            {
+                "markdown": [
+                    "### Prerequisite: Prepare the California Housing Dataset\n",
+                    "This notebook loads `examples/data/processed/california_housing.csv`, which the example scripts generate and which is **not** bundled in the repository. From the repository root, run the two preparation steps first:\n\n",
+                    "```bash\n",
+                    "python examples/download_datasets.py  # network fetch (requires scikit-learn)\n",
+                    "python examples/prepare_datasets.py\n",
+                    "```\n",
                 ]
             },
             {
@@ -327,8 +352,8 @@ def build_all_notebooks():
                 "markdown": [
                     "### Key Takeaways & Connection to Next Tutorial\n",
                     "- The ML Readiness Score is completely deterministic and reproducible.\n",
-                    "- Dimensions use dedicated weights reflecting their operational impact on model training.\n",
-                    "- Fix suggestions provide exact code and data pipeline remedies.\n\n",
+                    "- Dimensions currently use uniform `1.0` weights, so the overall score is a simple mean of the applicable dimension scores.\n",
+                    "- Fix suggestions provide exact data pipeline remedies.\n\n",
                     "**Next Tutorial**: In `04_leakage_detection.ipynb`, we dive deep into Intelligent Leakage Detection and the 6 pattern detectors that prevent target leakage bugs.",
                 ]
             },
@@ -355,6 +380,16 @@ def build_all_notebooks():
                     "4. **Future Information Detector**: Identifies features named like outcome labels (e.g., `refund_date`, `is_cancelled`).\n",
                     "5. **Duplicate Target Detector**: Detects near-identical transformed copies of the target.\n",
                     "6. **Suspicious Correlation Detector**: Flags unexpected strong correlations (>= 0.95).",
+                ]
+            },
+            {
+                "markdown": [
+                    "### Prerequisite: Prepare the Customer Churn Dataset\n",
+                    "This notebook loads `examples/data/processed/customer_churn.csv`, which the example scripts generate and which is **not** bundled in the repository. From the repository root, run the two preparation steps first:\n\n",
+                    "```bash\n",
+                    "python examples/download_datasets.py  # network fetch (requires scikit-learn)\n",
+                    "python examples/prepare_datasets.py\n",
+                    "```\n",
                 ]
             },
             {
@@ -405,6 +440,15 @@ def build_all_notebooks():
                     "- **`unchanged`**: No material structural or quality changes.\n",
                     "- **`improved`**: Quality metrics improved (e.g., missingness decreased, leakage eliminated).\n",
                     "- **`regressed`**: Quality degraded (e.g., columns dropped, missingness spiked, schema broke).",
+                ]
+            },
+            {
+                "markdown": [
+                    "### Prerequisite: Prepare the Sales Dataset\n",
+                    "This notebook loads `examples/data/processed/sales.csv`, which `examples/prepare_datasets.py` generates deterministically (no network). From the repository root, run:\n\n",
+                    "```bash\n",
+                    "python examples/prepare_datasets.py\n",
+                    "```\n",
                 ]
             },
             {
@@ -543,6 +587,15 @@ def build_all_notebooks():
                     "- `severity`: Default severity (`critical`, `warning`, `info`).\n",
                     "- `enabled_by_default`: Boolean flag.\n",
                     "- `evaluate(profile: ProfileResult) -> list[RuleFinding]`: Evaluation logic consuming a precomputed `ProfileResult`.",
+                ]
+            },
+            {
+                "markdown": [
+                    "### Prerequisite: Prepare the Sales Dataset\n",
+                    "This notebook loads `examples/data/processed/sales.csv`, which `examples/prepare_datasets.py` generates deterministically (no network). From the repository root, run:\n\n",
+                    "```bash\n",
+                    "python examples/prepare_datasets.py\n",
+                    "```\n",
                 ]
             },
             {

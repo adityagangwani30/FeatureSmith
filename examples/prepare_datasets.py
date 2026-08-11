@@ -20,6 +20,12 @@ def generate_iris_dataframe() -> pd.DataFrame:
             df_iris = iris.frame
         except ImportError:
             # Synthetic fallback to make it fully dependency-free for core-only tests
+            print(
+                "WARNING: scikit-learn is unavailable and no raw Iris file was "
+                "found; generating a SYNTHETIC iris-like dataset with random "
+                "values. This is NOT the canonical scikit-learn Iris dataset and "
+                "should not be used where the official dataset is required."
+            )
             np.random.seed(42)
             n_rows = 150
             df_iris = pd.DataFrame(
@@ -150,22 +156,77 @@ def main() -> None:
             os.path.join(processed_dir, "california_housing.csv"), index=False
         )
         print("California Housing processed.")
+    else:
+        print(
+            f"\nSkipping California Housing: raw file not found at "
+            f"{cal_raw_path}. Run `python examples/download_datasets.py` first "
+            "to fetch it (requires scikit-learn and network access)."
+        )
 
     # 3. Prepare Titanic
+    # The canonical 891-row titanic.csv is committed to the repository and is
+    # the version the examples and notebooks are written against. The raw
+    # download (OpenML "titanic" = 1309 rows, train + test) has a different
+    # shape, so it is deliberately NOT used to overwrite the bundled file.
     titanic_raw_path = os.path.join(raw_dir, "titanic_raw.csv")
     if os.path.exists(titanic_raw_path):
-        print("\nPreparing Titanic dataset...")
-        df_titanic = pd.read_csv(titanic_raw_path)
-        df_titanic.columns = [c.replace(".", "_").lower() for c in df_titanic.columns]
-        df_titanic.to_csv(os.path.join(processed_dir, "titanic.csv"), index=False)
-        print("Titanic dataset processed.")
+        print(
+            "\nSkipping Titanic: a canonical 891-row titanic.csv is already "
+            "bundled at examples/data/processed/titanic.csv; the raw "
+            "titanic_raw.csv is not used to replace it."
+        )
 
     # 4. Prepare Customer Churn
     churn_raw_path = os.path.join(raw_dir, "customer_churn_raw.csv")
     if os.path.exists(churn_raw_path):
         print("\nPreparing Customer Churn dataset...")
         df_churn = pd.read_csv(churn_raw_path)
-        df_churn.columns = [
+        # Normalize column names by name rather than position: the OpenML fetch
+        # drops the customer identifier, while the GitHub mirror keeps it, so
+        # the raw frame can arrive with either 20 or 21 columns.
+        column_map = {
+            "customerID": "customer_id",
+            "gender": "gender",
+            "SeniorCitizen": "senior_citizen",
+            "Partner": "partner",
+            "Dependents": "dependents",
+            "tenure": "tenure",
+            "PhoneService": "phone_service",
+            "MultipleLines": "multiple_lines",
+            "InternetService": "internet_service",
+            "OnlineSecurity": "online_security",
+            "OnlineBackup": "online_backup",
+            "DeviceProtection": "device_protection",
+            "TechSupport": "tech_support",
+            "StreamingTV": "streaming_tv",
+            "StreamingMovies": "streaming_movies",
+            "Contract": "contract",
+            "PaperlessBilling": "paperless_billing",
+            "PaymentMethod": "payment_method",
+            "MonthlyCharges": "monthly_charges",
+            "TotalCharges": "total_charges",
+            "Churn": "churn",
+        }
+        df_churn = df_churn.rename(columns=column_map)
+        if "customer_id" not in df_churn.columns:
+            # The OpenML Telco-Customer-Churn variant omits the customer
+            # identifier; synthesize a deterministic one so downstream examples
+            # keep the documented 24-column contract.
+            df_churn["customer_id"] = [f"ID-{i:05d}" for i in range(len(df_churn))]
+        df_churn["total_charges"] = pd.to_numeric(
+            df_churn["total_charges"], errors="coerce"
+        )
+        df_churn["customer_status"] = df_churn["churn"].apply(
+            lambda x: "Inactive" if x == "Yes" or x is True else "Active"
+        )
+        df_churn["churn_label"] = df_churn["churn"].apply(
+            lambda x: 1 if x == "Yes" or x is True else 0
+        )
+        np.random.seed(42)
+        noise = np.random.uniform(-0.01, 0.01, size=len(df_churn))
+        df_churn["leakage_score"] = df_churn["churn_label"] + noise
+
+        column_order = [
             "customer_id",
             "gender",
             "senior_citizen",
@@ -187,22 +248,19 @@ def main() -> None:
             "monthly_charges",
             "total_charges",
             "churn",
+            "customer_status",
+            "churn_label",
+            "leakage_score",
         ]
-        df_churn["total_charges"] = pd.to_numeric(
-            df_churn["total_charges"], errors="coerce"
-        )
-        df_churn["customer_status"] = df_churn["churn"].apply(
-            lambda x: "Inactive" if x == "Yes" or x is True else "Active"
-        )
-        df_churn["churn_label"] = df_churn["churn"].apply(
-            lambda x: 1 if x == "Yes" or x is True else 0
-        )
-        np.random.seed(42)
-        noise = np.random.uniform(-0.01, 0.01, size=len(df_churn))
-        df_churn["leakage_score"] = df_churn["churn_label"] + noise
-
+        df_churn = df_churn[column_order]
         df_churn.to_csv(os.path.join(processed_dir, "customer_churn.csv"), index=False)
         print("Customer Churn dataset processed.")
+    else:
+        print(
+            f"\nSkipping Customer Churn: raw file not found at {churn_raw_path}. "
+            "Run `python examples/download_datasets.py` first to fetch it "
+            "(requires scikit-learn and network access)."
+        )
 
     # 5. Generate Sales
     print("\nGenerating Sales dataset...")

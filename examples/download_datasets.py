@@ -1,9 +1,23 @@
-"""Download script to retrieve raw example datasets from sklearn and high-availability mirrors."""
+"""Download script to retrieve raw example datasets from sklearn and high-availability mirrors.
+
+The script relies on scikit-learn's dataset loaders (``load_iris``,
+``fetch_california_housing``, ``fetch_openml``) to fetch the raw datasets.
+Installing scikit-learn is therefore required before running this script.
+"""
 
 import os
 import urllib.request
 
-from sklearn.datasets import fetch_california_housing, fetch_openml, load_iris
+try:
+    from sklearn.datasets import fetch_california_housing, fetch_openml, load_iris
+except ImportError as error:  # pragma: no cover - exercised in clean environments
+    raise SystemExit(
+        "scikit-learn is required to download the raw example datasets.\n"
+        "Install it with one of:\n"
+        "  pip install scikit-learn\n"
+        "  uv sync --group test\n"
+        "Then re-run: python examples/download_datasets.py"
+    ) from error
 
 
 def download_with_fallback(url: str, dest_path: str) -> None:
