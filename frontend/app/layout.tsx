@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   keywords: ["data profiling", "data validation", "python", "feature engineering", "data quality", "open source", "developer tools", "structured data"],
   authors: [{ name: "Featuresmith Contributors" }],
   creator: "Featuresmith",
+  metadataBase: new URL("https://featuresmith.adityagangwani.me"),
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -21,11 +22,20 @@ export const metadata: Metadata = {
     title: "Featuresmith — Make data quality as routine as code quality",
     description:
       "An open-source, developer-first toolkit for understanding, validating, and improving structured data. Every dataset deserves a code review.",
+    images: [
+      {
+        url: "https://featuresmith.adityagangwani.me/og-image.png",
+        width: 1774,
+        height: 887,
+        alt: "Featuresmith Banner",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Featuresmith — Make data quality as routine as code quality",
     description: "An open-source, developer-first toolkit for understanding, validating, and improving structured data. Every dataset deserves a code review.",
+    images: ["https://featuresmith.adityagangwani.me/og-image.png"],
   },
   robots: {
     index: true,
