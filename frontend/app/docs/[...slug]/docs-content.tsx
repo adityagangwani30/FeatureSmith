@@ -725,6 +725,501 @@ profile = fs.profile("wide_table.csv", max_correlation_columns=50)`} language="p
       </>
     )
   },
+  "concepts/review": {
+    title: "Dataset Review Engine",
+    subtitle: "Automated code review discipline for tabular datasets",
+    category: "Core Concepts",
+    seoTitle: "Dataset Review Engine Concept",
+    seoDescription: "Learn how Featuresmith's Review Engine brings code review discipline to machine learning datasets across 8 automated reviewers.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          In traditional software engineering, developers submit pull requests and run automated linters and code reviews before merging code to production. In data engineering and machine learning, datasets are frequently trained on without any formal review step — leading to silent model failures in production.
+        </p>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          Featuresmith's <strong>Dataset Review Engine</strong> establishes code review discipline for tabular datasets by running 8 specialized reviewers to evaluate schema health, data types, missingness, duplicates, constant columns, cardinality, distributions, and target leakage.
+        </p>
+
+        <section className="mb-8" aria-labelledby="reviewers-vs-rules">
+          <h3 id="reviewers-vs-rules" className="mb-3 text-lg font-semibold text-foreground">Reviewers vs. Rules</h3>
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            <li className="flex gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
+              <div>
+                <strong>Rules (Atomic Assertions):</strong> Atomic checks evaluated by the Rule Engine (e.g. <em>"Are missing values in column X greater than 20%?"</em>). Rules produce raw <code>RuleFinding</code> objects.
+              </div>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
+              <div>
+                <strong>Reviewers (Section Aggregators):</strong> Higher-level domain inspectors. Each reviewer evaluates one aspect of dataset health (e.g. <code>MissingValueReviewer</code>), aggregates related rule findings, assigns a section severity, and compiles a clean <code>ReviewSection</code>.
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-structure">
+          <h3 id="review-structure" className="mb-3 text-lg font-semibold text-foreground">Review Output Structure</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Invoking <code>fs.review(dataset)</code> returns a single frozen <code>ReviewResult</code> dataclass containing:
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5 text-sm text-muted-foreground">
+            <li><code>sections</code>: List of <code>ReviewSection</code> objects (one per active reviewer).</li>
+            <li><code>overall_summary</code>: Human-readable text summary of overall evaluation results.</li>
+            <li><code>score</code>: The 0–100 <code>MLReadinessScore</code> (or <code>None</code> if scoring is disabled).</li>
+          </ul>
+        </section>
+      </>
+    )
+  },
+  "concepts/score": {
+    title: "ML Readiness Score",
+    subtitle: "Explainable 0–100 quality scorecard for tabular data",
+    category: "Core Concepts",
+    seoTitle: "ML Readiness Score Concept",
+    seoDescription: "Understand how Featuresmith computes an explainable 0–100 ML Readiness Score across 8 health dimensions.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          The <strong>ML Readiness Score</strong> answers a fundamental question: <em>"Is this dataset ready for model training?"</em> It translates complex statistical profiles and finding lists into a single, explainable 0–100 score supported by 8 weighted health dimensions.
+        </p>
+
+        <section className="mb-8" aria-labelledby="score-dimensions">
+          <h3 id="score-dimensions" className="mb-3 text-lg font-semibold text-foreground">The 8 Scoring Dimensions</h3>
+          <ul className="space-y-2 text-sm text-muted-foreground" role="list">
+            <li><strong>1. Schema Health:</strong> Evaluates structural validity and column naming.</li>
+            <li><strong>2. Missing Values:</strong> Evaluates column null ratios and missingness spikes.</li>
+            <li><strong>3. Duplicate Records:</strong> Measures row-level duplicate counts and ratios.</li>
+            <li><strong>4. Data Types:</strong> Inspects data type choices, text fields, and numeric conversions.</li>
+            <li><strong>5. Constant Columns:</strong> Checks for zero-variance and empty features.</li>
+            <li><strong>6. High Cardinality:</strong> Evaluates high-ratio categorical columns.</li>
+            <li><strong>7. Dataset Structure:</strong> Analyzes distribution skewness and kurtosis anomalies.</li>
+            <li><strong>8. Leakage Risk:</strong> Evaluates target correlation, timestamp, and identifier leakage risk.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-math">
+          <h3 id="score-math" className="mb-3 text-lg font-semibold text-foreground">Scoring & Deduction Math</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Each dimension starts at a perfect score of 100. Findings deduct points based on severity:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>CRITICAL finding</code>: -30.0 points</li>
+            <li><code>WARNING finding</code>: -15.0 points</li>
+            <li><code>INFO finding</code>: -5.0 points</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            In v0.2.0, all applicable dimensions carry equal default weight (<code>1.0</code>). The overall score is the weighted arithmetic mean of applicable dimension scores. Inapplicable dimensions are automatically omitted and weights renormalize so missing dimensions never silently penalize the score.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-caveat">
+          <h3 id="score-caveat" className="mb-3 text-lg font-semibold text-foreground">Important Caveat</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            A score of <strong>100.0 / 100</strong> indicates that no statistical quality or target leakage issues were detected by Featuresmith's rules. However, it does not guarantee that a model will achieve high predictive accuracy — domain assumptions, feature engineering choices, and business logic still require human data science expertise.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "concepts/leakage": {
+    title: "Target Leakage Detection",
+    subtitle: "Catch target correlations, timestamp anomalies, and outcome clones",
+    category: "Core Concepts",
+    seoTitle: "Target Leakage Detection Concept",
+    seoDescription: "Master Featuresmith's Intelligent Leakage Detection engine to catch target leakage bugs before training models.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          <strong>Target leakage</strong> is one of the most dangerous bugs in applied machine learning. It occurs when features contain information from the target variable or future state that would not be available at inference time.
+        </p>
+
+        <section className="mb-8" aria-labelledby="leakage-why-dangerous">
+          <h3 id="leakage-why-dangerous" className="mb-3 text-lg font-semibold text-foreground">Why Target Leakage is Dangerous</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Models trained on leaked features achieve deceptively high validation metrics (e.g. 99.9% ROC-AUC or near-zero loss) during development. However, when deployed to production where future outcome labels do not exist, the model fails completely.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="leakage-example">
+          <h3 id="leakage-example" className="mb-3 text-lg font-semibold text-foreground">Real-World Example</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Suppose you are building a customer churn prediction model with target <code>churn_label</code> (1 = churned, 0 = active):
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Leaked Feature:</strong> Including <code>account_cancellation_date</code> or <code>refund_processed_amount</code>.</li>
+            <li><strong>The Bug:</strong> An account cancellation date is only recorded after a customer churns. In production at prediction time, cancellation dates are blank for active customers, causing the model to break.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="leakage-detectors">
+          <h3 id="leakage-detectors" className="mb-3 text-lg font-semibold text-foreground">The 6 Implemented Pattern Detectors</h3>
+          <ul className="space-y-2.5 text-sm text-muted-foreground" role="list">
+            <li><strong>1. Target Correlation Detector:</strong> Flags features with Pearson correlation &ge; 0.99 with the target.</li>
+            <li><strong>2. Identifier Shape Detector:</strong> Flags near-unique numeric ID columns correlated with the target outcome.</li>
+            <li><strong>3. Timestamp Detector:</strong> Flags timestamp columns encoding post-outcome temporal data.</li>
+            <li><strong>4. Future Information Detector:</strong> Flags columns named like outcome labels (e.g. <code>refund_status</code>).</li>
+            <li><strong>5. Duplicate Target Detector:</strong> Detects near-identical transformed copies or encodings of the target.</li>
+            <li><strong>6. Suspicious Correlation Detector:</strong> Flags unexpected strong feature correlations (&ge; 0.95).</li>
+          </ul>
+        </section>
+      </>
+    )
+  },
+  "concepts/diff": {
+    title: "Dataset Diff Engine",
+    subtitle: "Detecting schema drift and quality regressions across dataset snapshots",
+    category: "Core Concepts",
+    seoTitle: "Dataset Diff Engine Concept",
+    seoDescription: "Learn how Featuresmith's Dataset Diff Engine compares dataset snapshot versions to catch schema drift and quality regressions.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          In production ML environments, datasets evolve continuously as new data batches arrive daily or weekly. Upstream pipeline updates, database migrations, or third-party vendor changes can introduce silent regressions into fresh snapshots.
+        </p>
+
+        <section className="mb-8" aria-labelledby="diff-what-compares">
+          <h3 id="diff-what-compares" className="mb-3 text-lg font-semibold text-foreground">What Dataset Diff Compares</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Featuresmith's <code>fs.diff(old, new)</code> engine profiles both snapshots and computes deterministic deltas across:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Schema Changes:</strong> Added, removed, or renamed columns, and data type changes.</li>
+            <li><strong>Structure Changes:</strong> Row count deltas and column count shifts.</li>
+            <li><strong>Missing Value Spikes:</strong> Per-column missingness shifts classified as new, resolved, regressed, or improved.</li>
+            <li><strong>Duplicate Shifts:</strong> Changes in duplicate row counts and percentages.</li>
+            <li><strong>Constant Column Changes:</strong> Newly constant or no longer constant columns.</li>
+            <li><strong>Cardinality & Statistic Deltas:</strong> Shifts in unique values, mean, median, min, max, and standard deviation.</li>
+            <li><strong>Leakage Status Deltas:</strong> Target leakage findings that were added, removed, escalated, or de-escalated.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-verdicts">
+          <h3 id="diff-verdicts" className="mb-3 text-lg font-semibold text-foreground">Health Verdicts</h3>
+          <ul className="space-y-2 text-sm text-muted-foreground" role="list">
+            <li><strong><code>unchanged</code>:</strong> No material structural or quality changes between snapshots.</li>
+            <li><strong><code>improved</code>:</strong> Quality metrics improved (e.g. missingness decreased, leakage eliminated).</li>
+            <li><strong><code>regressed</code>:</strong> Quality degraded (e.g. columns dropped, missingness spiked, schema broke).</li>
+          </ul>
+        </section>
+      </>
+    )
+  },
+  "concepts/target-column": {
+    title: "Target Column Concept",
+    subtitle: "Understanding target variables and target-aware reviews",
+    category: "Core Concepts",
+    seoTitle: "Target Column Concept",
+    seoDescription: "Understand what target columns are and why declaring them is critical for target leakage detection in Featuresmith.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          In supervised machine learning, every training dataset contains a <strong>target column</strong> — the specific column representing the outcome variable or label your model is being trained to predict.
+        </p>
+
+        <section className="mb-8" aria-labelledby="target-examples">
+          <h3 id="target-examples" className="mb-3 text-lg font-semibold text-foreground">Examples of Target Columns</h3>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Classification:</strong> <code>survived</code> (Titanic survival), <code>churn_label</code> (Customer churn), <code>is_fraud</code> (Credit card fraud).</li>
+            <li><strong>Regression:</strong> <code>median_house_value</code> (California housing), <code>sale_price</code> (Real estate), <code>demand</code> (Sales forecasting).</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="target-why-matters">
+          <h3 id="target-why-matters" className="mb-3 text-lg font-semibold text-foreground">Why Declaring Target Column Matters</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            When you invoke <code>fs.review(dataset, target_column="survived")</code> or <code>fs.analyze(dataset, target_column="survived")</code>:
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5 text-sm text-muted-foreground">
+            <li>Featuresmith evaluates general statistical quality across all features.</li>
+            <li>It unlocks <strong>Intelligent Leakage Detection</strong>, comparing every feature against the declared target column to catch strong correlations, timestamp anomalies, and outcome clones.</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            If <code>target_column</code> is omitted, Featuresmith executes all statistical quality checks but skips target-specific leakage detection.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "concepts/workflow": {
+    title: "Mental Model & Workflow",
+    subtitle: "How Featuresmith capabilities fit together",
+    category: "Core Concepts",
+    seoTitle: "Mental Model & Workflow Guide",
+    seoDescription: "Learn the core mental model connecting loading, profiling, analysis, review, scoring, and version diffing in Featuresmith.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          Featuresmith is organized into progressive, modular layers. Understanding how these functions relate helps you choose the right API for your data pipeline.
+        </p>
+
+        <section className="mb-8" aria-labelledby="workflow-diagram">
+          <h3 id="workflow-diagram" className="mb-3 text-lg font-semibold text-foreground">The Main Execution Flow</h3>
+          <CodeBlock code={`[Raw CSV / Parquet / Excel / DataFrame]
+               │
+               ▼  fs.load()
+        [Dataset Object]
+               │
+   ┌───────────┼───────────┐
+   ▼           ▼           ▼
+fs.profile() fs.analyze() fs.review()
+ (Stats)     (Rules)     (Review + Score)
+                           │
+                           ▼  fs.score()
+                    [MLReadinessScore]
+                           │
+                           ▼  fs.diff()
+                  [DatasetDiffResult]`} language="bash" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="workflow-questions">
+          <h3 id="workflow-questions" className="mb-3 text-lg font-semibold text-foreground">Which Function Should I Use?</h3>
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border p-4 bg-card">
+              <p className="font-semibold text-foreground">"How do I load data into a clean, standard wrapper?"</p>
+              <p className="mt-1 text-xs">Use <code>ds = fs.load(source)</code> to parse files or DataFrames into a normalized <code>Dataset</code>.</p>
+            </div>
+            <div className="rounded-lg border border-border p-4 bg-card">
+              <p className="font-semibold text-foreground">"How do I extract raw statistical summaries without running quality rules?"</p>
+              <p className="mt-1 text-xs">Use <code>prof = fs.profile(ds)</code> for min, max, mean, missingness, cardinality, and correlation summaries.</p>
+            </div>
+            <div className="rounded-lg border border-border p-4 bg-card">
+              <p className="font-semibold text-foreground">"How do I check atomic rule assertions?"</p>
+              <p className="mt-1 text-xs">Use <code>res = fs.analyze(ds, target_column=...)</code> to get flagged <code>RuleFinding</code> objects.</p>
+            </div>
+            <div className="rounded-lg border border-border p-4 bg-card">
+              <p className="font-semibold text-foreground">"How do I run a comprehensive automated dataset code review?"</p>
+              <p className="mt-1 text-xs">Use <code>rev = fs.review(ds, target_column=...)</code> to run 8 reviewers and get structured sections.</p>
+            </div>
+            <div className="rounded-lg border border-border p-4 bg-card">
+              <p className="font-semibold text-foreground">"How ready does the dataset appear for machine learning?"</p>
+              <p className="mt-1 text-xs">Use <code>scorecard = fs.score(rev)</code> to extract an explainable 0–100 quality scorecard.</p>
+            </div>
+            <div className="rounded-lg border border-border p-4 bg-card">
+              <p className="font-semibold text-foreground">"How did two dataset snapshot versions change?"</p>
+              <p className="mt-1 text-xs">Use <code>diff_res = fs.diff(v1, v2)</code> to compare snapshots and get an overall health verdict.</p>
+            </div>
+          </div>
+        </section>
+      </>
+    )
+  },
+  "concepts/interpretation": {
+    title: "Interpreting Review Findings",
+    subtitle: "A beginner's guide to understanding findings and taking action",
+    category: "Core Concepts",
+    seoTitle: "Interpreting Review Findings Guide",
+    seoDescription: "Learn how to interpret Featuresmith review findings, evaluate severity, and decide on remediation actions.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          When Featuresmith reviews a dataset, it outputs structured <code>RuleFinding</code> objects. This guide helps beginners understand what each finding means, why it matters, whether it requires fixing, and what to investigate next.
+        </p>
+
+        <section className="mb-8 space-y-6" aria-labelledby="interpretation-findings">
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">1. High Missing Values (Null Spikes)</h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              <li><strong>What does this mean?</strong> A column contains a high percentage of null or missing entries.</li>
+              <li><strong>Why might it matter?</strong> Many ML algorithms (like standard linear models or SVMs) crash when passed null values, or require imputation.</li>
+              <li><strong>Is it always bad?</strong> Not always. Some tree-based models handle nulls natively, or missingness itself may be informative.</li>
+              <li><strong>What to investigate next:</strong> Check if nulls represent uncollected data or zero values, and apply appropriate imputation (mean, median, mode, or indicator flag).</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">2. Duplicate Records</h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              <li><strong>What does this mean?</strong> Identical rows exist in the dataset.</li>
+              <li><strong>Why might it matter?</strong> Duplicate rows inflate feature counts, cause data leakage between train and test splits, and bias model metrics.</li>
+              <li><strong>Is it always bad?</strong> Yes in most supervised settings — duplicate rows distort loss functions.</li>
+              <li><strong>What to investigate next:</strong> Deduplicate records prior to splitting train/test sets using <code>df.drop_duplicates()</code>.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">3. High Cardinality Categorical Columns</h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              <li><strong>What does this mean?</strong> A text or categorical column has an excessive number of unique category strings (e.g. &gt;50% unique ratio).</li>
+              <li><strong>Why might it matter?</strong> One-hot encoding high-cardinality columns creates sparse, high-dimensional matrices that slow down training and cause overfitting.</li>
+              <li><strong>Is it always bad?</strong> If the column is an ID (e.g. <code>user_id</code>), it should be dropped. If it is free text, it requires target encoding or embedding.</li>
+              <li><strong>What to investigate next:</strong> Drop raw IDs or apply frequency/target encoding.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">4. Target Leakage (CRITICAL Severity)</h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              <li><strong>What does this mean?</strong> A feature correlates near-perfectly (&ge;0.99) with the target variable, or contains future outcome data.</li>
+              <li><strong>Why might it matter?</strong> The model will learn a trivial shortcut, achieving 100% training accuracy but failing completely in production.</li>
+              <li><strong>Is it always bad?</strong> Almost always — genuine 0.99 correlations are extremely rare outside of leaked target copies or IDs.</li>
+              <li><strong>What to investigate next:</strong> Remove the flagged feature immediately before model training.</li>
+            </ul>
+          </div>
+        </section>
+      </>
+    )
+  },
+  "concepts/glossary": {
+    title: "Beginner Glossary",
+    subtitle: "Plain-language guide to Featuresmith technical terminology",
+    category: "Core Concepts",
+    seoTitle: "Featuresmith Beginner Glossary",
+    seoDescription: "Explore plain-language definitions, importance, and examples for 22 core technical terms in Featuresmith.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          This glossary defines core technical concepts used throughout Featuresmith. Each entry explains <strong>What It Means</strong>, <strong>Why It Matters in Featuresmith</strong>, and a <strong>Simple Example</strong>.
+        </p>
+
+        <div className="space-y-6">
+          {[
+            {
+              term: "DataFrame",
+              meaning: "A two-dimensional tabular data structure with named columns and rows.",
+              matters: "Featuresmith normalizes raw tabular inputs (CSV, Parquet, Excel) into DataFrames for fast statistical profiling.",
+              example: "A pandas or Polars table with columns 'age', 'income', and 'churn'."
+            },
+            {
+              term: "Polars",
+              meaning: "An ultra-fast, multi-threaded DataFrame library written in Rust.",
+              matters: "Featuresmith uses Polars internally for high-performance vectorized profiling and dataset ingestion.",
+              example: "Processing 10 million rows in under a second using Polars primitives."
+            },
+            {
+              term: "pandas",
+              meaning: "The standard Python data analysis library for working with tabular data.",
+              matters: "Featuresmith accepts pandas DataFrames natively via fs.load(df) or DataFrameConnector.",
+              example: "df = pd.read_csv('data.csv')"
+            },
+            {
+              term: "Schema",
+              meaning: "The structural blueprint of a dataset, defining column names and their expected data types.",
+              matters: "Featuresmith's SchemaHealthReviewer inspects column names and types for structural consistency.",
+              example: "{'age': Int64, 'name': String, 'income': Float64}"
+            },
+            {
+              term: "Dtype (Data Type)",
+              meaning: "The technical storage type of a column's values (e.g. Int64, Float64, Utf8, Datetime).",
+              matters: "Featuresmith inspects dtypes to detect type mismatches and recommend proper ML encodings.",
+              example: "'age' stored as Int64 vs 'price' stored as Float64."
+            },
+            {
+              term: "Logical Type",
+              meaning: "The higher-level semantic type of a column (numeric, categorical, datetime, text, or identifier).",
+              matters: "Featuresmith infers logical types during profiling to apply specialized statistical rules.",
+              example: "'passenger_id' has numeric dtype but identifier logical type."
+            },
+            {
+              term: "Profiling",
+              meaning: "Computing deterministic statistical descriptors (min, max, mean, quantiles, missingness, correlation) across a dataset.",
+              matters: "fs.profile() compiles a comprehensive ProfileResult without modifying raw data.",
+              example: "Calculating that 'income' has mean $65,000, max $250,000, and 2.5% missing values."
+            },
+            {
+              term: "Missingness",
+              meaning: "The presence of null, NaN, or missing values in a dataset column.",
+              matters: "MissingValueReviewer flags columns exceeding configurable null thresholds (default 20%).",
+              example: "Column 'cabin' containing 77% null values in the Titanic dataset."
+            },
+            {
+              term: "Cardinality",
+              meaning: "The number of unique distinct values in a categorical column.",
+              matters: "HighCardinalityReviewer flags categorical columns with excessive unique categories.",
+              example: "Column 'zip_code' containing 5,000 unique values across 6,000 rows."
+            },
+            {
+              term: "Correlation (Pearson)",
+              meaning: "A statistical metric measuring linear relationship strength between two numeric columns (-1.0 to +1.0).",
+              matters: "Used by HighCorrelationRule and TargetCorrelationDetector to catch multicollinearity and leakage.",
+              example: "Correlation of +0.99 between 'total_bill' and 'tax_amount'."
+            },
+            {
+              term: "Entropy",
+              meaning: "A statistical measure of randomness or unpredictability in a categorical feature.",
+              matters: "Featuresmith computes categorical entropy to measure value diversity.",
+              example: "High entropy in uniform category distributions vs zero entropy in constant columns."
+            },
+            {
+              term: "Skewness",
+              meaning: "A measure of asymmetry in a numeric probability distribution around its mean.",
+              matters: "BasicStatisticsReviewer flags features with extreme skewness (>2.0) requiring log transformations.",
+              example: "Income distributions with a long right tail of high earners."
+            },
+            {
+              term: "Kurtosis",
+              meaning: "A measure of the 'tailedness' and extreme outlier presence in a distribution.",
+              matters: "Featuresmith identifies heavy-tailed distributions with kurtosis >10.0.",
+              example: "Financial transaction amounts with sudden massive outlier spikes."
+            },
+            {
+              term: "IQR (Interquartile Range)",
+              meaning: "The range between the 25th (Q1) and 75th (Q3) percentiles (IQR = Q3 - Q1).",
+              matters: "Used by OutlierDetectionRule to identify statistical outliers robustly.",
+              example: "Values beyond Q3 + 1.5*IQR flagged as outliers."
+            },
+            {
+              term: "Target Column",
+              meaning: "The column representing the outcome variable or label being predicted in supervised machine learning.",
+              matters: "Declaring target_column='survived' enables target leakage detection across 6 pattern detectors.",
+              example: "'churn_label' in customer churn prediction."
+            },
+            {
+              term: "Target Leakage",
+              meaning: "A severe bug where predictive features contain future outcome data unavailable at inference time.",
+              matters: "Featuresmith's LeakageReviewer detects correlation, timestamp, and outcome clones.",
+              example: "Including 'account_cancellation_date' in a churn model."
+            },
+            {
+              term: "Deterministic Engine",
+              meaning: "Algorithms that always produce identical, repeatable outputs when given the same input.",
+              matters: "Featuresmith rule evaluations and scores are 100% deterministic and reproducible.",
+              example: "Running fs.review() on identical data always yields the exact same score."
+            },
+            {
+              term: "Rule",
+              meaning: "An atomic quality assertion (e.g. quality.missing_value_threshold) evaluated against a dataset profile.",
+              matters: "Rules produce RuleFinding objects with assigned severities.",
+              example: "FullyEmptyColumnsRule checking for 100% null columns."
+            },
+            {
+              term: "Reviewer",
+              meaning: "A domain-specific inspector inside the Review Engine that aggregates rule findings into a ReviewSection.",
+              matters: "8 built-in reviewers evaluate dataset health deterministically.",
+              example: "LeakageReviewer evaluating target leakage risks."
+            },
+            {
+              term: "Finding (RuleFinding)",
+              meaning: "A structured record representing a specific quality issue, warning, or passed check.",
+              matters: "Findings contain rule_id, title, description, column_name, severity, and evidence.",
+              example: "[CRITICAL] High missing values in column 'cabin'."
+            },
+            {
+              term: "ML Readiness Score",
+              meaning: "An explainable 0–100 quality scorecard evaluating dataset health across 8 weighted dimensions.",
+              matters: "Provides a single auditable metric to gate pre-training data pipelines.",
+              example: "Score of 86.9/100 on Titanic dataset."
+            },
+            {
+              term: "Dataset Diff",
+              meaning: "Comparing two dataset snapshot versions (old vs new) to identify quality drift and schema changes.",
+              matters: "fs.diff() yields an overall health verdict (unchanged, improved, regressed).",
+              example: "Detecting that a new daily dataset snapshot dropped column 'store_id'."
+            }
+          ].map((item) => (
+            <div key={item.term} className="rounded-lg border border-border bg-card p-5">
+              <h3 className="text-base font-semibold text-foreground mb-2">{item.term}</h3>
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <li><strong>What It Means:</strong> {item.meaning}</li>
+                <li><strong>Why It Matters in Featuresmith:</strong> {item.matters}</li>
+                <li><strong>Simple Example:</strong> <code>{item.example}</code></li>
+              </ul>
+            </div>
+          ))}
+        </div>
+      </>
+    )
+  },
   "sdk/load": {
     title: "fs.load()",
     subtitle: "SDK Reference: tabular ingestion",

@@ -41,6 +41,26 @@ const QUICK_LINKS = [
     href: "/docs/quickstart",
   },
   {
+    title: "Mental Model & Workflow",
+    description: "Learn how load(), profile(), review(), score(), and diff() fit together.",
+    href: "/docs/concepts/workflow",
+  },
+  {
+    title: "Beginner Glossary",
+    description: "Plain-language guide to 22 technical terms (DataFrame, Polars, Leakage, Score).",
+    href: "/docs/concepts/glossary",
+  },
+  {
+    title: "Target Column Concept",
+    description: "Understand target variables and how declaring target_column unlocks leakage detection.",
+    href: "/docs/concepts/target-column",
+  },
+  {
+    title: "Interpreting Findings",
+    description: "Learn how to interpret review findings, assess severity, and decide on fixes.",
+    href: "/docs/concepts/interpretation",
+  },
+  {
     title: "Interactive Notebooks",
     description: "Hands-on Jupyter notebooks covering review, leakage, score, and diff.",
     href: "/examples#tutorial-notebooks",
