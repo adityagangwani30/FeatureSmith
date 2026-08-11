@@ -74,7 +74,7 @@ def build_all_notebooks():
     nb_dir = Path("examples/notebooks")
     nb_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clean out old v0.1.0 notebooks if present
+    # Clean out deprecated notebook names if present
     old_notebooks = [
         "02_exploring_datasets.ipynb",
         "03_understanding_rule_findings.ipynb",
@@ -91,7 +91,7 @@ def build_all_notebooks():
     # =========================================================================
     nb1 = create_notebook(
         title="01 — Getting Started with Featuresmith v0.2.0",
-        description="Learn the fundamentals of Featuresmith — loading tabular datasets, deterministic statistical profiling, automated dataset code reviews, and ML readiness scoring.",
+        description="Learn the fundamentals of Featuresmith — loading tabular datasets, inspecting Dataset descriptors, deterministic statistical profiling, automated dataset code reviews, and ML readiness scoring.",
         sections=[
             {
                 "markdown": [
@@ -101,32 +101,54 @@ def build_all_notebooks():
                     "### Objectives\n",
                     "1. Understand Featuresmith's package structure (`featuresmith-core` and `featuresmith-cli`).\n",
                     "2. Load tabular data from CSV, Parquet, Excel, or DataFrames using `fs.load()`.\n",
-                    "3. Profile datasets deterministically with `fs.profile()`.\n",
-                    "4. Perform an automated dataset code review with `fs.review()`.\n",
-                    "5. Extract an explainable 0–100 ML Readiness Score with `fs.score()`.",
+                    "3. Inspect `Dataset` properties (`row_count`, `column_count`, `dtypes`, `source`, `preview()`).\n",
+                    "4. Profile datasets deterministically with `fs.profile()`.\n",
+                    "5. Perform an automated dataset code review with `fs.review()`.\n",
+                    "6. Extract an explainable 0–100 ML Readiness Score with `fs.score()`.",
                 ]
             },
             {
                 "markdown": ["### Step 1: Import Featuresmith & Verify Version"],
                 "code": [
                     "import featuresmith as fs\n",
-                    "import os\n\n",
+                    "import os\n",
+                    "import pandas as pd\n\n",
                     'print(f"Featuresmith Version: {fs.__version__}")',
                 ],
             },
             {
-                "markdown": ["### Step 2: Load the Titanic Dataset"],
+                "markdown": [
+                    "### Step 2: Load Tabular Datasets & Inspect Dataset Objects\n",
+                    "`fs.load()` normalizes local files (`.csv`, `.parquet`, `.xlsx`) and in-memory DataFrames into a shallowly immutable `Dataset` contract without copying memory buffers.",
+                ],
                 "code": [
                     'data_path = os.path.join("..", "data", "processed", "titanic.csv")\n',
                     "dataset = fs.load(data_path)\n\n",
                     'print(f"Dataset Source : {dataset.source}")\n',
+                    'print(f"Backend Engine : {dataset.backend}")\n',
                     'print(f"Row Count      : {dataset.row_count}")\n',
                     'print(f"Column Count   : {dataset.column_count}")\n',
-                    'print(f"Columns        : {dataset.schema.names}")',
+                    'print(f"Columns        : {dataset.schema.names}")\n\n',
+                    "# Preview first 3 rows\n",
+                    "print('\\nData Preview:')\n",
+                    "print(dataset.preview(3))",
                 ],
             },
             {
-                "markdown": ["### Step 3: Run Vectorized Deterministic Profiling"],
+                "markdown": [
+                    "### Step 3: Load In-Memory DataFrame using `from_dataframe` or `load`"
+                ],
+                "code": [
+                    'df = pd.DataFrame({"age": [25, 30, 35], "income": [50000.0, 65000.0, 80000.0]})\n',
+                    "ds_mem = fs.load(df)\n",
+                    'print(f"In-Memory Dataset Row Count: {ds_mem.row_count}, Columns: {ds_mem.column_count}")',
+                ],
+            },
+            {
+                "markdown": [
+                    "### Step 4: Run Vectorized Deterministic Profiling\n",
+                    "`fs.profile()` computes statistical descriptors (min, max, mean, quantiles, missingness, cardinality, correlations) deterministically.",
+                ],
                 "code": [
                     "profile = fs.profile(dataset)\n",
                     'print(f"Overall Missingness: {profile.dataset_summary.missing_percentage:.2f}%")\n',
@@ -136,7 +158,10 @@ def build_all_notebooks():
                 ],
             },
             {
-                "markdown": ["### Step 4: Run Automated Dataset Review & Scorecard"],
+                "markdown": [
+                    "### Step 5: Run Automated Dataset Review & Scorecard\n",
+                    "`fs.review()` evaluates dataset health across 8 specialized reviewers, while `fs.score()` extracts an overall ML Readiness Scorecard.",
+                ],
                 "code": [
                     'review_result = fs.review(dataset, target_column="survived")\n',
                     "scorecard = fs.score(review_result)\n\n",
@@ -149,11 +174,12 @@ def build_all_notebooks():
             },
             {
                 "markdown": [
-                    "### Key Takeaways\n",
+                    "### Key Takeaways & Connection to Next Tutorial\n",
                     "- `fs.load()` normalizes files and DataFrames into a standard schema contract.\n",
-                    "- `fs.profile()` executes ultra-fast Polars computations to extract shape and column descriptors.\n",
+                    "- `fs.profile()` executes ultra-fast computations to extract shape and column descriptors.\n",
                     "- `fs.review()` runs 8 automated reviewers to inspect missingness, data types, and target leakage risk.\n",
-                    "- `fs.score()` transforms review findings into an explainable 0–100 quality scorecard.",
+                    "- `fs.score()` transforms review findings into an explainable 0–100 quality scorecard.\n\n",
+                    "**Next Tutorial**: In `02_dataset_review.ipynb`, we explore the Review Engine's 8 automated reviewers, category filtering, reviewer configuration, and text output rendering.",
                 ]
             },
         ],
@@ -164,14 +190,14 @@ def build_all_notebooks():
     # =========================================================================
     nb2 = create_notebook(
         title="02 — Complete Dataset Review Walkthrough",
-        description="Deep dive into Featuresmith's Review Engine — exploring the 8 automated reviewers, category filtering, finding severities, and remediation guidance.",
+        description="Deep dive into Featuresmith's Review Engine — exploring the 8 automated reviewers, category filtering, finding severities, reviewer configuration, and formatted text report rendering.",
         sections=[
             {
                 "markdown": [
                     "## 1. Why Automated Dataset Code Reviews Matter\n",
                     "Just as software engineers perform code reviews before merging pull requests, ML engineers must perform dataset code reviews before training models. ",
                     "Featuresmith's Review Engine runs 8 specialized reviewers to evaluate dataset health deterministically.\n\n",
-                    "### The 8 Automated Reviewers\n",
+                    "### The 8 Automated Reviewers in v0.2.0\n",
                     "1. **Schema Health Reviewer**: Evaluates structural consistency and column naming.\n",
                     "2. **Data Types Reviewer**: Detects text types, numeric types, and type mismatches.\n",
                     "3. **Missing Values Reviewer**: Identifies column missingness ratios and null spikes.\n",
@@ -179,7 +205,7 @@ def build_all_notebooks():
                     "5. **Constant Columns Reviewer**: Finds zero-variance and empty columns.\n",
                     "6. **High Cardinality Reviewer**: Flags categorical columns with excessive unique values.\n",
                     "7. **Basic Statistics Reviewer**: Analyzes distribution skewness and kurtosis anomalies.\n",
-                    "8. **Leakage Risk Reviewer**: Evaluates target correlations, identifier shapes, and timestamp anomalies.",
+                    "8. **Leakage Risk Reviewer**: Evaluates target correlations, identifier shapes, timestamp anomalies, and duplicate targets.",
                 ]
             },
             {
@@ -206,9 +232,37 @@ def build_all_notebooks():
             },
             {
                 "markdown": [
-                    "### Best Practices & Common Mistakes\n",
-                    "- **Best Practice**: Always run `fs.review()` before training baseline models to catch silent structural issues.\n",
-                    "- **Common Mistake**: Ignoring `INFO` severity findings like text columns (`name`, `ticket`) that require specialized NLP tokenization or embedding preprocessing.",
+                    "### Step 3: Filter Review Categories & Configure Reviewers\n",
+                    "You can specify `enabled_categories` (e.g. `['quality', 'leakage']`) or configure specific reviewer thresholds via `reviewer_config`.",
+                ],
+                "code": [
+                    "custom_review = fs.review(\n",
+                    "    dataset,\n",
+                    '    enabled_categories=["quality", "leakage"],\n',
+                    "    reviewer_config={\n",
+                    '        "review.quality.missingness": {"threshold": 10.0}\n',
+                    "    }\n",
+                    ")\n",
+                    'print(f"Filtered Review Sections Count: {len(custom_review.sections)}")',
+                ],
+            },
+            {
+                "markdown": [
+                    "### Step 4: Render Formatted Text Report with `fs.render()`"
+                ],
+                "code": [
+                    'report_text = fs.render(review_res, target="console")\n',
+                    'print("=== Formatted Text Report Preview ===")\n',
+                    'print(report_text[:600] + "\\n...")',
+                ],
+            },
+            {
+                "markdown": [
+                    "### Key Takeaways & Connection to Next Tutorial\n",
+                    "- `fs.review()` evaluates dataset health across 8 reviewers deterministically.\n",
+                    "- Category filtering (`enabled_categories`) and reviewer threshold overrides (`reviewer_config`) allow custom validation rules.\n",
+                    "- `fs.render(review_res)` generates formatted console text reports.\n\n",
+                    "**Next Tutorial**: In `03_ml_readiness_score.ipynb`, we explore the 0–100 ML Readiness Scorecard, health dimension weights, deduction math, and actionable fix suggestions.",
                 ]
             },
         ],
@@ -219,7 +273,7 @@ def build_all_notebooks():
     # =========================================================================
     nb3 = create_notebook(
         title="03 — Understanding the ML Readiness Score",
-        description="Learn how Featuresmith computes an explainable 0–100 ML Readiness Score across 8 health dimensions with transparent mathematical weighting.",
+        description="Learn how Featuresmith computes an explainable 0–100 ML Readiness Score across 8 health dimensions with transparent mathematical weighting, deduction rules, and actionable fix suggestions.",
         sections=[
             {
                 "markdown": [
@@ -233,7 +287,12 @@ def build_all_notebooks():
                     "- **Constant Columns** (Weight: 10%)\n",
                     "- **High Cardinality** (Weight: 10%)\n",
                     "- **Dataset Structure** (Weight: 10%)\n",
-                    "- **Leakage Risk** (Weight: 20%)",
+                    "- **Leakage Risk** (Weight: 20%)\n\n",
+                    "### Deduction Rules\n",
+                    "Base score per dimension starts at 100. Findings deduct points based on severity:\n",
+                    "- **CRITICAL finding**: -30 points\n",
+                    "- **WARNING finding**: -15 points\n",
+                    "- **INFO finding**: -5 points",
                 ]
             },
             {
@@ -266,10 +325,11 @@ def build_all_notebooks():
             },
             {
                 "markdown": [
-                    "### Key Takeaways\n",
+                    "### Key Takeaways & Connection to Next Tutorial\n",
                     "- The ML Readiness Score is completely deterministic and reproducible.\n",
                     "- Dimensions use dedicated weights reflecting their operational impact on model training.\n",
-                    "- Fix suggestions provide exact code and data pipeline remedies.",
+                    "- Fix suggestions provide exact code and data pipeline remedies.\n\n",
+                    "**Next Tutorial**: In `04_leakage_detection.ipynb`, we dive deep into Intelligent Leakage Detection and the 6 pattern detectors that prevent target leakage bugs.",
                 ]
             },
         ],
@@ -280,7 +340,7 @@ def build_all_notebooks():
     # =========================================================================
     nb4 = create_notebook(
         title="04 — Detecting Data Leakage with Intelligent Leakage Detection",
-        description="Master Intelligent Leakage Detection — discovering target correlations, timestamp anomalies, identifier shapes, and duplicate target copies before training.",
+        description="Master Intelligent Leakage Detection — discovering target correlations, timestamp anomalies, identifier shapes, post-outcome feature names, and duplicate target copies before model training.",
         sections=[
             {
                 "markdown": [
@@ -292,14 +352,14 @@ def build_all_notebooks():
                     "1. **Target Correlation Detector**: Flags features with Pearson correlation >= 0.99 with the target.\n",
                     "2. **Identifier Shape Detector**: Flags near-unique numeric ID features correlated with the target.\n",
                     "3. **Timestamp Detector**: Identifies future timestamp columns encoding post-outcome information.\n",
-                    "4. **Future Information Detector**: Identifies features named like outcome labels.\n",
+                    "4. **Future Information Detector**: Identifies features named like outcome labels (e.g., `refund_date`, `is_cancelled`).\n",
                     "5. **Duplicate Target Detector**: Detects near-identical transformed copies of the target.\n",
                     "6. **Suspicious Correlation Detector**: Flags unexpected strong correlations (>= 0.95).",
                 ]
             },
             {
                 "markdown": [
-                    "### Step 1: Analyze Customer Churn Dataset with Leakage Column"
+                    "### Step 1: Analyze Customer Churn Dataset with Leakage Columns"
                 ],
                 "code": [
                     "import featuresmith as fs\n",
@@ -319,9 +379,10 @@ def build_all_notebooks():
             },
             {
                 "markdown": [
-                    "### Best Practices\n",
+                    "### Key Takeaways & Connection to Next Tutorial\n",
                     "- Always declare your target column when invoking `fs.review(dataset, target_column=...)`.\n",
-                    "- Never deploy a model trained on features triggering `CRITICAL` target leakage findings.",
+                    "- Never deploy a model trained on features triggering `CRITICAL` target leakage findings.\n\n",
+                    "**Next Tutorial**: In `05_dataset_diff.ipynb`, we explore the Dataset Diff Engine (`fs.diff`) to compare dataset snapshot versions.",
                 ]
             },
         ],
@@ -332,7 +393,7 @@ def build_all_notebooks():
     # =========================================================================
     nb5 = create_notebook(
         title="05 — Comparing Dataset Versions with Dataset Diff Engine",
-        description="Learn how to compare dataset snapshot versions with `fs.diff()` to prevent silent schema drift, missingness spikes, and quality regressions.",
+        description="Learn how to compare dataset snapshot versions with `fs.diff()`, `fs.diff_findings()`, and `fs.render_diff()` to prevent silent schema drift, missingness spikes, and quality regressions.",
         sections=[
             {
                 "markdown": [
@@ -377,9 +438,26 @@ def build_all_notebooks():
             },
             {
                 "markdown": [
-                    "### Key Takeaways\n",
+                    "### Step 3: Extract Diff Findings & Render Diff Text Report\n",
+                    "Use `fs.diff_findings()` to extract `RuleFinding` objects from a diff result, and `fs.render_diff()` for terminal output.",
+                ],
+                "code": [
+                    "findings = fs.diff_findings(diff_result)\n",
+                    'print(f"Derived Diff Findings Count: {len(findings)}")\n',
+                    "for f in findings[:3]:\n",
+                    '    print(f"  - [{f.severity.upper()}] {f.title}")\n\n',
+                    'diff_report = fs.render_diff(diff_result, target="console")\n',
+                    'print("\\n=== Formatted Diff Text Report Preview ===")\n',
+                    'print(diff_report[:500] + "\\n...")',
+                ],
+            },
+            {
+                "markdown": [
+                    "### Key Takeaways & Connection to Next Tutorial\n",
                     "- `fs.diff()` gives an immediate pass/fail verdict for dataset snapshot updates.\n",
-                    "- It tracks structural, schema, quality, distribution, and leakage deltas in one canonical object.",
+                    "- It tracks structural, schema, quality, distribution, and leakage deltas in one canonical object.\n",
+                    "- `fs.diff_findings()` converts diff deltas into standard `RuleFinding` objects for CI exit code gating.\n\n",
+                    "**Next Tutorial**: In `06_end_to_end_workflow.ipynb`, we build a production pre-training pipeline gate that integrates review, scoring, and error handling.",
                 ]
             },
         ],
@@ -390,7 +468,7 @@ def build_all_notebooks():
     # =========================================================================
     nb6 = create_notebook(
         title="06 — End-to-End ML Dataset Validation Workflow",
-        description="Build a production-ready ML dataset validation pipeline connecting dataset loading, automated review, readiness gating, and JSON export.",
+        description="Build a production-ready ML dataset validation pipeline connecting dataset loading, automated review, readiness gating, error handling, and JSON export.",
         sections=[
             {
                 "markdown": [
@@ -402,12 +480,17 @@ def build_all_notebooks():
                 "markdown": ["### Step 1: Complete Pipeline Function"],
                 "code": [
                     "import featuresmith as fs\n",
+                    "from featuresmith.core.exceptions import ConnectorError\n",
                     "import json\n",
                     "import os\n",
                     "import sys\n\n",
                     "def validate_and_gate_dataset(file_path: str, target_col: str, min_score: float = 80.0) -> bool:\n",
                     '    print(f"=== Validating Dataset: {file_path} ===")\n',
-                    "    dataset = fs.load(file_path)\n",
+                    "    try:\n",
+                    "        dataset = fs.load(file_path)\n",
+                    "    except ConnectorError as err:\n",
+                    '        print(f"❌ GATE FAILED: Connector Error loading {file_path}: {err}")\n',
+                    "        return False\n\n",
                     "    review_res = fs.review(dataset, target_column=target_col)\n",
                     "    scorecard = fs.score(review_res)\n\n",
                     "    overall_score = scorecard.overall if scorecard else 0.0\n",
@@ -431,9 +514,113 @@ def build_all_notebooks():
             },
             {
                 "markdown": [
-                    "### Key Takeaways\n",
+                    "### Key Takeaways & Connection to Next Tutorial\n",
                     "- Featuresmith enables programmatic dataset quality gating in production pipelines.\n",
-                    "- Zero external network dependencies ensure data remains 100% private and secure.",
+                    "- Zero external network dependencies ensure data remains 100% private and secure.\n\n",
+                    "**Next Tutorial**: In `07_custom_rules_and_extensions.ipynb`, we learn how to extend `BaseRule` to write custom domain-specific validation rules.",
+                ]
+            },
+        ],
+    )
+
+    # =========================================================================
+    # Notebook 7: Custom Rules and Advanced Extensions
+    # =========================================================================
+    nb7 = create_notebook(
+        title="07 — Custom Rules and Advanced Extensions",
+        description="Learn how to extend `BaseRule` to create custom quality rules, register them in `RuleRegistry`, and execute them via `RuleEngine` or `fs.analyze()`.",
+        sections=[
+            {
+                "markdown": [
+                    "## 1. Custom Rule Engineering\n",
+                    "Featuresmith is designed to be fully extensible. While built-in rules cover standard statistical quality and leakage checks, business-specific constraints (e.g., negative balances, invalid transaction ranges, proprietary schema rules) can be implemented by inheriting from `BaseRule`.\n\n",
+                    "### The `BaseRule` Interface\n",
+                    "Custom rules implement six required properties/methods:\n",
+                    "- `id`: Unique dot-separated rule identifier (e.g. `custom.zero_variance`).\n",
+                    "- `name`: Human-readable title.\n",
+                    "- `description`: Summary of rule check.\n",
+                    "- `category`: Category string (`quality`, `statistical`, `leakage`, or `custom`).\n",
+                    "- `severity`: Default severity (`critical`, `warning`, `info`).\n",
+                    "- `enabled_by_default`: Boolean flag.\n",
+                    "- `evaluate(profile: ProfileResult) -> list[RuleFinding]`: Evaluation logic consuming a precomputed `ProfileResult`.",
+                ]
+            },
+            {
+                "markdown": ["### Step 1: Implement a Custom `ZeroVarianceRule`"],
+                "code": [
+                    "from featuresmith.core.profile_result import ProfileResult\n",
+                    "from featuresmith.core.rule_finding import RuleFinding\n",
+                    "from featuresmith.rules.base import BaseRule\n",
+                    "import featuresmith as fs\n",
+                    "import os\n\n",
+                    "class ZeroVarianceRule(BaseRule):\n",
+                    '    """Detect numeric columns with zero standard deviation."""\n',
+                    "    @property\n",
+                    "    def id(self) -> str:\n",
+                    '        return "custom.zero_variance"\n\n',
+                    "    @property\n",
+                    "    def name(self) -> str:\n",
+                    '        return "Zero Variance Numeric Columns"\n\n',
+                    "    @property\n",
+                    "    def description(self) -> str:\n",
+                    '        return "Flags numeric columns with zero observed standard deviation."\n\n',
+                    "    @property\n",
+                    "    def category(self) -> str:\n",
+                    '        return "custom"\n\n',
+                    "    @property\n",
+                    "    def severity(self) -> str:\n",
+                    '        return "warning"\n\n',
+                    "    @property\n",
+                    "    def enabled_by_default(self) -> bool:\n",
+                    "        return True\n\n",
+                    "    def evaluate(self, profile: ProfileResult) -> list[RuleFinding]:\n",
+                    "        findings: list[RuleFinding] = []\n",
+                    "        for col_name, num_prof in profile.numeric_profiles.items():\n",
+                    "            if num_prof.std_dev == 0.0:\n",
+                    "                findings.append(\n",
+                    "                    RuleFinding(\n",
+                    "                        rule_id=self.id,\n",
+                    "                        rule_name=self.name,\n",
+                    "                        category=self.category,\n",
+                    "                        severity=self.severity,\n",
+                    "                        column_name=col_name,\n",
+                    '                        title="Zero Variance Detected",\n',
+                    "                        description=f\"Numeric column '{col_name}' has standard deviation of 0.0.\",\n",
+                    '                        evidence={"std_dev": num_prof.std_dev}\n',
+                    "                    )\n",
+                    "                )\n",
+                    "        return findings\n\n",
+                    'print("Custom ZeroVarianceRule defined successfully.")',
+                ],
+            },
+            {
+                "markdown": [
+                    "### Step 2: Register & Evaluate Custom Rule Against Profile"
+                ],
+                "code": [
+                    "from featuresmith.rules.registry import default_registry\n\n",
+                    "# Instantiate the custom rule and add it to a RuleRegistry\n",
+                    "custom_rule = ZeroVarianceRule()\n",
+                    "registry = default_registry()\n",
+                    "registry.register(custom_rule)\n\n",
+                    'data_path = os.path.join("..", "data", "processed", "sales.csv")\n',
+                    "dataset = fs.load(data_path)\n",
+                    "profile = fs.profile(dataset)\n\n",
+                    "# Evaluate the custom rule directly\n",
+                    "findings = custom_rule.evaluate(profile)\n\n",
+                    'print(f"Rule ID             : {custom_rule.id}")\n',
+                    'print(f"Registered Rules    : {len(registry.list_rules())}")\n',
+                    'print(f"Direct Findings     : {len(findings)}")\n',
+                    "for f in findings:\n",
+                    '    print(f"  - [{f.severity.upper()}] Column: {f.column_name} | {f.title}")',
+                ],
+            },
+            {
+                "markdown": [
+                    "### Key Takeaways\n",
+                    "- `BaseRule` allows developers to add custom, business-specific quality checks.\n",
+                    "- Custom rules operate deterministically on precomputed `ProfileResult` descriptors.\n",
+                    "- `RuleRegistry` maintains registered rule instances for execution engines.",
                 ]
             },
         ],
@@ -446,6 +633,7 @@ def build_all_notebooks():
         "04_leakage_detection.ipynb": nb4,
         "05_dataset_diff.ipynb": nb5,
         "06_end_to_end_workflow.ipynb": nb6,
+        "07_custom_rules_and_extensions.ipynb": nb7,
     }
 
     for name, content in notebooks.items():

@@ -201,6 +201,12 @@ export default function ExamplesPage() {
                   title: "06. End-to-End ML Dataset Validation Workflow",
                   topic: "End-to-End Validation Pipeline Gate",
                   description: "Build an automated Python pre-training quality gate function that validates datasets, enforces score thresholds, and halts pipelines on critical findings."
+                },
+                {
+                  filename: "07_custom_rules_and_extensions.ipynb",
+                  title: "07. Custom Rules & Advanced Extensions",
+                  topic: "Extending BaseRule & Custom Rules",
+                  description: "Extend BaseRule to write domain-specific quality checks, register custom rules in RuleRegistry, and evaluate them against ProfileResult."
                 }
               ].map((nb) => (
                 <div key={nb.filename} className="rounded-lg border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-primary/30">

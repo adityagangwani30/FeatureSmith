@@ -85,7 +85,9 @@ def main():
         print("\n[FAILED] Notebook execution failed.")
         sys.exit(1)
 
-    print("\n[SUCCESS] All 6 Jupyter Notebooks executed and validated successfully!")
+    print(
+        f"\n[SUCCESS] All {len(notebooks)} Jupyter Notebooks executed and validated successfully!"
+    )
 
 
 if __name__ == "__main__":
