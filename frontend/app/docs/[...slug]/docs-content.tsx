@@ -1966,11 +1966,11 @@ except SourceNotFoundError:
                   <td className="px-4 py-3 text-sm">Combinatorial cutoff limit for correlation profiling (default: 100).</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet / --no-quiet</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet</td>
                   <td className="px-4 py-3 text-sm">Suppress all standard console report output.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose / --no-verbose</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose</td>
                   <td className="px-4 py-3 text-sm">Show full Python tracebacks on error instead of generic messages.</td>
                 </tr>
                 <tr>
@@ -2833,11 +2833,11 @@ print(dataset.preview(5))       # first 5 rows as a dataframe`} language="python
                   <td className="px-4 py-3 text-sm">Omit the ML Readiness Score scorecard from the report.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet / --no-quiet</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet</td>
                   <td className="px-4 py-3 text-sm">Suppress all standard console report output.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose / --no-verbose</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose</td>
                   <td className="px-4 py-3 text-sm">Show full Python tracebacks on error instead of generic messages.</td>
                 </tr>
                 <tr>
@@ -2935,11 +2935,11 @@ featuresmith review train.csv --format json --output review_report.json`} langua
                   <td className="px-4 py-3 text-sm">Severity threshold for CI-gating exit codes (default: <code>critical</code>).</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet / --no-quiet</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--quiet</td>
                   <td className="px-4 py-3 text-sm">Suppress all standard console report output.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose / --no-verbose</td>
+                  <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--verbose</td>
                   <td className="px-4 py-3 text-sm">Show full Python tracebacks on error instead of generic messages.</td>
                 </tr>
                 <tr>
