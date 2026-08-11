@@ -738,10 +738,34 @@ profile = fs.profile("wide_table.csv", max_correlation_columns=50)`} language="p
           Load a supported local tabular file or in-memory DataFrame into a normalized immutable <code>Dataset</code> descriptor.
         </p>
 
+        <section className="mb-8" aria-labelledby="load-when-use">
+          <h3 id="load-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use at the start of any data validation script or pipeline step to parse files or wrap DataFrames into a standard <code>Dataset</code> object containing inferred schemas, column data types, row counts, and source metadata.
+          </p>
+        </section>
+
         <section className="mb-8" aria-labelledby="load-args">
           <h3 id="load-args" className="mb-3 text-lg font-semibold text-foreground">Arguments</h3>
           <ul className="space-y-2 text-sm text-muted-foreground" role="list">
-            <li><strong>source</strong>: <code>str</code> | <code>pandas.DataFrame</code> | <code>polars.DataFrame</code>. Local file path (<code>.csv</code>, <code>.xlsx</code>, <code>.parquet</code>) or loaded DataFrame.</li>
+            <li><strong>source</strong>: <code>str</code> | <code>pandas.DataFrame</code> | <code>polars.DataFrame</code>. Local file path (<code>.csv</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.parquet</code>) or loaded DataFrame object.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="load-returns">
+          <h3 id="load-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Returns a normalized, shallowly immutable <code>Dataset</code> dataclass containing <code>dataframe</code>, <code>backend</code> (<code>"polars"</code> or <code>"pandas"</code>), <code>schema</code> (<code>DatasetSchema</code>), <code>row_count</code>, <code>column_count</code>, <code>dtypes</code>, <code>source</code>, and <code>file_size</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="load-exceptions">
+          <h3 id="load-exceptions" className="mb-3 text-lg font-semibold text-foreground">Exceptions</h3>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>ConnectorError</code>: Base exception raised when a data source cannot be validated or loaded.</li>
+            <li><code>SourceNotFoundError</code>: Raised when the target local file path does not exist.</li>
+            <li><code>UnsupportedFormatError</code>: Raised when the file extension or object type is unsupported.</li>
+            <li><code>SourceParseError</code>: Raised when parsing or reading the file content fails.</li>
           </ul>
         </section>
 
@@ -750,13 +774,22 @@ profile = fs.profile("wide_table.csv", max_correlation_columns=50)`} language="p
           <CodeBlock code={`import featuresmith as fs
 import polars as pl
 
-# Load from file
+# Load from local file path (CSV, Parquet, Excel)
 ds = fs.load("train.parquet")
-print(ds.row_count)
+print(f"Loaded {ds.row_count} rows across {ds.column_count} columns via {ds.backend}.")
 
-# Load from in-memory Polars DataFrame
-df = pl.DataFrame({"x": [1, 2, 3]})
-ds_mem = fs.load(df)`} language="python" showCopy />
+# Load from in-memory Polars or pandas DataFrame
+df = pl.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.0, 6.0]})
+ds_mem = fs.load(df)
+print(ds_mem.preview(2))`} language="python" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="load-notes">
+          <h3 id="load-notes" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>Zero Data Copying</strong>: In-memory pandas or Polars DataFrames are wrapped directly without copying memory buffers.</li>
+            <li><strong>Backend Engines</strong>: Polars is used for CSV and Parquet files; pandas is used for Excel files.</li>
+          </ul>
         </section>
       </>
     )
@@ -779,12 +812,33 @@ ds_mem = fs.load(df)`} language="python" showCopy />
           Profile a Dataset or tabular source directly, executing vectorized summaries and returning a strongly-typed, serializable <code>ProfileResult</code>.
         </p>
 
+        <section className="mb-8" aria-labelledby="profile-when-use">
+          <h3 id="profile-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use when you need detailed statistical profiles of dataset columns (min, max, mean, quantiles, missingness, cardinality, frequency tables, correlations) without running rule evaluations or review scoring.
+          </p>
+        </section>
+
         <section className="mb-8" aria-labelledby="profile-args">
           <h3 id="profile-args" className="mb-3 text-lg font-semibold text-foreground">Arguments</h3>
           <ul className="space-y-3 text-sm text-muted-foreground" role="list">
             <li><strong>source</strong>: <code>Dataset</code> | <code>str</code> | <code>DataFrame</code>. Pre-loaded Dataset or file/data source.</li>
-            <li><strong>max_correlation_columns</strong>: <code>int</code> (default 100). Column cap for Pearson correlation computations.</li>
+            <li><strong>max_correlation_columns</strong>: <code>int</code> (default 100). Column cap for Pearson correlation computations to prevent combinatorial blowup.</li>
             <li><strong>max_frequency_table_size</strong>: <code>int</code> (default 1000). Maximum unique categories to track in frequency table summaries.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="profile-returns">
+          <h3 id="profile-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Returns a frozen <code>ProfileResult</code> dataclass containing <code>dataset_summary</code>, <code>column_profiles</code>, typed profiles (<code>numeric_profiles</code>, <code>categorical_profiles</code>, <code>datetime_profiles</code>, <code>text_profiles</code>), missingness & duplicate summaries, correlation matrices, and execution metadata.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="profile-exceptions">
+          <h3 id="profile-exceptions" className="mb-3 text-lg font-semibold text-foreground">Exceptions</h3>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>ConnectorError</code>: Raised if an unresolved file path or invalid DataFrame source fails to load before profiling.</li>
           </ul>
         </section>
 
@@ -796,7 +850,16 @@ profile = fs.profile("customers.csv", max_correlation_columns=50)
 
 # Inspect column summaries
 print(profile.column_profiles["age"].missing_count)
-print(profile.dataset_summary.row_count)`} language="python" showCopy />
+print(profile.dataset_summary.row_count)
+print(profile.numeric_profiles["income"].mean)`} language="python" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="profile-notes">
+          <h3 id="profile-notes" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>Deterministic Engine</strong>: Computations run on Polars or pandas backend using vectorized primitives.</li>
+            <li><strong>Frozen Output</strong>: The returned <code>ProfileResult</code> is fully frozen, slotted, and serializable via <code>profile.to_dict()</code>.</li>
+          </ul>
         </section>
       </>
     )
@@ -822,15 +885,36 @@ print(profile.dataset_summary.row_count)`} language="python" showCopy />
           Combines loading, profiling, and rules auditing into a single public SDK endpoint.
         </p>
 
+        <section className="mb-8" aria-labelledby="analyze-when-use">
+          <h3 id="analyze-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use when you want to compute statistical profiles and evaluate quality rules simultaneously to obtain a list of flagged <code>RuleFinding</code> objects.
+          </p>
+        </section>
+
         <section className="mb-8" aria-labelledby="analyze-args">
           <h3 id="analyze-args" className="mb-3 text-lg font-semibold text-foreground">Arguments</h3>
           <ul className="space-y-3 text-sm text-muted-foreground" role="list">
             <li><strong>source</strong>: <code>Dataset</code> | <code>str</code> | <code>DataFrame</code>. Input data or path.</li>
             <li><strong>target_column</strong>: <code>str | None</code> (default None). Target column name. Required for target leakage checks.</li>
-            <li><strong>enabled_rules</strong>: <code>list[str] | None</code> (default None). Explicit rules to evaluate. If empty, runs all defaults.</li>
+            <li><strong>enabled_rules</strong>: <code>list[str] | None</code> (default None). Explicit rule IDs to evaluate. If omitted, runs all defaults.</li>
             <li><strong>rule_config</strong>: <code>dict[str, Any] | None</code>. Keyword argument config overrides for specific rules.</li>
             <li><strong>max_correlation_columns</strong>: <code>int</code> (default 100). Cap limit for correlation matrix computation.</li>
             <li><strong>max_frequency_table_size</strong>: <code>int</code> (default 1000). Frequency table storage cap.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="analyze-returns">
+          <h3 id="analyze-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Returns a frozen <code>RuleResult</code> dataclass containing <code>profile</code> (<code>ProfileResult</code>), <code>findings</code> (sequence of <code>RuleFinding</code>), <code>executed_rules</code>, <code>execution_time_ms</code>, and <code>failed_rules</code> (mapping of rule ID to error traceback).
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="analyze-exceptions">
+          <h3 id="analyze-exceptions" className="mb-3 text-lg font-semibold text-foreground">Exceptions</h3>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>ConnectorError</code>: Raised if the source dataset fails to load before profiling.</li>
           </ul>
         </section>
 
@@ -847,7 +931,9 @@ result = fs.analyze(
     }
 )
 
-print(f"Triggered {len(result.findings)} findings.")`} language="python" showCopy />
+print(f"Executed {len(result.executed_rules)} rules with {len(result.findings)} findings.")
+for finding in result.findings:
+    print(f"[{finding.severity}] {finding.title} in {finding.column_name}")`} language="python" showCopy />
         </section>
       </>
     )
@@ -2448,6 +2534,21 @@ if result.score:
         print(f"  {dim.label}: {dim.score}/100")`} language="python" showCopy />
         </section>
 
+        <section className="mb-8" aria-labelledby="review-render">
+          <h3 id="review-render" className="mb-3 text-lg font-semibold text-foreground">Rendering Review Output</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            The top-level <code>featuresmith</code> package re-exports <code>fs.render()</code> to generate formatted text reports:
+          </p>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.review("train.csv", target_column="churn")
+report_text = fs.render(result, target="console")
+print(report_text)`} language="python" showCopy />
+          <p className="mt-3 text-sm text-muted-foreground">
+            <code>fs.render(result: ReviewResult, target: str = "console") -&gt; str</code> formats the review sections, severity badges, and score scorecard into plain text suitable for terminal output or logging.
+          </p>
+        </section>
+
         <section className="mb-8" aria-labelledby="review-output-ex">
           <h3 id="review-output-ex" className="mb-3 text-lg font-semibold text-foreground">Output Example</h3>
           <CodeBlock code={`# result.overall_summary
@@ -2581,12 +2682,30 @@ print(f"Recommendation: {result.summary.recommendation}")`} language="python" sh
           </ul>
         </section>
 
+        <section className="mb-8" aria-labelledby="diff-helpers">
+          <h3 id="diff-helpers" className="mb-3 text-lg font-semibold text-foreground">Diff Helper Functions</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            The <code>featuresmith</code> package re-exports two public helper functions for working with <code>DatasetDiffResult</code>:
+          </p>
+          <CodeBlock code={`import featuresmith as fs
+
+# 1. Extract RuleFinding objects from a DatasetDiffResult
+findings = fs.diff_findings(result)
+
+# 2. Render console text report for a DatasetDiffResult
+report_text = fs.render_diff(result, target="console")`} language="python" showCopy />
+          <ul className="list-disc pl-5 mt-3 space-y-1 text-sm text-muted-foreground">
+            <li><code>fs.diff_findings(result: DatasetDiffResult) -&gt; list[RuleFinding]</code>: Converts diff status changes (such as dropped columns, missingness regressions, and leakage status changes) into standard <code>RuleFinding</code> objects for severity-based filtering and CI gating.</li>
+            <li><code>fs.render_diff(result: DatasetDiffResult, target: str = "console") -&gt; str</code>: Renders a formatted string report for terminal display or text export.</li>
+          </ul>
+        </section>
+
         <section className="mb-8" aria-labelledby="diff-limitations">
           <h3 id="diff-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
             <li><strong>Standalone Operation</strong>: Dataset Diff is implemented as a standalone engine. It is not integrated as a reviewer inside the Review Engine pipeline. Calling <code>fs.review(previous=...)</code> raises a <code>NotImplementedError</code>.</li>
             <li><strong>Advisory Recommendations</strong>: Findings and overall health recommendations are purely advisory and do not automatically mutate data or abort processes unless coded into your caller logic.</li>
-            <li><strong>Diff Findings</strong>: There is no public <code>fs.diff_findings()</code> in v0.2.0. To derive <code>RuleFinding</code> objects from an existing diff result, use <code>featuresmith.diff.findings.findings_from_diff(diff_result)</code>. The CLI's diff command consumes these findings for severity-based exit-code gating.</li>
+            <li><strong>Diff Findings Accessor</strong>: Use <code>fs.diff_findings(result)</code> to derive standard <code>RuleFinding</code> objects from a diff result. The CLI's diff command consumes these findings for severity-based exit-code gating.</li>
           </ul>
         </section>
 
