@@ -12,6 +12,7 @@ import json
 from datetime import UTC, datetime
 
 import pandas as pd
+import pytest
 
 import featuresmith as fs
 from featuresmith.core.profile_result import DatasetSummary
@@ -25,6 +26,7 @@ from featuresmith.review.schema import (
 from featuresmith.review.scoring_adapter import ScoreAdapter
 from featuresmith.scoring.aggregator import WeightedAggregator, compute_score
 from featuresmith.scoring.dimensions import builtin_dimensions
+from featuresmith.scoring.registry import ScoreDimensionRegistry, default_registry
 from featuresmith.scoring.schema import MLReadinessScore
 
 SECTION_TITLES = {
@@ -420,6 +422,96 @@ def test_dimension_compute_raises_when_section_absent() -> None:
     result = make_result("review.quality.missingness")
 
     assert not SchemaHealthDimension().applicable(result)
+
+
+# ---------------------------------------------------------------- registry wiring
+
+
+def test_default_registry_ships_builtin_dimensions() -> None:
+    """default_registry() registers the eight built-in dimensions in order."""
+    registry = default_registry()
+
+    dimensions = registry.list_dimensions()
+
+    assert [d.id for d in dimensions] == [d.id for d in builtin_dimensions()]
+    assert len(dimensions) == 8
+
+
+def test_aggregator_obtains_dimensions_via_default_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """WeightedAggregator sources its default dimensions from default_registry."""
+    calls: list[ScoreDimensionRegistry] = []
+
+    def recording_default_registry() -> ScoreDimensionRegistry:
+        registry = default_registry()
+        calls.append(registry)
+        return registry
+
+    monkeypatch.setattr(
+        "featuresmith.scoring.aggregator.default_registry",
+        recording_default_registry,
+    )
+
+    score = WeightedAggregator().compute(make_result(*all_sections()))
+
+    assert len(calls) == 1
+    assert score is not None
+    assert [d.id for d in score.dimensions] == [d.id for d in builtin_dimensions()]
+
+
+def test_aggregator_uses_dimensions_from_supplied_registry() -> None:
+    """A supplied registry drives aggregation; its registrations are honored."""
+    registry = ScoreDimensionRegistry(builtin_dimensions())
+    registry.unregister("score.schema_health")
+
+    score = WeightedAggregator(registry=registry).compute(make_result(*all_sections()))
+
+    assert score is not None
+    assert [d.id for d in score.dimensions] == [
+        d.id for d in builtin_dimensions() if d.id != "score.schema_health"
+    ]
+
+
+def test_aggregator_computes_registered_custom_dimension() -> None:
+    """Registry-registered dimensions outside the built-ins still participate."""
+    from featuresmith.scoring.dimensions import SchemaHealthDimension
+
+    registry = ScoreDimensionRegistry((SchemaHealthDimension(),))
+
+    score = WeightedAggregator(registry=registry).compute(
+        make_result("review.schema.health")
+    )
+
+    assert score is not None
+    assert [d.id for d in score.dimensions] == ["score.schema_health"]
+    assert score.overall == 100.0
+
+
+def test_aggregator_rejects_registry_and_dimensions_together() -> None:
+    """Providing both registry and dimensions is an ambiguous configuration."""
+    with pytest.raises(ValueError, match="either 'registry' or 'dimensions'"):
+        WeightedAggregator(dimensions=builtin_dimensions(), registry=default_registry())
+
+
+def test_score_adapter_accepts_registry() -> None:
+    """ScoreAdapter wires its registry into the underlying aggregator."""
+    registry = ScoreDimensionRegistry(builtin_dimensions())
+
+    attached = ScoreAdapter(registry=registry).attach(make_result(*all_sections()))
+
+    assert attached.score is not None
+    assert len(attached.score.dimensions) == 8
+
+
+def test_compute_score_accepts_registry() -> None:
+    """compute_score() forwards a supplied registry to the aggregator."""
+    registry = ScoreDimensionRegistry(builtin_dimensions())
+
+    score = compute_score(make_result(*all_sections()), registry=registry)
+
+    assert score is not None
+    assert score.overall == 100.0
 
 
 # ---------------------------------------------------------------- integration

@@ -533,7 +533,7 @@
     `ColumnDiff`, `RowCountDiff`, `DatasetDiffSummary`, `SchemaDiff`,
     `DatasetDiffResult`, `StructureDiff`, `DataQualityDiff`,
     `DistributionDiff`, `LeakageDiff`, `DiffFindingsResult`;
-    `DIFF_ENGINE_VERSION = "0.1.0"`.
+    `DIFF_ENGINE_VERSION = "0.2.0"`.
   - `featuresmith/diff/engine.py` — `DatasetDiffEngine.diff(old, new)`
     (pandas/Polars/Dataset sources) + `compute_diff()` facade; schema/dtype/
     missing/duplicate/constant/statistics/distribution comparisons, threshold

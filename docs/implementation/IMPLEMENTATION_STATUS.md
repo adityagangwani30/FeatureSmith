@@ -152,7 +152,7 @@ Last Updated: 2026-08-02 (v0.2.0)
 
 ### Implemented (Fully — as Standalone Engine)
 - **DatasetDiffEngine / compute_diff()** — `featuresmith/diff/engine.py`
-- **DatasetDiffResult schema** — `featuresmith/diff/schema.py` (frozen dataclasses, `DIFF_ENGINE_VERSION = "0.1.0"`)
+- **DatasetDiffResult schema** — `featuresmith/diff/schema.py` (frozen dataclasses, `DIFF_ENGINE_VERSION = "0.2.0"`)
 - **fs.diff(old, new, target_column=None)** — `featuresmith/api.py`
 - **featuresmith diff CLI** — `featuresmith_cli/commands/diff.py` with `--target`, `--format`, `--output`, `--fail-on`, `--quiet`, `--verbose`, `--version`
 - **Comparisons**:

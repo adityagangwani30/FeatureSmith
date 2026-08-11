@@ -17,7 +17,10 @@ build/
 .idea/
 .vscode/
 *.log
-examples/data/
+examples/data/*
+!examples/data/processed/
+examples/data/processed/*
+!examples/data/processed/titanic.csv
 FIXES.md
 fixes.txt
 tests/fixtures/processed/

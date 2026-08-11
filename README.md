@@ -193,15 +193,17 @@ Visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me) f
 
 | Phase | Version | Focus | Status |
 |:---:|:---:|---|:---:|
-| **Phase 0** | pre-release | Monorepo foundations, CI/CD, Pydantic schemas, Base interfaces | ✅ Complete |
-| **Phase 1** | v0.1 | EDA & Rule Engine, SDK, CLI, CSV/DataFrame connectors | ✅ Complete |
-| **Phase 2** | v0.2 | Review Engine, ML Readiness Score, Dataset Diff, Leakage Detection | ✅ Complete |
-| **Phase 3** | v0.3 | Dashboard UI, SQL connectors, plugins registry, GitHub Action | 🔜 Planned |
-| **Phase 4** | v0.4 | Feature Engineering Engine, Recommendation Engine, Exporters | 🔜 Planned |
-| **Phase 5** | v0.5 | Observability history, scheduled re-profiling, alerts | 🔜 Planned |
-| **Phase 6** | v1.0 | AI Provider layer, chat Q&A, plain-text narration | 🔜 Planned |
-| **Phase 7** | v2.0 | VS Code extension, Jupyter magic, natural-language commands | 🔜 Planned |
-| **Phase 8** | v3.0+ | Snowflake/BigQuery pushdown, Spark/Ray backend, hosted SaaS | 🔜 Planned |
+| **Phase 0** | pre-release | Foundations: Core Library First | ✅ Shipped |
+| **Phase 1** | v0.1 | Foundation: SDK + CLI MVP, Profiling + Rule Engine | ✅ Shipped |
+| **Phase 2** | v0.2 | Dataset Review Platform: Review Engine, ML Readiness Score, Leakage Detection, Dataset Diff | ✅ Shipped, current |
+| **Phase 3** | v0.3 | Developer Experience: Dashboard, Connectors, CI/CD, Plugins | 🔜 Planned |
+| **Phase 4** | v0.4 | Recommendation & Planning: Recommendation Engine, the Plan primitive | 🔜 Planned |
+| **Phase 5** | v0.5 | Dataset Contracts: Apply, Validation, `featuresmith.lock` | 🔜 Planned |
+| **Phase 6** | v0.6–v1.0 | Certification & Observability: badge, scheduled re-review, Quality History | 🔜 Planned |
+| **Phase 7** | v1.x | AI-Assisted Planning: Provider layer, narration, natural-language Plan authoring | 🔜 Planned |
+| **Phase 8** | v2.0+ | Ecosystem Integrations & Scale: dbt/Feast/MLflow/W&B exporters, VS Code, distributed compute, hosted tier | 🔜 Planned |
+
+See [`docs/Phases.md`](./docs/Phases.md) for the authoritative roadmap.
 
 ---
 

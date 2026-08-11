@@ -6,7 +6,7 @@ This guide documents the release engineering process and verification checklist 
 
 ## How Production Publishing Works
 
-The production publishing pipeline is a fully automated release workflow defined in [publish-pypi.yml](file:///.github/workflows/publish-pypi.yml). It ensures that packages are only published after passing a strict multi-stage validation check:
+The production publishing pipeline is a fully automated release workflow defined in [publish-pypi.yml](../.github/workflows/publish-pypi.yml). It ensures that packages are only published after passing a strict multi-stage validation check:
 
 ```mermaid
 graph TD

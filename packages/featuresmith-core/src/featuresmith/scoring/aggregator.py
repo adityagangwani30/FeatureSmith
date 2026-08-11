@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from featuresmith.core.rule_finding import RuleFinding
 from featuresmith.scoring.base import ScoreDimension
-from featuresmith.scoring.dimensions import builtin_dimensions
+from featuresmith.scoring.registry import ScoreDimensionRegistry, default_registry
 from featuresmith.scoring.schema import DimensionScore, MLReadinessScore
 
 if TYPE_CHECKING:
@@ -31,21 +31,41 @@ class WeightedAggregator:
     """Computes the overall ML Readiness Score from dimension scores.
 
     Args:
-        dimensions: The dimensions to consider; defaults to the built-in set.
+        dimensions: The dimensions to consider; defaults to the default
+            registry's built-in set.
         weights: Optional per-dimension weight overrides keyed by dimension ID.
             Overrides replace a dimension's default weight but never change the
             aggregation formula shape.
+        registry: The dimension registry to source dimensions from. Mutually
+            exclusive with ``dimensions``; when neither is given, the default
+            registry is used.
     """
 
     def __init__(
         self,
         dimensions: Sequence[ScoreDimension] | None = None,
         weights: Mapping[str, float] | None = None,
+        registry: ScoreDimensionRegistry | None = None,
     ) -> None:
-        """Initialize the aggregator with dimensions and optional weights."""
-        self._dimensions: tuple[ScoreDimension, ...] = tuple(
-            dimensions or builtin_dimensions()
-        )
+        """Initialize the aggregator with dimensions and optional weights.
+
+        Dimensions are obtained through the registry architecture: either the
+        supplied ``registry``, the default registry, or a registry built from
+        the explicit ``dimensions``. Passing both ``registry`` and ``dimensions``
+        is ambiguous and raises.
+
+        Raises:
+            ValueError: If both ``registry`` and ``dimensions`` are provided.
+        """
+        if registry is not None and dimensions is not None:
+            raise ValueError("Pass either 'registry' or 'dimensions', not both.")
+        if registry is None:
+            registry = (
+                default_registry()
+                if dimensions is None
+                else ScoreDimensionRegistry(dimensions)
+            )
+        self._dimensions: tuple[ScoreDimension, ...] = tuple(registry.list_dimensions())
         self._weights = dict(weights or {})
 
     def compute(self, result: ReviewResult) -> MLReadinessScore | None:
@@ -91,18 +111,24 @@ def compute_score(
     *,
     dimensions: Sequence[ScoreDimension] | None = None,
     weights: Mapping[str, float] | None = None,
+    registry: ScoreDimensionRegistry | None = None,
 ) -> MLReadinessScore | None:
     """Compute the ML Readiness Score for a review in one call.
 
     Args:
         result: The frozen ReviewResult.
-        dimensions: Optional dimensions; defaults to the built-in set.
+        dimensions: Optional dimensions; defaults to the default registry's
+            built-in set.
         weights: Optional per-dimension weight overrides.
+        registry: Optional dimension registry; mutually exclusive with
+            ``dimensions``.
 
     Returns:
         The frozen MLReadinessScore, or None when no dimension applies.
     """
-    return WeightedAggregator(dimensions=dimensions, weights=weights).compute(result)
+    return WeightedAggregator(
+        dimensions=dimensions, weights=weights, registry=registry
+    ).compute(result)
 
 
 def build_summary(overall: float, dim_scores: Sequence[DimensionScore]) -> str:

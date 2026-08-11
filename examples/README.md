@@ -57,4 +57,4 @@ jupyter lab examples/notebooks/
 
 - [📖 Main Documentation Website](https://featuresmith.adityagangwani.me)
 - [📦 Installation Guide](../README.md#installation)
-- [⚡ CLI Reference](../docs/cli/review.md)
+- [⚡ CLI Reference](https://featuresmith.adityagangwani.me/docs/cli/review)
