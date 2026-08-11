@@ -850,21 +850,64 @@ print(f"Triggered {len(result.findings)} findings.")`} language="python" showCop
   },
   "sdk/models": {
     title: "Data Models",
-    subtitle: "SDK Reference: strongly-typed data structures",
+    subtitle: "SDK Reference: the complete typed output schema",
     category: "Python SDK",
     seoTitle: "SDK Data Models",
-    seoDescription: "Examine Featuresmith's typed output schemas including Dataset, ProfileResult, RuleFinding, and RuleResult.",
+    seoDescription: "Explore Featuresmith's typed output objects across the Profiling, Rule, Review, Scoring, Leakage, and Dataset Diff engines.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith uses Python dataclasses with <code>frozen=True</code> to represent structures. This ensures they are read-only and safely serializable.
+          Every Featuresmith result is a Python dataclass with <code>frozen=True</code> and <code>slots=True</code>, so instances are read-only, fast, and safely serializable. Each top-level result object exposes a <code>to_dict()</code> method that produces a plain, JSON-ready dictionary.
         </p>
 
-        <section className="mb-8" aria-labelledby="models-profile-result">
-          <h3 id="models-profile-result" className="mb-3 text-lg font-semibold text-foreground">ProfileResult</h3>
-          <p className="mb-3 text-sm text-muted-foreground">
-            The output returned from <code>fs.profile()</code>.
-          </p>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          The models are grouped by the engine that produces them. Use the pages below for the full field-by-field reference:
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2 mb-8">
+          {[
+            { href: "/docs/sdk/models/profile", title: "Profile Models", desc: "DatasetSummary, ColumnProfile, the four typed column profiles, the three aggregates, and both metadata records returned by fs.profile()." },
+            { href: "/docs/sdk/models/rules", title: "Rule & Finding Models", desc: "RuleResult, RuleFinding, finding severities, and the eight built-in validation rules with their default thresholds." },
+            { href: "/docs/sdk/models/review", title: "Review Models", desc: "ReviewResult, ReviewSection, the six ReviewCategory values, the four Severity levels, and the eight built-in reviewers." },
+            { href: "/docs/sdk/models/score", title: "Score Models", desc: "MLReadinessScore, DimensionScore, the eight scoring dimensions, and the deduction formula behind the 0-100 scorecard." },
+            { href: "/docs/sdk/models/leakage", title: "Leakage Models", desc: "LeakageFinding and the five pattern detectors that flag target leakage." },
+            { href: "/docs/sdk/models/diff", title: "Diff Models", desc: "DatasetDiffResult and every nested delta model produced by fs.diff()." },
+          ].map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="group flex flex-col rounded-lg border border-border bg-card p-4 transition-all duration-150 hover:border-primary/30 hover:bg-accent"
+            >
+              <span className="mb-1 text-sm font-medium text-foreground">{link.title}</span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{link.desc}</span>
+            </a>
+          ))}
+        </div>
+
+        <section className="mb-8" aria-labelledby="models-common">
+          <h3 id="models-common" className="mb-3 text-lg font-semibold text-foreground">Related References</h3>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li>The normalized input model is documented on the <a href="/docs/sdk/dataset" className="text-primary hover:underline">Dataset page</a>.</li>
+            <li>Error classes raised during ingestion are documented on the <a href="/docs/sdk/exceptions" className="text-primary hover:underline">Exceptions page</a>.</li>
+          </ul>
+        </section>
+      </>
+    )
+  },
+  "sdk/models/profile": {
+    title: "Profile Models",
+    subtitle: "SDK Reference: profiling result objects",
+    category: "Python SDK",
+    seoTitle: "SDK Profile Models",
+    seoDescription: "Full field reference for ProfileResult and every nested profiling model returned by fs.profile().",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          <code>fs.profile()</code> returns a single frozen <code>ProfileResult</code>. All nested models below live in <code>featuresmith.core.profile_result</code> and are re-exported as values on the result, so they are reached via attribute access rather than imports.
+        </p>
+
+        <section className="mb-8" aria-labelledby="prof-result">
+          <h3 id="prof-result" className="mb-3 text-lg font-semibold text-foreground">ProfileResult</h3>
           <CodeBlock code={`@dataclass(frozen=True, slots=True)
 class ProfileResult:
     dataset_summary: DatasetSummary
@@ -879,14 +922,213 @@ class ProfileResult:
     dataset_metadata: DatasetMetadata
     execution_metadata: ExecutionMetadata
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert result to a standard serializable dictionary."""`} language="python" showCopy={false} />
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            The typed profile mappings are keyed by column name and only contain columns of the matching <code>logical_type</code>.
+          </p>
         </section>
 
-        <section className="mb-8" aria-labelledby="models-rule-finding">
-          <h3 id="models-rule-finding" className="mb-3 text-lg font-semibold text-foreground">RuleFinding</h3>
+        <section className="mb-8" aria-labelledby="prof-summary">
+          <h3 id="prof-summary" className="mb-3 text-lg font-semibold text-foreground">DatasetSummary</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            A single issue identified by the rules auditing step.
+            High-level dataset statistics.
+          </p>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class DatasetSummary:
+    row_count: int
+    column_count: int
+    size_in_bytes: int | None
+    missing_percentage: float
+    duplicate_percentage: float
+    num_numeric_columns: int
+    num_categorical_columns: int
+    num_datetime_columns: int
+    num_text_columns: int
+    num_constant_columns: int
+    num_fully_empty_columns: int`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-column">
+          <h3 id="prof-column" className="mb-3 text-lg font-semibold text-foreground">ColumnProfile</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            General profile summary present for every column in the dataset.
+          </p>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class ColumnProfile:
+    name: str
+    dtype: str
+    logical_type: str  # "numeric" | "categorical" | "datetime" | "text"
+    missing_count: int
+    missing_percentage: float
+    is_constant: bool
+    is_fully_empty: bool`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-numeric">
+          <h3 id="prof-numeric" className="mb-3 text-lg font-semibold text-foreground">NumericProfile</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Detailed statistics for a numeric column.
+          </p>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class NumericProfile:
+    column_name: str
+    count: int
+    missing_count: int
+    missing_percentage: float
+    unique_count: int
+    mean: float | None
+    median: float | None
+    mode: float | None
+    minimum: float | None
+    maximum: float | None
+    range: float | None
+    variance: float | None
+    std_dev: float | None
+    q1: float | None
+    q2: float | None
+    q3: float | None
+    iqr: float | None
+    sum: float | None
+    zero_count: int
+    negative_count: int
+    positive_count: int
+    skewness: float | None
+    kurtosis: float | None`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-categorical">
+          <h3 id="prof-categorical" className="mb-3 text-lg font-semibold text-foreground">CategoricalProfile</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Detailed statistics for a categorical column. The <code>frequency_table</code> is capped by the <code>max_frequency_table_size</code> profiling option (default 1000).
+          </p>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class CategoricalProfile:
+    column_name: str
+    cardinality: int
+    unique_count: int
+    missing_count: int
+    frequency_table: Mapping[str, int]
+    top_values: Sequence[tuple[str, int]]
+    least_frequent_values: Sequence[tuple[str, int]]
+    most_common_category: str | None
+    entropy: float | None  # Shannon entropy, base 2`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-datetime">
+          <h3 id="prof-datetime" className="mb-3 text-lg font-semibold text-foreground">DatetimeProfile</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class DatetimeProfile:
+    column_name: str
+    minimum: str | None        # ISO 8601
+    maximum: str | None        # ISO 8601
+    range_days: float | None
+    missing_count: int
+    earliest_record: str | None
+    latest_record: str | None`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-text">
+          <h3 id="prof-text" className="mb-3 text-lg font-semibold text-foreground">TextProfile</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class TextProfile:
+    column_name: str
+    avg_length: float | None
+    min_length: int | None
+    max_length: int | None
+    empty_strings: int
+    whitespace_only: int
+    char_count: int
+    word_count: int`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-aggregates">
+          <h3 id="prof-aggregates" className="mb-3 text-lg font-semibold text-foreground">Aggregate Summaries</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class MissingValueSummary:
+    column_missing_counts: Mapping[str, int]
+    column_missing_percentages: Mapping[str, float]
+    total_missing: int
+    dataset_missing_percentage: float
+
+
+@dataclass(frozen=True, slots=True)
+class DuplicateSummary:
+    duplicate_rows_count: int
+    duplicate_percentage: float
+    constant_columns: Sequence[str]
+    fully_empty_columns: Sequence[str]
+
+
+@dataclass(frozen=True, slots=True)
+class CorrelationSummary:
+    pearson: Mapping[str, Mapping[str, float | None]]
+    spearman: Mapping[str, Mapping[str, float | None]]  # reserved
+    kendall: Mapping[str, Mapping[str, float | None]]  # reserved`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            <code>pearson</code> maps column A to column B to the correlation coefficient (or <code>None</code> when undefined). <code>spearman</code> and <code>kendall</code> are reserved and currently empty.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-metadata">
+          <h3 id="prof-metadata" className="mb-3 text-lg font-semibold text-foreground">Metadata Records</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class DatasetMetadata:
+    source: str | None
+    file_size: int | None
+    backend: str  # "pandas" | "polars"
+    custom_metadata: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionMetadata:
+    start_time: str  # ISO 8601
+    duration_seconds: float
+    featuresmith_version: str`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="prof-example">
+          <h3 id="prof-example" className="mb-3 text-lg font-semibold text-foreground">Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+profile = fs.profile("customers.csv")
+
+print(profile.dataset_summary.row_count)
+print(profile.numeric_profiles["age"].mean)
+print(profile.categorical_profiles["city"].most_common_category)
+print(profile.missing_value_summary.dataset_missing_percentage)`} language="python" showCopy />
+        </section>
+      </>
+    )
+  },
+  "sdk/models/rules": {
+    title: "Rule & Finding Models",
+    subtitle: "SDK Reference: rule engine output objects",
+    category: "Python SDK",
+    seoTitle: "SDK Rule & Finding Models",
+    seoDescription: "Full field reference for RuleResult, RuleFinding, finding severities, and the eight built-in validation rules.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          <code>fs.analyze()</code> runs the Profiling Engine and then the Rule Engine, returning a single frozen <code>RuleResult</code>. Rules are deterministic, isolated, and never fail the whole run: a rule that crashes is recorded in <code>failed_rules</code> instead.
+        </p>
+
+        <section className="mb-8" aria-labelledby="rule-result">
+          <h3 id="rule-result" className="mb-3 text-lg font-semibold text-foreground">RuleResult</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class RuleResult:
+    profile: ProfileResult
+    findings: Sequence[RuleFinding]
+    executed_rules: Sequence[str]
+    execution_time_ms: float
+    failed_rules: Mapping[str, str]  # rule ID -> error traceback
+
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="rule-finding">
+          <h3 id="rule-finding" className="mb-3 text-lg font-semibold text-foreground">RuleFinding</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            A single issue identified by one rule. <code>column_name</code> is <code>None</code> for dataset-wide findings (for example duplicate rows).
           </p>
           <CodeBlock code={`@dataclass(frozen=True, slots=True)
 class RuleFinding:
@@ -899,25 +1141,712 @@ class RuleFinding:
     description: str
     evidence: Mapping[str, Any]
     confidence: float = 1.0
-    id: str = ...  # Auto-generated UUID string
-    metadata: Mapping[str, Any] = ...  # Extra key-value metadata`} language="python" showCopy={false} />
+    id: str = ...          # auto-generated UUID
+    metadata: Mapping[str, Any] = ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            <code>category</code> uses lowercase strings. The <code>"diff"</code> category is used by findings derived from a <code>DatasetDiffResult</code> via <code>findings_from_diff()</code>.
+          </p>
         </section>
 
-        <section className="mb-8" aria-labelledby="models-rule-result">
-          <h3 id="models-rule-result" className="mb-3 text-lg font-semibold text-foreground">RuleResult</h3>
+        <section className="mb-8" aria-labelledby="rule-builtins">
+          <h3 id="rule-builtins" className="mb-3 text-lg font-semibold text-foreground">Built-in Rules</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            The aggregate output returned from <code>fs.analyze()</code>.
+            All eight rules are enabled by default. Their defaults can be overridden per rule through the <code>rule_config</code> argument of <code>fs.analyze()</code>:
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
+                <tr>
+                  <th className="px-4 py-3">Rule ID</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Severity</th>
+                  <th className="px-4 py-3">Config Keys (defaults)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">quality.missing_value_threshold</td>
+                  <td className="px-4 py-3">Missing Value Threshold</td>
+                  <td className="px-4 py-3">warning (escalates to critical above 50%)</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=20.0</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">quality.duplicate_rows</td>
+                  <td className="px-4 py-3">Duplicate Rows</td>
+                  <td className="px-4 py-3">warning</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=10.0</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">quality.constant_columns</td>
+                  <td className="px-4 py-3">Constant Columns</td>
+                  <td className="px-4 py-3">warning</td>
+                  <td className="px-4 py-3 font-mono text-xs">—</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">quality.fully_empty_columns</td>
+                  <td className="px-4 py-3">Fully Empty Columns</td>
+                  <td className="px-4 py-3">critical</td>
+                  <td className="px-4 py-3 font-mono text-xs">—</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">statistical.high_cardinality</td>
+                  <td className="px-4 py-3">High Cardinality</td>
+                  <td className="px-4 py-3">warning</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=0.50, min_cardinality=20</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">statistical.outliers</td>
+                  <td className="px-4 py-3">Outlier Detection</td>
+                  <td className="px-4 py-3">warning</td>
+                  <td className="px-4 py-3 font-mono text-xs">factor=1.5 (IQR multiplier)</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">statistical.high_correlation</td>
+                  <td className="px-4 py-3">High Correlation</td>
+                  <td className="px-4 py-3">warning</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=0.90</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">leakage.potential_leakage</td>
+                  <td className="px-4 py-3">Potential Target Leakage</td>
+                  <td className="px-4 py-3">critical</td>
+                  <td className="px-4 py-3 font-mono text-xs">target_column=None, threshold=0.99</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            The missing-value rule flags every column whose <code>missing_percentage</code> exceeds <code>threshold</code>. The high-cardinality rule flags categorical columns whose unique-ratio <code>cardinality / non-missing</code> exceeds <code>threshold</code> while cardinality is at least <code>min_cardinality</code>. The outlier rule flags numeric columns with values beyond <code>[Q1 - factor*IQR, Q3 + factor*IQR]</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="rule-config">
+          <h3 id="rule-config" className="mb-3 text-lg font-semibold text-foreground">Configuring Rules</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.analyze(
+    "train.csv",
+    target_column="churn",
+    enabled_rules=[
+        "quality.missing_value_threshold",
+        "statistical.high_correlation",
+    ],
+    rule_config={
+        "quality.missing_value_threshold": {"threshold": 15.0},
+        "statistical.high_correlation": {"threshold": 0.85},
+    },
+)
+
+for finding in result.findings:
+    print(f"[{finding.severity}] {finding.title}")`} language="python" showCopy />
+        </section>
+      </>
+    )
+  },
+  "sdk/models/review": {
+    title: "Review Models",
+    subtitle: "SDK Reference: review engine output objects",
+    category: "Python SDK",
+    seoTitle: "SDK Review Models",
+    seoDescription: "Full field reference for ReviewResult, ReviewSection, categories, severities, and the eight built-in reviewers.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          <code>fs.review()</code> composes the Profiling and Rule Engines into one structured review. It profiles once, computes rule findings once, then dispatches every enabled reviewer against that frozen context. The result is a single frozen <code>ReviewResult</code>.
+        </p>
+
+        <section className="mb-8" aria-labelledby="review-result-model">
+          <h3 id="review-result-model" className="mb-3 text-lg font-semibold text-foreground">ReviewResult</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class ReviewResult:
+    engine_version: str                       # "0.2.0"
+    dataset_summary: DatasetSummary
+    generated_at: datetime                    # UTC
+    sections: Sequence[ReviewSection]
+    overall_summary: str
+    score: MLReadinessScore | None
+    diff: Any = None                          # reserved for diff-aware reviews
+
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Sections are ordered from most severe (<code>critical</code>) to least (<code>passed</code>). <code>score</code> is populated by the review when at least one scoring dimension is applicable; otherwise it is <code>None</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-section-model">
+          <h3 id="review-section-model" className="mb-3 text-lg font-semibold text-foreground">ReviewSection</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class ReviewSection:
+    id: str
+    title: str
+    category: ReviewCategory
+    severity: Severity
+    findings: Sequence[RuleFinding]
+    narrative: str | None = None
+    recommendations: Sequence[Any] = ()
+
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            The section <code>severity</code> is the highest severity among its findings, or <code>PASSED</code> when the section is clean.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-enums">
+          <h3 id="review-enums" className="mb-3 text-lg font-semibold text-foreground">ReviewCategory and Severity</h3>
+          <CodeBlock code={`class ReviewCategory(StrEnum):
+    SCHEMA = "schema"
+    QUALITY = "quality"
+    LEAKAGE = "leakage"
+    DIFF = "diff"
+    FEATURE_QUALITY = "feature_quality"
+    CUSTOM = "custom"
+
+
+class Severity(StrEnum):
+    CRITICAL = "critical"
+    WARNING = "warning"
+    INFO = "info"
+    PASSED = "passed"`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            <code>DIFF</code>, <code>FEATURE_QUALITY</code>, and <code>CUSTOM</code> are reserved categories. The built-in reviewers currently emit <code>schema</code>, <code>quality</code>, and <code>leakage</code> sections.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-builtins">
+          <h3 id="review-builtins" className="mb-3 text-lg font-semibold text-foreground">Built-in Reviewers</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Eight reviewers ship out of the box. They are configurable via the <code>reviewer_config</code> argument of <code>fs.review()</code>, keyed by reviewer ID:
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
+                <tr>
+                  <th className="px-4 py-3">Reviewer ID</th>
+                  <th className="px-4 py-3">Section</th>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Config Keys (defaults)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.schema.health</td>
+                  <td className="px-4 py-3">Schema Health</td>
+                  <td className="px-4 py-3">schema</td>
+                  <td className="px-4 py-3 font-mono text-xs">—</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.schema.types</td>
+                  <td className="px-4 py-3">Data Types</td>
+                  <td className="px-4 py-3">schema</td>
+                  <td className="px-4 py-3 font-mono text-xs">identifier_min_count=10</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.quality.missingness</td>
+                  <td className="px-4 py-3">Missing Values</td>
+                  <td className="px-4 py-3">quality</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=20.0</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.quality.duplicates</td>
+                  <td className="px-4 py-3">Duplicate Rows</td>
+                  <td className="px-4 py-3">quality</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=10.0</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.quality.constants</td>
+                  <td className="px-4 py-3">Constant Columns</td>
+                  <td className="px-4 py-3">quality</td>
+                  <td className="px-4 py-3 font-mono text-xs">—</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.quality.cardinality</td>
+                  <td className="px-4 py-3">High Cardinality</td>
+                  <td className="px-4 py-3">quality</td>
+                  <td className="px-4 py-3 font-mono text-xs">threshold=0.50, min_cardinality=20</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.quality.basic_statistics</td>
+                  <td className="px-4 py-3">Basic Statistics</td>
+                  <td className="px-4 py-3">quality</td>
+                  <td className="px-4 py-3 font-mono text-xs">skew_threshold=2.0, kurtosis_threshold=10.0</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.leakage</td>
+                  <td className="px-4 py-3">Leakage Detection</td>
+                  <td className="px-4 py-3">leakage</td>
+                  <td className="px-4 py-3 font-mono text-xs">detectors=None (built-in set)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            The schema health reviewer surfaces fully empty columns (via <code>FullyEmptyColumnsRule</code>) plus structural warnings for empty datasets. The missingness reviewer intentionally excludes fully empty columns so each issue is reported exactly once. The data types reviewer flags numeric columns where every non-null value is distinct (identifier-like) and columns classified as free text. The leakage reviewer dispatches the pattern detectors documented on the <a href="/docs/sdk/models/leakage" className="text-primary hover:underline">Leakage Models</a> page.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="review-config-example">
+          <h3 id="review-config-example" className="mb-3 text-lg font-semibold text-foreground">Configuring Reviewers</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.review(
+    "train.csv",
+    target_column="churn",
+    reviewer_config={
+        "review.quality.missingness": {"threshold": 25.0},
+        "review.quality.cardinality": {"threshold": 0.40},
+    },
+)
+
+for section in result.sections:
+    print(f"{section.severity.value.upper()} - {section.title}: {len(section.findings)} finding(s)")`} language="python" showCopy />
+        </section>
+      </>
+    )
+  },
+  "sdk/models/score": {
+    title: "Score Models",
+    subtitle: "SDK Reference: ML Readiness Score objects",
+    category: "Python SDK",
+    seoTitle: "SDK Score Models",
+    seoDescription: "Full field reference for MLReadinessScore, DimensionScore, the eight scoring dimensions, and the deduction formula.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          The ML Readiness Score is a deterministic 0-100 score computed entirely from an existing <code>ReviewResult</code>. It never reads raw data: every dimension derives from the findings a reviewer already produced, so a given review always yields the same versioned score.
+        </p>
+
+        <section className="mb-8" aria-labelledby="score-ml-result">
+          <h3 id="score-ml-result" className="mb-3 text-lg font-semibold text-foreground">MLReadinessScore</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class MLReadinessScore:
+    scoring_version: str                 # "0.2.0"
+    overall: float                       # 0.0 to 100.0
+    dimensions: tuple[DimensionScore, ...]
+    summary: str
+    positive_findings: tuple[str, ...]
+    negative_findings: tuple[RuleFinding, ...]
+
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-dimension">
+          <h3 id="score-dimension" className="mb-3 text-lg font-semibold text-foreground">DimensionScore</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class DimensionScore:
+    id: str
+    label: str
+    score: float
+    weight: float
+    rationale: str
+    contributing_findings: tuple[RuleFinding, ...]
+    suggested_actions: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-dimensions">
+          <h3 id="score-dimensions" className="mb-3 text-lg font-semibold text-foreground">The Eight Dimensions</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Each dimension maps one-to-one onto a built-in reviewer section and carries a uniform default weight of <code>1.0</code>:
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
+                <tr>
+                  <th className="px-4 py-3">Dimension ID</th>
+                  <th className="px-4 py-3">Dimension</th>
+                  <th className="px-4 py-3">Backing Section</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                {[
+                  ["score.schema_health", "Schema Health", "review.schema.health"],
+                  ["score.missing_values", "Missing Values", "review.quality.missingness"],
+                  ["score.duplicate_records", "Duplicate Records", "review.quality.duplicates"],
+                  ["score.data_types", "Data Types", "review.schema.types"],
+                  ["score.constant_columns", "Constant Columns", "review.quality.constants"],
+                  ["score.high_cardinality", "High Cardinality", "review.quality.cardinality"],
+                  ["score.dataset_structure", "Dataset Structure", "review.quality.basic_statistics"],
+                  ["score.leakage_risk", "Leakage Risk", "review.leakage"],
+                ].map(([id, label, section]) => (
+                  <tr key={id}>
+                    <td className="px-4 py-3 font-mono text-xs">{id}</td>
+                    <td className="px-4 py-3">{label}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{section}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-formula">
+          <h3 id="score-formula" className="mb-3 text-lg font-semibold text-foreground">Scoring Formula</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Each dimension starts at a perfect <code>100.0</code> and deducts a fixed, versioned amount per finding based on severity:
+          </p>
+          <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Critical finding</strong>: -30.0 points</li>
+            <li><strong>Warning finding</strong>: -15.0 points</li>
+            <li><strong>Info finding</strong>: -5.0 points</li>
+          </ul>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Scores are clamped to <code>[0, 100]</code> and rounded to one decimal place. The overall score is the weighted average:
+          </p>
+          <div className="my-4 bg-muted p-3 rounded font-mono text-xs text-center border border-border">
+            overall = sum(dim.score * dim.weight) / sum(dim.weight)
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Inapplicable dimensions (whose backing section is absent) are omitted and their weights renormalized automatically, so a regression-only dataset is not penalized for classification-specific metrics.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="score-example-model">
+          <h3 id="score-example-model" className="mb-3 text-lg font-semibold text-foreground">Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.review("data.csv", target_column="label")
+score = fs.score(result)
+
+if score:
+    print(f"Overall: {score.overall}/100")
+    for dim in score.dimensions:
+        if dim.score < 100.0:
+            print(f"  {dim.label}: {dim.score}/100 - {dim.rationale}")
+            print(f"    Actions: {dim.suggested_actions}")`} language="python" showCopy />
+        </section>
+      </>
+    )
+  },
+  "sdk/models/leakage": {
+    title: "Leakage Models",
+    subtitle: "SDK Reference: leakage detection objects",
+    category: "Python SDK",
+    seoTitle: "SDK Leakage Models",
+    seoDescription: "Full field reference for LeakageFinding and the five built-in leakage pattern detectors.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          Target leakage occurs when a feature carries information from the future or from the target itself, giving a model an unfair advantage at training time. The <code>review.leakage</code> reviewer runs named pattern detectors against the frozen profile; each detector emits <code>LeakageFinding</code> objects.
+        </p>
+
+        <section className="mb-8" aria-labelledby="leakage-finding">
+          <h3 id="leakage-finding" className="mb-3 text-lg font-semibold text-foreground">LeakageFinding</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class LeakageFinding:
+    pattern: str                 # detector ID that produced this finding
+    column_name: str
+    title: str
+    rationale: str
+    evidence: Mapping[str, Any]
+    confidence: float            # 0.0 to 1.0
+    severity: str                # "info" | "warning" | "critical"
+    suggested_action: str`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="leakage-detectors">
+          <h3 id="leakage-detectors" className="mb-3 text-lg font-semibold text-foreground">The Five Built-in Detectors</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
+                <tr>
+                  <th className="px-4 py-3">Pattern ID</th>
+                  <th className="px-4 py-3">Detector</th>
+                  <th className="px-4 py-3">What It Flags</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">target_correlation</td>
+                  <td className="px-4 py-3">Target Correlation</td>
+                  <td className="px-4 py-3">Columns with extreme correlation to the declared target.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">identifier</td>
+                  <td className="px-4 py-3">Identifier Shape</td>
+                  <td className="px-4 py-3">ID-like columns that also correlate with the target.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">timestamp</td>
+                  <td className="px-4 py-3">Timestamp Leakage</td>
+                  <td className="px-4 py-3">Datetime columns that extend past a declared prediction cutoff.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">duplicate_target</td>
+                  <td className="px-4 py-3">Duplicate Target Information</td>
+                  <td className="px-4 py-3">Columns that are a near-deterministic copy or transform of the target.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">suspicious_correlation</td>
+                  <td className="px-4 py-3">Suspicious Correlation</td>
+                  <td className="px-4 py-3">Suspicious correlations with a secondary signal, never magnitude alone.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Detectors run through <code>builtin_detectors()</code> and are supplied to the <code>review.leakage</code> reviewer. Detector findings carry a confidence label: <code>High</code> at or above 0.7, <code>Medium</code> at or above 0.4, and <code>Low</code> below that.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="leakage-merge">
+          <h3 id="leakage-merge" className="mb-3 text-lg font-semibold text-foreground">From Detectors to Review Findings</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            The leakage reviewer merges detector findings into the shared <code>RuleFinding</code> schema so every section speaks the same language:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li>One pattern on a column becomes a finding with <code>rule_id = "leakage.&lt;pattern&gt;"</code>.</li>
+            <li>Several patterns on the same column are merged into a single finding with <code>rule_id = "leakage.multiple_patterns"</code>, keeping the worst severity and the highest confidence.</li>
+            <li>The original pattern, confidence level, rationale, and suggested action are preserved in the finding's <code>evidence</code> and <code>metadata</code>.</li>
+          </ul>
+        </section>
+      </>
+    )
+  },
+  "sdk/models/diff": {
+    title: "Diff Models",
+    subtitle: "SDK Reference: dataset diff result objects",
+    category: "Python SDK",
+    seoTitle: "SDK Diff Models",
+    seoDescription: "Full field reference for DatasetDiffResult and every nested delta model returned by fs.diff().",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          <code>fs.diff()</code> profiles two snapshots and compares them, returning one frozen, serializable <code>DatasetDiffResult</code> — the equivalent of a git diff for structured datasets. All models below live in <code>featuresmith.diff.schema</code>.
+        </p>
+
+        <section className="mb-8" aria-labelledby="diff-result">
+          <h3 id="diff-result" className="mb-3 text-lg font-semibold text-foreground">DatasetDiffResult</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class DatasetDiffResult:
+    version: str                       # "0.2.0"
+    schema: SchemaDiff
+    structure: StructureDiff
+    missing_values: tuple[MissingValueDiff, ...]
+    duplicates: DuplicateDiff
+    constant_columns: ConstantColumnDiff
+    cardinality: tuple[CardinalityDiff, ...]
+    statistics: tuple[StatisticDiff, ...]
+    distributions: tuple[DistributionDiff, ...]
+    leakage: LeakageDiff | None        # None when no target column is given
+    summary: DatasetDiffSummary
+    overall_summary: str
+
+    def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-config">
+          <h3 id="diff-config" className="mb-3 text-lg font-semibold text-foreground">DiffConfig</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Tunable thresholds for the diff engine:
           </p>
           <CodeBlock code={`@dataclass(frozen=True, slots=True)
-class RuleResult:
-    profile: ProfileResult
-    findings: Sequence[RuleFinding]
-    executed_rules: Sequence[str]
-    execution_time_ms: float
-    failed_rules: Mapping[str, str]  # Rule ID -> Exception traceback mapping
+class DiffConfig:
+    distribution_shift_threshold: float = 0.10
+    missing_change_threshold: float = 1.0
+    duplicate_change_threshold: float = 1.0
+    numeric_tolerance: float = 1e-9`} language="python" showCopy={false} />
+        </section>
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert result to a standard serializable dictionary."""`} language="python" showCopy={false} />
+        <section className="mb-8" aria-labelledby="diff-schema">
+          <h3 id="diff-schema" className="mb-3 text-lg font-semibold text-foreground">Schema-Level Deltas</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class ColumnRename:
+    previous_name: str
+    name: str
+
+
+@dataclass(frozen=True, slots=True)
+class ColumnTypeChange:
+    column: str
+    previous_dtype: str
+    dtype: str
+    previous_logical_type: str
+    logical_type: str
+
+
+@dataclass(frozen=True, slots=True)
+class SchemaDiff:
+    added_columns: tuple[str, ...] = ()
+    removed_columns: tuple[str, ...] = ()
+    renamed_columns: tuple[ColumnRename, ...] = ()
+    type_changes: tuple[ColumnTypeChange, ...] = ()
+
+    @property
+    def changed(self) -> bool: ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            <code>added_columns</code> and <code>removed_columns</code> are plain column names.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-structure">
+          <h3 id="diff-structure" className="mb-3 text-lg font-semibold text-foreground">StructureDiff</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class StructureDiff:
+    previous_row_count: int
+    row_count: int
+    previous_column_count: int
+    column_count: int
+
+    @property
+    def rows_added(self) -> int: ...      # never negative
+
+    @property
+    def rows_removed(self) -> int: ...
+
+    @property
+    def columns_added(self) -> int: ...
+
+    @property
+    def columns_removed(self) -> int: ...`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-quality">
+          <h3 id="diff-quality" className="mb-3 text-lg font-semibold text-foreground">Quality Deltas</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class MissingValueDiff:
+    column: str
+    previous_missing_count: int
+    missing_count: int
+    previous_missing_percentage: float
+    missing_percentage: float
+
+    @property
+    def delta_count(self) -> int: ...
+    @property
+    def delta_percentage(self) -> float: ...
+    # status: "new" | "resolved" | "regressed" | "improved" | "unchanged"
+    @property
+    def status(self) -> str: ...
+
+
+@dataclass(frozen=True, slots=True)
+class DuplicateDiff:
+    previous_duplicate_count: int
+    duplicate_count: int
+    previous_duplicate_percentage: float
+    duplicate_percentage: float
+
+    @property
+    def delta_percentage(self) -> float: ...
+    # status: "regressed" | "improved" | "unchanged"
+    @property
+    def status(self) -> str: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ConstantColumnDiff:
+    newly_constant: tuple[str, ...] = ()
+    no_longer_constant: tuple[str, ...] = ()
+
+    @property
+    def changed(self) -> bool: ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            <code>MissingValueDiff.status</code> reports <code>"new"</code> when missingness was introduced, <code>"resolved"</code> when it disappeared, <code>"regressed"</code>/<code>"improved"</code> when it increased/decreased, and <code>"unchanged"</code> otherwise.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-numeric">
+          <h3 id="diff-numeric" className="mb-3 text-lg font-semibold text-foreground">Numeric Deltas</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class CardinalityDiff:
+    column: str
+    previous_cardinality: int
+    cardinality: int
+
+    @property
+    def delta(self) -> int: ...
+
+
+@dataclass(frozen=True, slots=True)
+class StatisticDiff:
+    column: str
+    statistic: str   # "mean" | "median" | "std_dev" | "min" | "max"
+    previous: float | None
+    current: float | None
+    delta: float | None
+    relative_delta: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class DistributionDiff:
+    column: str
+    previous_mean: float | None
+    mean: float | None
+    mean_relative_shift: float | None
+    significant: bool`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Only statistics that actually changed are emitted, and only distribution shifts that exceed the configured threshold are flagged.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-leakage">
+          <h3 id="diff-leakage" className="mb-3 text-lg font-semibold text-foreground">Leakage Deltas</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class LeakageColumnDiff:
+    column: str
+    previous_severity: str | None
+    severity: str | None
+    status: str   # "new" | "removed" | "escalated" | "de_escalated" | "unchanged"
+
+    @property
+    def changed(self) -> bool: ...
+
+
+@dataclass(frozen=True, slots=True)
+class LeakageDiff:
+    columns: tuple[LeakageColumnDiff, ...] = ()
+
+    @property
+    def new_findings(self) -> tuple[LeakageColumnDiff, ...]: ...
+    @property
+    def removed_findings(self) -> tuple[LeakageColumnDiff, ...]: ...
+    @property
+    def escalated(self) -> tuple[LeakageColumnDiff, ...]: ...
+    @property
+    def de_escalated(self) -> tuple[LeakageColumnDiff, ...]: ...
+    @property
+    def changed(self) -> bool: ...`} language="python" showCopy={false} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            The leakage comparison is only produced when a target column is provided to <code>fs.diff()</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-summary">
+          <h3 id="diff-summary" className="mb-3 text-lg font-semibold text-foreground">DatasetDiffSummary</h3>
+          <CodeBlock code={`@dataclass(frozen=True, slots=True)
+class DatasetDiffSummary:
+    rows_added: int
+    rows_removed: int
+    columns_added: int
+    columns_removed: int
+    columns_renamed: int
+    type_changes: int
+    schema_changed: bool
+    missing_values_increased: int
+    missing_values_decreased: int
+    duplicate_rows_increased: bool
+    duplicate_rows_decreased: bool
+    newly_constant_columns: int
+    no_longer_constant_columns: int
+    leakage_new: int
+    leakage_removed: int
+    leakage_escalated: int
+    leakage_de_escalated: int
+    overall_health: str   # "regressed" | "improved" | "unchanged"
+    recommendation: str`} language="python" showCopy={false} />
+        </section>
+
+        <section className="mb-8" aria-labelledby="diff-example-model">
+          <h3 id="diff-example-model" className="mb-3 text-lg font-semibold text-foreground">Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.diff("v1.csv", "v2.csv", target_column="churn")
+
+print(result.overall_summary)
+print(f"Health: {result.summary.overall_health}")
+for diff in result.missing_values:
+    print(f"  {diff.column}: {diff.status} ({diff.delta_percentage:+.2f}pp)")`} language="python" showCopy />
         </section>
       </>
     )
@@ -1114,39 +2043,37 @@ featuresmith analyze dataset.csv --severity warning --output report.txt`} langua
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith is fully extensible. You can easily add your own deterministic rules by extending the <code>BaseRule</code> interface and defining rule parameters.
+          Featuresmith is fully extensible. You can add your own deterministic rules by extending the <code>BaseRule</code> interface and registering them with the Rule Engine.
         </p>
 
         <section className="mb-8" aria-labelledby="rule-abstract">
           <h3 id="rule-abstract" className="mb-3 text-lg font-semibold text-foreground">The BaseRule Interface</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            All rules must extend <code>BaseRule</code> and implement the following properties and methods:
+            All rules must extend <code>BaseRule</code> and implement the following properties and method:
           </p>
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground" role="list">
             <li><code>id</code>: A unique dotted identifier (e.g., <code>statistical.zero_variance</code>).</li>
-            <li><code>name</code>: A descriptive rule title.</li>
-            <li><code>category</code>: Group category (e.g., <code>quality</code>, <code>statistical</code>, <code>leakage</code>).</li>
-            <li><code>severity</code>: Finding severity level (e.g., <code>RuleSeverity.INFO</code>, <code>WARNING</code>, or <code>CRITICAL</code>).</li>
-            <li><code>evaluate(profile: ProfileResult) -&gt; list[RuleFinding]</code>: Core audit logic.</li>
+            <li><code>name</code>: A short human-readable rule title.</li>
+            <li><code>description</code>: What the rule flags.</li>
+            <li><code>category</code>: The group category (<code>quality</code>, <code>statistical</code>, or <code>leakage</code>).</li>
+            <li><code>severity</code>: The default finding severity as a string (<code>"info"</code>, <code>"warning"</code>, or <code>"critical"</code>).</li>
+            <li><code>enabled_by_default</code>: Whether the rule runs by default in the engine.</li>
+            <li><code>evaluate(profile: ProfileResult) -&gt; list[RuleFinding]</code>: The core audit logic.</li>
           </ul>
         </section>
 
         <section className="mb-8" aria-labelledby="rule-example">
           <h3 id="rule-example" className="mb-3 text-lg font-semibold text-foreground">Custom Rule Implementation</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Here is a complete example of a rule to detect numerical columns that have zero standard deviation (constant value columns):
+            Here is a complete rule that flags numeric columns with zero standard deviation (constant-value columns), using the real <code>BaseRule</code> API and the <code>NumericProfile</code> output of the profiling engine:
           </p>
-          <CodeBlock code={`from typing import Any
+          <CodeBlock code={`from featuresmith.core.profile_result import ProfileResult
+from featuresmith.core.rule_finding import RuleFinding
 from featuresmith.rules.base import BaseRule
-from featuresmith.core.rule_finding import RuleFinding, RuleSeverity
-from featuresmith.core.profile_result import ProfileResult
+
 
 class ZeroVarianceRule(BaseRule):
-    """Custom rule to detect columns with zero variance."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
-        self.enabled = kwargs.get("enabled", True)
+    """Custom rule to detect numeric columns with zero variance."""
 
     @property
     def id(self) -> str:
@@ -1157,45 +2084,80 @@ class ZeroVarianceRule(BaseRule):
         return "Zero Variance Columns"
 
     @property
+    def description(self) -> str:
+        return "Flags numeric columns whose standard deviation is zero."
+
+    @property
     def category(self) -> str:
         return "statistical"
 
     @property
-    def severity(self) -> RuleSeverity:
-        return RuleSeverity.WARNING
+    def severity(self) -> str:
+        return "warning"
+
+    @property
+    def enabled_by_default(self) -> bool:
+        return True
 
     def evaluate(self, profile: ProfileResult) -> list[RuleFinding]:
-        findings = []
-        for col_name, col_profile in profile.column_profiles.items():
-            numeric_stats = col_profile.numeric_stats
-            if numeric_stats is not None and numeric_stats.std == 0.0:
+        findings: list[RuleFinding] = []
+        for col_name, num_prof in profile.numeric_profiles.items():
+            if num_prof.std_dev == 0.0:
                 findings.append(
-                    self.create_finding(
+                    RuleFinding(
+                        rule_id=self.id,
+                        rule_name=self.name,
+                        category=self.category,
+                        severity=self.severity,
                         column_name=col_name,
-                        title="Zero Variance Detected",
-                        description=f"Column '{col_name}' has standard deviation of 0.0 (no variance).",
-                        evidence={"std": 0.0}
+                        title=f"Zero variance in column '{col_name}'",
+                        description=(
+                            f"Column '{col_name}' has a standard deviation "
+                            f"of 0.0 (no variance)."
+                        ),
+                        evidence={
+                            "std_dev": num_prof.std_dev,
+                            "unique_count": num_prof.unique_count,
+                        },
+                        confidence=1.0,
                     )
                 )
         return findings`} language="python" showCopy />
         </section>
 
-        <section className="mb-8" aria-labelledby="rule-registration">
-          <h3 id="rule-registration" className="mb-3 text-lg font-semibold text-foreground">Evaluating Custom Rules</h3>
+        <section className="mb-8" aria-labelledby="rule-evaluation">
+          <h3 id="rule-evaluation" className="mb-3 text-lg font-semibold text-foreground">Evaluating Custom Rules</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            You can instantiate your rule and run it directly in Python:
+            You can run the rule directly against a computed profile:
           </p>
           <CodeBlock code={`import featuresmith as fs
 
 dataset = fs.load("data.csv")
-rule = ZeroVarianceRule()
-
-# Run rule directly against computed statistical profiles
 profile = fs.profile(dataset)
+
+rule = ZeroVarianceRule()
 findings = rule.evaluate(profile)
 
 for finding in findings:
     print(f"[{finding.severity}] {finding.title} in {finding.column_name}")`} language="python" showCopy />
+          <p className="mt-3 text-sm text-muted-foreground">
+            To run your custom rule inside the Rule Engine (for example alongside the built-ins through <code>fs.analyze()</code>), register it in a <code>RuleRegistry</code> and pass the registry to a <code>RuleEngine</code>:
+          </p>
+          <CodeBlock code={`from featuresmith.rules.engine import RuleEngine
+from featuresmith.rules.registry import RuleRegistry, default_registry
+
+# Start from the built-in rules and add your custom rule
+registry = RuleRegistry([*default_registry().list_rules(), ZeroVarianceRule()])
+engine = RuleEngine(registry=registry)
+
+result = engine.run(
+    profile,
+    target_column="churn",
+    enabled_rules=["statistical.zero_variance"],
+)
+
+print(f"Executed {len(result.executed_rules)} rule(s): {result.executed_rules}")
+print(f"Failed: {result.failed_rules}")`} language="python" showCopy />
         </section>
       </>
     )
@@ -1293,7 +2255,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
             <li><strong>Review Engine</strong>: Orchestrates multiple parallel dataset reviewers in a 5-stage pipeline, outputting structured reports.</li>
             <li><strong>ML Readiness Score</strong>: Calculates a deterministic 0–100 score across 8 dimensions (Missing Values, Duplicates, Leakage, etc.) with actionable feedback.</li>
             <li><strong>Dataset Diff Engine</strong>: Compares two snapshot profiles to identify schema changes, distribution shifts, and quality regressions.</li>
-            <li><strong>Intelligent Leakage Detection</strong>: Features 6 pattern-matching detectors to catch target leakage, duplicate targets, and future information leaks.</li>
+            <li><strong>Intelligent Leakage Detection</strong>: Features 5 pattern-matching detectors to catch target leakage, duplicate targets, and future information leaks.</li>
             <li><strong>CLI Expansion</strong>: Introduces <code>featuresmith review</code> and <code>featuresmith diff</code> subcommands for terminal validation and CI/CD gating.</li>
           </ul>
         </section>
@@ -1433,7 +2395,7 @@ uv run pytest`} language="bash" showCopy />
             <li><strong>previous</strong>: <code>object | None</code> (default None). Prior snapshot for diff-aware reviews. <em>Note: Providing a value raises a <code>NotImplementedError</code>; use the standalone <code>fs.diff()</code> instead.</em></li>
             <li><strong>target_column</strong>: <code>str | None</code> (default None). Name of the target column. Highly recommended to enable target leakage checks.</li>
             <li><strong>enabled_reviewers</strong>: <code>Sequence[str] | None</code> (default None). Optional list of specific reviewer IDs to execute.</li>
-            <li><strong>enabled_categories</strong>: <code>Sequence[ReviewCategory] | None</code> (default None). Optional list of reviewer categories to execute (schema, quality, leakage, custom).</li>
+            <li><strong>enabled_categories</strong>: <code>Sequence[ReviewCategory] | None</code> (default None). Optional list of reviewer categories to execute (schema, quality, leakage, diff, feature_quality, custom).</li>
             <li><strong>reviewer_config</strong>: <code>Mapping[str, Mapping[str, Any]] | None</code> (default None). Parameter overrides for specific reviewers (e.g. customized thresholds).</li>
             <li><strong>max_correlation_columns</strong>: <code>int</code> (default 100). Cap limit for correlation matrix computation during profiling.</li>
             <li><strong>max_frequency_table_size</strong>: <code>int</code> (default 1000). Frequency table storage cap.</li>
@@ -1566,7 +2528,7 @@ if result.score:
             <li><code>version</code>: <code>str</code> (currently <code>"0.2.0"</code>).</li>
             <li><code>schema</code>: <code>SchemaDiff</code> containing columns added, removed, renamed, and data type changes.</li>
             <li><code>structure</code>: <code>StructureDiff</code> showing row/column deltas.</li>
-            <li><code>missing_values</code>: Delinquent missing ratio shifts.</li>
+            <li><code>missing_values</code>: Per-column missingness deltas (<code>MissingValueDiff</code>), each classified as new, resolved, regressed, improved, or unchanged.</li>
             <li><code>duplicates</code>: Duplicate rows count and percentage shifts.</li>
             <li><code>constant_columns</code>: Newly constant and no longer constant columns.</li>
             <li><code>cardinality</code>: Per-column cardinality changes.</li>
@@ -1855,7 +2817,7 @@ print(dataset.preview(5))       # first 5 rows as a dataframe`} language="python
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--only TEXT</td>
-                  <td className="px-4 py-3 text-sm">Comma-separated reviewer categories to run (schema, quality, leakage, custom).</td>
+                  <td className="px-4 py-3 text-sm">Comma-separated reviewer categories to run (schema, quality, leakage, diff, feature_quality, custom).</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--no-score</td>
