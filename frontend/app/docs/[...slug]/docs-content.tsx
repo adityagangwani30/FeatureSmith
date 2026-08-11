@@ -144,7 +144,7 @@ featuresmith review examples/data/processed/titanic.csv --target survived
 featuresmith analyze examples/data/processed/titanic.csv --target survived
 
 # Compare two snapshot profiles (Dataset Diff Engine)
-featuresmith diff examples/data/processed/sales.csv examples/data/processed/sales.csv --target store_id`} language="bash" showCopy />
+featuresmith diff examples/data/processed/sales.csv examples/data/processed/sales.csv --target order_id`} language="bash" showCopy />
         </section>
 
         <section className="mb-8" aria-labelledby="qs-exitcodes">
@@ -870,7 +870,7 @@ print(f"Triggered {len(result.findings)} findings.")`} language="python" showCop
             { href: "/docs/sdk/models/rules", title: "Rule & Finding Models", desc: "RuleResult, RuleFinding, finding severities, and the eight built-in validation rules with their default thresholds." },
             { href: "/docs/sdk/models/review", title: "Review Models", desc: "ReviewResult, ReviewSection, the six ReviewCategory values, the four Severity levels, and the eight built-in reviewers." },
             { href: "/docs/sdk/models/score", title: "Score Models", desc: "MLReadinessScore, DimensionScore, the eight scoring dimensions, and the deduction formula behind the 0-100 scorecard." },
-            { href: "/docs/sdk/models/leakage", title: "Leakage Models", desc: "LeakageFinding and the five pattern detectors that flag target leakage." },
+            { href: "/docs/sdk/models/leakage", title: "Leakage Models", desc: "LeakageFinding and the six pattern detectors that flag target leakage." },
             { href: "/docs/sdk/models/diff", title: "Diff Models", desc: "DatasetDiffResult and every nested delta model produced by fs.diff()." },
           ].map((link) => (
             <a
@@ -1293,7 +1293,7 @@ class ReviewSection:
 
         <section className="mb-8" aria-labelledby="review-enums">
           <h3 id="review-enums" className="mb-3 text-lg font-semibold text-foreground">ReviewCategory and Severity</h3>
-          <CodeBlock code={`class ReviewCategory(StrEnum):
+          <CodeBlock code={`class ReviewCategory(Enum):
     SCHEMA = "schema"
     QUALITY = "quality"
     LEAKAGE = "leakage"
@@ -1302,7 +1302,7 @@ class ReviewSection:
     CUSTOM = "custom"
 
 
-class Severity(StrEnum):
+class Severity(Enum):
     CRITICAL = "critical"
     WARNING = "warning"
     INFO = "info"
@@ -1523,7 +1523,7 @@ if score:
     subtitle: "SDK Reference: leakage detection objects",
     category: "Python SDK",
     seoTitle: "SDK Leakage Models",
-    seoDescription: "Full field reference for LeakageFinding and the five built-in leakage pattern detectors.",
+    seoDescription: "Full field reference for LeakageFinding and the six built-in leakage pattern detectors.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
@@ -1545,7 +1545,7 @@ class LeakageFinding:
         </section>
 
         <section className="mb-8" aria-labelledby="leakage-detectors">
-          <h3 id="leakage-detectors" className="mb-3 text-lg font-semibold text-foreground">The Five Built-in Detectors</h3>
+          <h3 id="leakage-detectors" className="mb-3 text-lg font-semibold text-foreground">The Six Built-in Detectors</h3>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="min-w-full divide-y divide-border text-left text-sm">
               <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
@@ -1570,6 +1570,11 @@ class LeakageFinding:
                   <td className="px-4 py-3 font-mono text-xs">timestamp</td>
                   <td className="px-4 py-3">Timestamp Leakage</td>
                   <td className="px-4 py-3">Datetime columns that extend past a declared prediction cutoff.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">future_info</td>
+                  <td className="px-4 py-3">Future Information</td>
+                  <td className="px-4 py-3">Columns named like the outcome, or datetime columns extending past a declared event timestamp.</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-mono text-xs">duplicate_target</td>
@@ -1761,7 +1766,7 @@ class CardinalityDiff:
 @dataclass(frozen=True, slots=True)
 class StatisticDiff:
     column: str
-    statistic: str   # "mean" | "median" | "std_dev" | "min" | "max"
+    statistic: str   # "mean" | "median" | "std_dev" | "minimum" | "maximum"
     previous: float | None
     current: float | None
     delta: float | None
@@ -2225,7 +2230,7 @@ jobs:
         <section className="mb-8" aria-labelledby="cicd-customization">
           <h3 id="cicd-customization" className="mb-3 text-lg font-semibold text-foreground">Customizing Gates</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            You can customize the strictness of your CI gate by overriding severity settings in your local <code>.featuresmith.yml</code> configuration file, or by passing the <code>--severity</code> flag to the CLI.
+            In v0.2.0, file-based configuration via a local <code>.featuresmith.yml</code> file is not yet available (it is a planned enhancement for a future release). Customize the strictness of your CI gate by passing the <code>--severity</code> flag to the CLI.
           </p>
           <CodeBlock code={`# Only fail builds on critical violations (fully empty columns or target leakage)
 featuresmith analyze data/train.csv --target churn --severity critical`} language="bash" showCopy />
@@ -2255,7 +2260,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
             <li><strong>Review Engine</strong>: Orchestrates multiple parallel dataset reviewers in a 5-stage pipeline, outputting structured reports.</li>
             <li><strong>ML Readiness Score</strong>: Calculates a deterministic 0–100 score across 8 dimensions (Missing Values, Duplicates, Leakage, etc.) with actionable feedback.</li>
             <li><strong>Dataset Diff Engine</strong>: Compares two snapshot profiles to identify schema changes, distribution shifts, and quality regressions.</li>
-            <li><strong>Intelligent Leakage Detection</strong>: Features 5 pattern-matching detectors to catch target leakage, duplicate targets, and future information leaks.</li>
+            <li><strong>Intelligent Leakage Detection</strong>: Features 6 pattern-matching detectors to catch target leakage, duplicate targets, and future information leaks.</li>
             <li><strong>CLI Expansion</strong>: Introduces <code>featuresmith review</code> and <code>featuresmith diff</code> subcommands for terminal validation and CI/CD gating.</li>
           </ul>
         </section>
@@ -2532,7 +2537,7 @@ if result.score:
             <li><code>duplicates</code>: Duplicate rows count and percentage shifts.</li>
             <li><code>constant_columns</code>: Newly constant and no longer constant columns.</li>
             <li><code>cardinality</code>: Per-column cardinality changes.</li>
-            <li><code>statistics</code>: Deltas for basic numeric metrics (mean, median, std_dev, min, max).</li>
+            <li><code>statistics</code>: Deltas for basic numeric metrics (mean, median, std_dev, minimum, maximum).</li>
             <li><code>distributions</code>: Significant mean shifts.</li>
             <li><code>leakage</code>: Target leakage deltas (new, removed, escalated, or de-escalated patterns).</li>
             <li><code>summary</code>: <code>DatasetDiffSummary</code> showing counts and overall health (<code>regressed</code>, <code>improved</code>, or <code>unchanged</code>).</li>
@@ -3014,7 +3019,7 @@ featuresmith diff train_v1.csv train_v2.csv --format json --output diff_report.j
             When computed, the CLI console renderer formats the score and displays contributing issues dynamically:
           </p>
           <CodeBlock code={`ML Readiness Score (scoring v0.2.0)
-Overall: 85/100
+Overall: 98.1/100
 
   Schema Health: 100/100
   Missing Values: 85/100 (1 finding(s))
@@ -3025,10 +3030,10 @@ Overall: 85/100
   Dataset Structure: 100/100
   Leakage Risk: 100/100
 
-Summary: Missing Values scored 85/100; 1 finding(s) lowered the score (1 warning).
+Summary: Overall ML Readiness is 98.1/100 across 8 dimension(s); 7 fully healthy, 1 with findings lowering the score.
 
 What would improve this score:
-  - Address the flagged issue: Missing value threshold exceeded in column 'age'.`} showCopy={false} />
+  - Address the flagged issue: High missing values in column 'age' (in column 'age').`} showCopy={false} />
         </section>
 
         <section className="mb-8" aria-labelledby="score-cli-json">

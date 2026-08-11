@@ -272,7 +272,7 @@ class StatisticDiff:
 
     Attributes:
         column: The column name.
-        statistic: The statistic name ("mean", "median", "std_dev", "min", "max").
+        statistic: The statistic name ("mean", "median", "std_dev", "minimum", "maximum").
         previous: The statistic value in the older snapshot.
         current: The statistic value in the newer snapshot.
         delta: The signed absolute change (current - previous).
