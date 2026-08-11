@@ -1013,48 +1013,188 @@ fs.profile() fs.analyze() fs.review()
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          When Featuresmith reviews a dataset, it outputs structured <code>RuleFinding</code> objects. This guide helps beginners understand what each finding means, why it matters, whether it requires fixing, and what to investigate next.
+          When Featuresmith reviews a dataset, it outputs structured <code>RuleFinding</code> objects. Featuresmith evaluates datasets deterministically — it detects and reports statistical issues, but does not automatically mutate or delete your raw data. This guide helps beginners understand what each finding means, why it matters, whether it requires remediation, and what to investigate next.
         </p>
 
         <section className="mb-8 space-y-6" aria-labelledby="interpretation-findings">
           <div className="rounded-lg border border-border bg-card p-5">
             <h3 className="text-base font-semibold text-foreground mb-2">1. High Missing Values (Null Spikes)</h3>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li><strong>What does this mean?</strong> A column contains a high percentage of null or missing entries.</li>
-              <li><strong>Why might it matter?</strong> Many ML algorithms (like standard linear models or SVMs) crash when passed null values, or require imputation.</li>
-              <li><strong>Is it always bad?</strong> Not always. Some tree-based models handle nulls natively, or missingness itself may be informative.</li>
-              <li><strong>What to investigate next:</strong> Check if nulls represent uncollected data or zero values, and apply appropriate imputation (mean, median, mode, or indicator flag).</li>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> A column contains a high percentage of missing or null entries exceeding the configured threshold (default 20%).</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> Many ML models (like linear regression, SVMs, or neural networks) fail when passed nulls, or require imputation strategies.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> Not necessarily. In tree-based models (like XGBoost/LightGBM) nulls are handled natively, or missingness itself may be an informative predictive signal.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Determine whether nulls stem from uncollected data, pipeline drops, or zero defaults, and apply domain-appropriate imputation (mean, median, mode, or indicator flag).</li>
             </ul>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-5">
             <h3 className="text-base font-semibold text-foreground mb-2">2. Duplicate Records</h3>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li><strong>What does this mean?</strong> Identical rows exist in the dataset.</li>
-              <li><strong>Why might it matter?</strong> Duplicate rows inflate feature counts, cause data leakage between train and test splits, and bias model metrics.</li>
-              <li><strong>Is it always bad?</strong> Yes in most supervised settings — duplicate rows distort loss functions.</li>
-              <li><strong>What to investigate next:</strong> Deduplicate records prior to splitting train/test sets using <code>df.drop_duplicates()</code>.</li>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> Identical rows exist in the dataset exceeding the duplicate threshold (default 10%).</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> Duplicate rows distort model loss functions, over-weight identical samples, and cause severe data leakage if duplicated across train/test splits.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> Almost always in supervised learning — identical rows distort validation metrics.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Inspect raw data collection logs and deduplicate rows prior to train/test splitting using <code>df.drop_duplicates()</code>.</li>
             </ul>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-5">
-            <h3 className="text-base font-semibold text-foreground mb-2">3. High Cardinality Categorical Columns</h3>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li><strong>What does this mean?</strong> A text or categorical column has an excessive number of unique category strings (e.g. &gt;50% unique ratio).</li>
-              <li><strong>Why might it matter?</strong> One-hot encoding high-cardinality columns creates sparse, high-dimensional matrices that slow down training and cause overfitting.</li>
-              <li><strong>Is it always bad?</strong> If the column is an ID (e.g. <code>user_id</code>), it should be dropped. If it is free text, it requires target encoding or embedding.</li>
-              <li><strong>What to investigate next:</strong> Drop raw IDs or apply frequency/target encoding.</li>
+            <h3 className="text-base font-semibold text-foreground mb-2">3. Constant & Zero-Variance Columns</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> A column contains only one single unique non-null value, or is 100% empty.</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> A feature with zero variance carries zero statistical entropy and zero predictive information gain, inflating matrix dimensionality unnecessarily.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> Not an error, but useless for predictive modeling.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Safely drop zero-variance and fully empty columns prior to model feature selection.</li>
             </ul>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-5">
-            <h3 className="text-base font-semibold text-foreground mb-2">4. Target Leakage (CRITICAL Severity)</h3>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li><strong>What does this mean?</strong> A feature correlates near-perfectly (&ge;0.99) with the target variable, or contains future outcome data.</li>
-              <li><strong>Why might it matter?</strong> The model will learn a trivial shortcut, achieving 100% training accuracy but failing completely in production.</li>
-              <li><strong>Is it always bad?</strong> Almost always — genuine 0.99 correlations are extremely rare outside of leaked target copies or IDs.</li>
-              <li><strong>What to investigate next:</strong> Remove the flagged feature immediately before model training.</li>
+            <h3 className="text-base font-semibold text-foreground mb-2">4. High Cardinality Categorical Columns</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> A text or categorical column has an excessive number of unique category strings (e.g. &gt;50% unique ratio).</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> One-hot encoding high-cardinality columns creates sparse, high-dimensional matrices that slow down training and cause severe overfitting.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> If the column is a unique identifier (e.g. <code>customer_id</code>), it should be dropped. If it is raw text or zip codes, it requires specialized encoding.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Drop raw identifier columns or apply target encoding, frequency encoding, or text embeddings.</li>
             </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">5. Schema & Data Type Mismatches</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> Numeric values are stored as string objects (e.g. <code>"123"</code>), or column names violate standard conventions.</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> String-encoded numbers prevent mathematical transformations, cause silent type coercions, or crash downstream estimators.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> Yes for numerical features — estimators require clean float/int types.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Cast string columns to numeric types using <code>pd.to_numeric()</code> or Polars type conversions during ingestion.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">6. Statistical Anomalies (Skewness & Kurtosis)</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> A feature exhibits extreme distribution asymmetry (skewness &gt; 2.0) or heavy-tailed outlier spikes (kurtosis &gt; 10.0).</li>
+              <li><strong>Why might it matter?</strong> Highly skewed features destabilize gradient descent optimization and distort linear model coefficient estimation.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> No. Power-law distributions (like user spend or transaction amounts) are naturally skewed.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Apply log transformations (<code>np.log1p</code>), Box-Cox, or quantile scaling to normalize distributions before training.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">7. Numeric Outliers (IQR Method)</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> Feature values fall beyond Q3 + 1.5*IQR or below Q1 - 1.5*IQR.</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> Extreme outliers exert disproportionate influence on mean calculations, standard deviations, and mean-squared-error loss functions.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> No. Outliers may represent real, critical business events (e.g. fraud spikes or high-value sales).</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Evaluate whether outliers represent data corruption or genuine tail events, and apply winsorization or robust scalers.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">8. Target Leakage Findings (CRITICAL Severity)</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> A feature correlates near-perfectly (&ge;0.99) with the target, encodes future timestamp information, or is named like an outcome label.</li>
+              <li><strong>WHY MIGHT IT MATTER?</strong> The model will learn a trivial shortcut, achieving 100% validation metrics in development but failing completely in production.</li>
+              <li><strong>IS IT ALWAYS BAD?</strong> Almost always — genuine 0.99 feature-target correlations are extremely rare outside of leaked outcome copies or IDs.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Trace feature generation timestamps relative to outcome events, verify pipeline logic, and drop leaked features immediately.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">9. ML Readiness Score Interpretation</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> Translates overall review health into a single 0–100 quality scorecard across 8 dimensions.</li>
+              <li><strong>HOW TO READ SCORES:</strong>
+                <ul className="list-disc pl-4 mt-1 space-y-1">
+                  <li><strong>100.0 / 100:</strong> Clean baseline; zero rule findings triggered (does not guarantee predictive accuracy).</li>
+                  <li><strong>80.0 – 99.0 / 100:</strong> Minor warnings or info findings present; review suggested remediations.</li>
+                  <li><strong>&lt; 80.0 / 100:</strong> Critical findings or severe quality issues detected; gate pipeline before training.</li>
+                </ul>
+              </li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Inspect individual dimension scores and suggested actions to remediate specific low-scoring areas.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-base font-semibold text-foreground mb-2">10. Dataset Diff Verdicts (unchanged vs improved vs regressed)</h3>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li><strong>WHAT DOES THIS MEAN?</strong> Compares two dataset snapshot versions (old vs new) to evaluate snapshot health deltas.</li>
+              <li><strong>DIFFERENCE BETWEEN CHANGED AND REGRESSED:</strong> A changed dataset (e.g., added rows or new features) is normal. A <em>regressed</em> dataset indicates dropped columns, missingness spikes, or newly introduced leakage.</li>
+              <li><strong>WHAT SHOULD I INVESTIGATE NEXT?</strong> Inspect <code>diff.summary</code>, <code>diff.schema</code>, and <code>fs.diff_findings()</code> to isolate specific snapshot deltas.</li>
+            </ul>
+          </div>
+        </section>
+      </>
+    )
+  },
+  "concepts/cheatsheet": {
+    title: "Workflow Cheat Sheet",
+    subtitle: "Quick reference mapping developer questions to Featuresmith APIs",
+    category: "Core Concepts",
+    seoTitle: "Featuresmith Workflow Cheat Sheet",
+    seoDescription: "Quick reference table mapping developer questions to Featuresmith SDK functions, CLI commands, and flags.",
+    render: () => (
+      <>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+          Use this cheat sheet as a rapid lookup guide to map common data engineering tasks directly to Featuresmith SDK entrypoints and CLI commands.
+        </p>
+
+        <section className="mb-8" aria-labelledby="cheatsheet-table">
+          <h3 id="cheatsheet-table" className="mb-4 text-lg font-semibold text-foreground">SDK & CLI Task Mapping</h3>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
+                <tr>
+                  <th className="px-4 py-3">Task / Question</th>
+                  <th className="px-4 py-3">Python SDK Function</th>
+                  <th className="px-4 py-3">CLI Command</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Ingest CSV, Excel, Parquet, or DataFrame</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.load(source)</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith analyze data.csv</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Extract raw statistical profile without rules</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.profile(dataset)</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith analyze data.csv</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Check atomic quality rules & target leakage</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.analyze(ds, target_column="y")</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith analyze data.csv --target y</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Run complete 8-reviewer dataset code review</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.review(ds, target_column="y")</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith review data.csv --target y</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Extract 0–100 ML Readiness Scorecard</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.score(review_result)</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith review data.csv --target y</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Compare snapshot versions (Dataset Diff)</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.diff(old, new, target_column="y")</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith diff old.csv new.csv --target y</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Extract RuleFinding objects from diff</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.diff_findings(diff_result)</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith diff old.csv new.csv --format json</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Render text report for console / logs</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.render(review_result)</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith review data.csv</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Render diff text report for console</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.render_diff(diff_result)</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith diff old.csv new.csv</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </>

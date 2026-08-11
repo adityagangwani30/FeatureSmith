@@ -223,6 +223,7 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "Target Column Concept", href: "/docs/concepts/target-column" },
       { title: "Mental Model & Workflow", href: "/docs/concepts/workflow" },
       { title: "Interpreting Findings", href: "/docs/concepts/interpretation" },
+      { title: "Workflow Cheat Sheet", href: "/docs/concepts/cheatsheet" },
       { title: "Beginner Glossary", href: "/docs/concepts/glossary" },
     ],
   },

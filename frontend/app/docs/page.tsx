@@ -130,6 +130,30 @@ export default function DocsPage() {
         </ul>
       </section>
 
+      {/* What should I already know */}
+      <section className="mb-10" aria-labelledby="prerequisites-knowledge">
+        <h2 id="prerequisites-knowledge" className="mb-3 text-xl font-semibold text-foreground">
+          What Should I Already Know?
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2 text-primary">Required Knowledge</h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              <li>• Basic Python syntax (functions, imports, dictionaries)</li>
+              <li>• Basic tabular data concepts (rows, columns, CSV files)</li>
+            </ul>
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Helpful (Not Required)</h3>
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              <li>• Experience with pandas or Polars DataFrames</li>
+              <li>• Basic Machine Learning concepts (train/test split, target variables)</li>
+              <li>• Basic command-line terminal usage</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Installation */}
       <section className="mb-10" aria-labelledby="installation">
         <h2 id="installation" className="mb-3 text-xl font-semibold text-foreground">
