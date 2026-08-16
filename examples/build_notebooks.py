@@ -1,4 +1,4 @@
-"""Generator script for Featuresmith v0.2.0 educational Jupyter Notebooks."""
+"""Generator script for Featuresmith v0.3.0 educational Jupyter Notebooks."""
 
 import json
 from pathlib import Path
@@ -90,7 +90,7 @@ def build_all_notebooks():
     # Notebook 1: Getting Started with Featuresmith
     # =========================================================================
     nb1 = create_notebook(
-        title="01 — Getting Started with Featuresmith v0.2.0",
+        title="01 — Getting Started with Featuresmith v0.3.0",
         description="Learn the fundamentals of Featuresmith — loading tabular datasets, inspecting Dataset descriptors, deterministic statistical profiling, automated dataset code reviews, and ML readiness scoring.",
         sections=[
             {
@@ -160,7 +160,7 @@ def build_all_notebooks():
             {
                 "markdown": [
                     "### Step 5: Run Automated Dataset Review & Scorecard\n",
-                    "`fs.review()` evaluates dataset health across 8 specialized reviewers, while `fs.score()` extracts an overall ML Readiness Scorecard.",
+                    "`fs.review()` evaluates dataset health across 8 specialized reviewers, while `fs.score()` extracts an overall ML Readiness Scorecard. (Passing `previous=` to `fs.review()` also activates the DiffReviewer, a 9th reviewer, in v0.3.0.)",
                 ],
                 "code": [
                     'review_result = fs.review(dataset, target_column="survived")\n',
@@ -197,7 +197,7 @@ def build_all_notebooks():
                     "## 1. Why Automated Dataset Code Reviews Matter\n",
                     "Just as software engineers perform code reviews before merging pull requests, ML engineers must perform dataset code reviews before training models. ",
                     "Featuresmith's Review Engine runs 8 specialized reviewers to evaluate dataset health deterministically.\n\n",
-                    "### The 8 Automated Reviewers in v0.2.0\n",
+                    "### The 8 Automated Reviewers in v0.3.0\n",
                     "1. **Schema Health Reviewer**: Evaluates structural consistency and column naming.\n",
                     "2. **Data Types Reviewer**: Detects text types, numeric types, and type mismatches.\n",
                     "3. **Missing Values Reviewer**: Identifies column missingness ratios and null spikes.\n",
@@ -205,7 +205,8 @@ def build_all_notebooks():
                     "5. **Constant Columns Reviewer**: Finds zero-variance and empty columns.\n",
                     "6. **High Cardinality Reviewer**: Flags categorical columns with excessive unique values.\n",
                     "7. **Basic Statistics Reviewer**: Analyzes distribution skewness and kurtosis anomalies.\n",
-                    "8. **Leakage Risk Reviewer**: Evaluates target correlations, identifier shapes, timestamp anomalies, and duplicate targets.",
+                    "8. **Leakage Risk Reviewer**: Evaluates target correlations, identifier shapes, timestamp anomalies, and duplicate targets.\n",
+                    "A **9th built-in reviewer, the DiffReviewer**, activates automatically when you pass `previous=` to `fs.review()` (v0.3.0) \u2014 it compares the current snapshot against a previous baseline. See `05_dataset_diff.ipynb` for the full walkthrough.",
                 ]
             },
             {
@@ -272,7 +273,7 @@ def build_all_notebooks():
             {
                 "markdown": [
                     "### Key Takeaways & Connection to Next Tutorial\n",
-                    "- `fs.review()` evaluates dataset health across 8 reviewers deterministically.\n",
+                    "- `fs.review()` evaluates dataset health across 8 built-in reviewers deterministically (plus the DiffReviewer when `previous=` is provided).\n",
                     "- Category filtering (`enabled_categories`) and reviewer threshold overrides (`reviewer_config`) allow custom validation rules.\n",
                     "- `fs.render(review_res)` generates formatted console text reports.\n\n",
                     "**Next Tutorial**: In `03_ml_readiness_score.ipynb`, we explore the 0–100 ML Readiness Scorecard, health dimension weights, deduction math, and actionable fix suggestions.",
@@ -301,7 +302,7 @@ def build_all_notebooks():
                     "- **High Cardinality**\n",
                     "- **Dataset Structure**\n",
                     "- **Leakage Risk**\n\n",
-                    "In v0.2.0 every dimension carries the same default weight of `1.0`, so the overall score is the plain arithmetic mean of the applicable dimension scores. (Per-dimension weight configuration is a documented future capability, not yet configurable.)\n\n",
+                    "In v0.3.0 every dimension carries the same default weight of `1.0`, so the overall score is the plain arithmetic mean of the applicable dimension scores. (Per-dimension weight configuration is a documented future capability, not yet configurable.)\n\n",
                     "### Deduction Rules\n",
                     "Base score per dimension starts at 100. Findings deduct points based on severity:\n",
                     "- **CRITICAL finding**: -30 points\n",
@@ -373,7 +374,7 @@ def build_all_notebooks():
                     "Data leakage is one of the most dangerous bugs in applied machine learning. ",
                     "It occurs when information from the target variable or future state leaks into training features. ",
                     "Models achieve deceptively high validation metrics in development, only to fail completely in production.\n\n",
-                    "### 6 Pattern Detectors in v0.2.0\n",
+                    "### 6 Pattern Detectors in v0.3.0\n",
                     "1. **Target Correlation Detector**: Flags features with Pearson correlation >= 0.99 with the target.\n",
                     "2. **Identifier Shape Detector**: Flags near-unique numeric ID features correlated with the target.\n",
                     "3. **Timestamp Detector**: Identifies future timestamp columns encoding post-outcome information.\n",
@@ -427,8 +428,8 @@ def build_all_notebooks():
     # Notebook 5: Comparing Dataset Versions with Dataset Diff
     # =========================================================================
     nb5 = create_notebook(
-        title="05 — Comparing Dataset Versions with Dataset Diff Engine",
-        description="Learn how to compare dataset snapshot versions with `fs.diff()`, `fs.diff_findings()`, and `fs.render_diff()` to prevent silent schema drift, missingness spikes, and quality regressions.",
+        title="05 — Comparing Dataset Versions: Dataset Diff & Diff-Aware Review (v0.3.0)",
+        description="Compare dataset snapshot versions with the lower-level `fs.diff()` primitive AND the integrated diff-aware review `fs.review(..., previous=...)` (v0.3.0, via the `DiffReviewer`), to prevent silent schema drift, missingness spikes, and quality regressions.",
         sections=[
             {
                 "markdown": [
@@ -436,10 +437,12 @@ def build_all_notebooks():
                     "In production ML pipelines, datasets evolve continuously. ",
                     "New snapshots arrive daily or weekly. Silent changes — such as dropped columns, renamed features, ",
                     "type shifts, or missing value spikes — can break model inference or corrupt retrained models.\n\n",
-                    "Featuresmith's `fs.diff()` compares two dataset snapshots deterministically and provides an overall health verdict:\n",
-                    "- **`unchanged`**: No material structural or quality changes.\n",
-                    "- **`improved`**: Quality metrics improved (e.g., missingness decreased, leakage eliminated).\n",
-                    "- **`regressed`**: Quality degraded (e.g., columns dropped, missingness spiked, schema broke).",
+                    "Featuresmith offers two levels of comparison:\n",
+                    "- **`fs.diff(old, new)`** — the standalone, lower-level comparison primitive. It compares two snapshots deterministically and returns a `DatasetDiffResult` with an overall health verdict:\n",
+                    "  - **`unchanged`**: No material structural or quality changes.\n",
+                    "  - **`improved`**: Quality metrics improved (e.g., missingness decreased, leakage eliminated).\n",
+                    "  - **`regressed`**: Quality degraded (e.g., columns dropped, missingness spiked, schema broke).\n",
+                    "- **`fs.review(new, previous=old)`** (v0.3.0) — a full dataset review with the dataset diff integrated through the **`DiffReviewer`**. The diff becomes one more review section (`review.diff`) inside the normal `ReviewResult`, so you get the review and the diff in one call. `fs.diff()` stays as the lower-level primitive; `DiffReviewer` reuses it internally.",
                 ]
             },
             {
@@ -456,15 +459,20 @@ def build_all_notebooks():
                     "### Step 1: Simulate Dataset Evolution (Snapshot v1 vs Snapshot v2)"
                 ],
                 "code": [
-                    "import featuresmith as fs\n",
                     "import os\n",
-                    "import pandas as pd\n\n",
+                    "\n",
+                    "import pandas as pd\n",
+                    "\n",
+                    "import featuresmith as fs\n",
+                    "\n",
                     'data_path = os.path.join("..", "data", "processed", "sales.csv")\n',
-                    "v1 = pd.read_csv(data_path)\n\n",
+                    "v1 = pd.read_csv(data_path)\n",
+                    "\n",
                     "v2 = v1.copy()\n",
                     'v2.drop(columns=["store_version"], inplace=True)\n',
                     'v2["promo_code"] = "SUMMER2026"\n',
-                    'v2.loc[:100, "discount"] = None\n\n',
+                    'v2.loc[:50, "discount"] = None\n',
+                    "\n",
                     'print(f"Snapshot v1 Shape: {v1.shape}")\n',
                     'print(f"Snapshot v2 Shape: {v2.shape}")',
                 ],
@@ -472,7 +480,8 @@ def build_all_notebooks():
             {
                 "markdown": ["### Step 2: Execute Dataset Diff Engine (`fs.diff`)"],
                 "code": [
-                    "diff_result = fs.diff(v1, v2)\n\n",
+                    "diff_result = fs.diff(v1, v2)\n",
+                    "\n",
                     'print(f"Health Verdict : {diff_result.summary.overall_health.upper()}")\n',
                     'print(f"Recommendation : {diff_result.summary.recommendation}")\n',
                     'print(f"Added Columns  : {diff_result.schema.added_columns}")\n',
@@ -489,17 +498,103 @@ def build_all_notebooks():
                     "findings = fs.diff_findings(diff_result)\n",
                     'print(f"Derived Diff Findings Count: {len(findings)}")\n',
                     "for f in findings[:3]:\n",
-                    '    print(f"  - [{f.severity.upper()}] {f.title}")\n\n',
+                    '    print(f"  - [{f.severity.upper()}] {f.title}")\n',
+                    "\n",
                     'diff_report = fs.render_diff(diff_result, target="console")\n',
-                    'print("\\n=== Formatted Diff Text Report Preview ===")\n',
+                    'print("\\n=== Formatted Diff Text Report Preview ===\\n")\n',
                     'print(diff_report[:500] + "\\n...")',
                 ],
             },
             {
                 "markdown": [
+                    "### Step 4: Diff-Aware Review with `fs.review(..., previous=...)` (v0.3.0)\n\n",
+                    "Here `v1` is the **previous** snapshot (the baseline already in production) and `v2` is the **current** snapshot (the candidate about to replace it).\n",
+                    "Passing `previous=v1` to `fs.review()` activates the **`DiffReviewer`**: the same diff that `fs.diff()` computed now appears as a `review.diff` section inside the normal review, so one call returns both the full dataset review **and** the snapshot comparison.\n\n",
+                    "What the `DiffReviewer` reports:\n",
+                    "- Columns **added** to the dataset (new features, possibly unknown to a trained model).\n",
+                    "- Columns **removed** from the dataset (features a model was trained on that no longer exist).\n",
+                    "- Quality regressions between snapshots (e.g., missing values increasing in a column).\n\n",
+                    "The diff verdict is **informational**: it does not change the 8 ML Readiness Score dimensions.",
+                ],
+                "code": [
+                    "review_res = fs.review(v2, previous=v1)\n",
+                    "\n",
+                    "print(\n",
+                    '    f"Review Sections          : {len(review_res.sections)} (8 built-in + review.diff)"\n',
+                    ")\n",
+                    'print(f"Overall Summary          : {review_res.overall_summary}")\n',
+                    "\n",
+                    'diff_section = next(s for s in review_res.sections if s.id == "review.diff")\n',
+                    'print(f"Diff Section             : {diff_section.title} [{diff_section.severity}]")\n',
+                    'print("DiffReviewer Findings   :")\n',
+                    "for finding in diff_section.findings:\n",
+                    '    print(f"  - [{finding.severity.upper():<7}] {finding.title}")\n',
+                    "\n",
+                    'print("The DatasetDiffResult is also attached to the review result:")\n',
+                    "print(\n",
+                    '    f"  ReviewResult.diff Health       : {review_res.diff.summary.overall_health.upper()}"\n',
+                    ")\n",
+                    "print(\n",
+                    '    f"  ReviewResult.diff Added/Removed: {review_res.diff.schema.added_columns} / {review_res.diff.schema.removed_columns}"\n',
+                    ")\n",
+                    "if review_res.score:\n",
+                    "    print(\n",
+                    '        f"  ML Readiness Score             : {review_res.score.overall:.1f}/100 (8 dimensions; diff is informational)"\n',
+                    "    )",
+                ],
+            },
+            {
+                "markdown": [
+                    "### Step 5: Same Workflow from the CLI\n",
+                    "The previous-snapshot review is also available from the terminal — write the two snapshots to CSV, then run:\n\n",
+                    "```bash\n",
+                    "featuresmith review sales_v2.csv --previous sales_v1.csv\n",
+                    "```\n\n",
+                    "The CLI produces the identical 9-section `ReviewResult`. Exit codes are unchanged: `0` clean, `1` findings at or above the `--fail-on` threshold, `2` invalid input, `3` file load/parse failure. The cell below runs the real CLI against the snapshots we built in Step 1.",
+                ],
+                "code": [
+                    "import json\n",
+                    "import subprocess\n",
+                    "import sys\n",
+                    "import tempfile\n",
+                    "\n",
+                    "tmp_dir = tempfile.mkdtemp()\n",
+                    'v1_path = os.path.join(tmp_dir, "sales_v1.csv")\n',
+                    'v2_path = os.path.join(tmp_dir, "sales_v2.csv")\n',
+                    "v1.to_csv(v1_path, index=False)\n",
+                    "v2.to_csv(v2_path, index=False)\n",
+                    "\n",
+                    "proc = subprocess.run(\n",
+                    "    [\n",
+                    "        sys.executable,\n",
+                    '        "-m",\n',
+                    '        "featuresmith_cli.main",\n',
+                    '        "review",\n',
+                    "        v2_path,\n",
+                    '        "--previous",\n',
+                    "        v1_path,\n",
+                    '        "--format",\n',
+                    '        "json",\n',
+                    "    ],\n",
+                    "    capture_output=True,\n",
+                    "    text=True,\n",
+                    "    timeout=120,\n",
+                    ")\n",
+                    "\n",
+                    "cli_result = json.loads(proc.stdout)\n",
+                    'diff_sections = [s for s in cli_result["sections"] if s["id"] == "review.diff"]\n',
+                    'print(f"CLI Exit Code      : {proc.returncode}")\n',
+                    "print(f\"Review Sections    : {len(cli_result['sections'])}\")\n",
+                    "print(f\"Diff Section       : {diff_sections[0]['severity']}\")\n",
+                    "print(f\"Diff Findings      : {[f['rule_id'] for f in diff_sections[0]['findings']]}\")\n",
+                    "print(f\"Diff Health        : {cli_result['diff']['summary']['overall_health']}\")",
+                ],
+            },
+            {
+                "markdown": [
                     "### Key Takeaways & Connection to Next Tutorial\n",
-                    "- `fs.diff()` gives an immediate pass/fail verdict for dataset snapshot updates.\n",
-                    "- It tracks structural, schema, quality, distribution, and leakage deltas in one canonical object.\n",
+                    "- `fs.diff()` is the lower-level primitive: a direct, standalone snapshot comparison with an immediate pass/fail verdict.\n",
+                    "- `fs.review(new, previous=old)` (v0.3.0) integrates the diff into a full review via the `DiffReviewer`, so one call returns both the review and the diff.\n",
                     "- `fs.diff_findings()` converts diff deltas into standard `RuleFinding` objects for CI exit code gating.\n\n",
                     "**Next Tutorial**: In `06_end_to_end_workflow.ipynb`, we build a production pre-training pipeline gate that integrates review, scoring, and error handling.",
                 ]

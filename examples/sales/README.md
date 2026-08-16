@@ -1,6 +1,6 @@
 # Retail Sales Dataset Example
 
-This example demonstrates how Featuresmith profiles structured retail transactions, analyzing dates and categories while flagging constant columns.
+This example demonstrates how Featuresmith profiles structured retail transactions, analyzing dates and categories while flagging constant columns. It also demonstrates the dataset **diff** workflow (v0.3.0): the lower-level `fs.diff()` snapshot comparison and the integrated `fs.review(..., previous=...)` DiffReviewer review.
 
 ## Dataset Description
 This dataset represents transactional order lines for a retail store. It contains transaction details (order ID, order date, customer ID, product category), numeric performance metrics (sales amount, quantity ordered, discount applied), and geographic details (region).
@@ -33,23 +33,47 @@ You can run the SDK example script `run_sdk.py` to see the programmatic workflow
 python examples/sales/run_sdk.py
 ```
 
-Code summary:
+Code summary (run_sdk.py):
 ```python
+import os
+
+import pandas as pd
 import featuresmith as fs
 
-dataset = fs.load("examples/data/processed/sales.csv")
-result = fs.analyze(dataset)
+dataset_path = os.path.join("examples", "data", "processed", "sales.csv")
+
+# Load base dataset (v1) - the "previous" snapshot
+sales_v1 = pd.read_csv(dataset_path)
+
+# Simulate dataset evolution (v2): schema drift, missingness spike, new rows
+sales_v2 = sales_v1.copy()
+sales_v2.drop(columns=["store_version"], inplace=True)   # Column dropped
+sales_v2["promo_code"] = "SUMMER2026"                    # New column added
+sales_v2.loc[:50, "discount"] = None                     # Missingness spike
+
+# 1. Lower-level primitive: standalone snapshot comparison
+diff_res = fs.diff(sales_v1, sales_v2)
+
+# 2. Integrated DiffReviewer: review current vs previous snapshot (v0.3.0)
+review_res = fs.review(sales_v2, previous=sales_v1)
+# review_res.diff is the DatasetDiffResult;
+# review_res.sections includes the "review.diff" section
 ```
 
 ## CLI Example
 Run the Featuresmith CLI from your terminal:
 ```bash
-featuresmith analyze examples/data/processed/sales.csv
+featuresmith review examples/data/processed/sales.csv
 ```
 
 To output results as machine-readable JSON:
 ```bash
-featuresmith analyze examples/data/processed/sales.csv --format json
+featuresmith review examples/data/processed/sales.csv --format json
+```
+
+To compare against a previous snapshot (v0.3.0, DiffReviewer):
+```bash
+featuresmith review sales_v2.csv --previous sales_v1.csv
 ```
 
 ## Expected Findings
