@@ -43,7 +43,7 @@ export function FeaturesSection() {
         <SectionHeader centered>
           <SectionLabel>Current Capabilities</SectionLabel>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Available in v0.2.0
+            Available in v0.3.0
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-balance text-base leading-relaxed text-muted-foreground">
             Featuresmith currently provides deterministic profiling, rule-based validation, comprehensive dataset reviews, snapshot diffs, and ML readiness scoring via an SDK and CLI.

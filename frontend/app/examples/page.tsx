@@ -19,7 +19,7 @@ def run_featuresmith_pipeline(data_path: str, target: str):
     dataset = fs.load(data_path)
     print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 
-    # 2. Perform automated dataset code review with 8 reviewers
+    # 2. Perform automated dataset code review with 9 reviewers
     print("Running automated dataset review...")
     review_result = fs.review(dataset, target_column=target)
 
@@ -172,11 +172,11 @@ export default function ExamplesPage() {
                   topic: "Getting Started & Dataset Profiling",
                   description: "Learn how to load datasets (fs.load), run deterministic profiling (fs.profile), conduct automated reviews (fs.review), and extract ML readiness scores (fs.score)."
                 },
-                {
+{
                   filename: "02_dataset_review.ipynb",
                   title: "02. Complete Dataset Review Walkthrough",
-                  topic: "Dataset Review Engine & 8 Reviewers",
-                  description: "Explore the 8 automated reviewers evaluating schema health, data types, missingness spikes, duplicate records, constant columns, high cardinality, distributions, and leakage risk."
+                  topic: "Dataset Review Engine & 9 Reviewers",
+                  description: "Explore the 9 automated reviewers evaluating schema health, data types, missingness spikes, duplicate records, constant columns, high cardinality, distributions, leakage risk, and snapshot deltas.",
                 },
                 {
                   filename: "03_ml_readiness_score.ipynb",

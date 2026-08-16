@@ -18,7 +18,7 @@ const WORKFLOW_STEPS = [
     icon: CheckCircle2,
     title: "Dataset Review",
     subtitle: "fs.review() / featuresmith review",
-    description: "8 automated reviewers evaluate schema, data types, missingness, duplicates, and cardinality.",
+    description: "9 automated reviewers evaluate schema, data types, missingness, duplicates, cardinality, and snapshot deltas.",
   },
   {
     step: "03",

@@ -24,7 +24,7 @@ export default function RoadmapPage() {
               Featuresmith Roadmap
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Phases 0–2 are shipped in <strong>v0.2.0 (current)</strong>. Everything from Phase 3 onward represents our planned long-term vision toward Dataset Contracts and state management.
+              Phases 0–3 are shipped in <strong>v0.3.0 (current)</strong>. Everything from Phase 4 onward represents our planned long-term vision toward Dataset Contracts and state management.
             </p>
           </header>
 
@@ -86,7 +86,7 @@ export default function RoadmapPage() {
               href="/release"
               className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
             >
-              View v0.2.0 shipped release details
+              View v0.3.0 shipped release details
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

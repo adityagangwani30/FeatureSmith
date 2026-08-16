@@ -10,26 +10,26 @@ const VISION_CARDS = [
   {
     icon: CheckSquare,
     title: "Dataset Review",
-    cmd: "featuresmith review  ✅ v0.2.0",
-    description: "Automate code reviews for your datasets before model training. 8 automated reviewers inspect schema, missingness, duplicates, data types, constants, cardinality, basic statistics, and target leakage.",
+    cmd: "featuresmith review  ✅ v0.3.0",
+    description: "Automate code reviews for your datasets before model training. 9 automated reviewers inspect schema, missingness, duplicates, data types, constants, cardinality, basic statistics, target leakage, and snapshot deltas.",
   },
   {
     icon: Sparkles,
     title: "ML Readiness Score",
-    cmd: "8 Health Dimensions  ✅ v0.2.0",
+    cmd: "8 Health Dimensions  ✅ v0.3.0",
     description: "Know whether your dataset is actually ready for machine learning. Deterministic 0–100 score computed across 8 health dimensions with per-dimension breakdowns and fix suggestions.",
   },
   {
     icon: ShieldAlert,
     title: "Intelligent Leakage Detection",
-    cmd: "6 Pattern Detectors  ✅ v0.2.0",
+    cmd: "6 Pattern Detectors  ✅ v0.3.0",
     description: "Prevent target leakage and future information from corrupting validation scores. 6 pattern detectors merge column findings across correlation, identifier, timestamp, and duplicate targets.",
   },
   {
     icon: FileDiff,
     title: "Dataset Diff Engine",
-    cmd: "featuresmith diff  ✅ v0.2.0",
-    description: "Understand exactly what changed between two dataset snapshot versions. Standalone engine compares schema, missingness, distribution shifts, and overall dataset health verdicts.",
+    cmd: "featuresmith diff  ✅ v0.3.0",
+    description: "Understand exactly what changed between two dataset snapshot versions. Compare via fs.diff() or inline in a review with fs.review(source, previous=...) and featuresmith review --previous.",
   },
 ]
 
@@ -40,7 +40,7 @@ export function FlagshipVisionSection() {
         <SectionHeader centered>
           <div className="flex justify-center mb-3">
             <Badge variant="outline" className="border-dashed border-primary/40 text-primary font-medium text-xs">
-              v0.2.0 &mdash; Flagship Capabilities
+              v0.3.0 &mdash; Flagship Capabilities
             </Badge>
           </div>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
@@ -89,24 +89,24 @@ export function FlagshipVisionSection() {
               <h3 className="text-lg font-semibold text-foreground mt-1">The Dataset Contract Lifecycle</h3>
             </div>
             <Badge variant="outline" className="text-xs text-muted-foreground border-border">
-              Planned Progression (Phases 4–5)
+              Planned Progression (Phases 5–6)
             </Badge>
           </div>
 
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-            Featuresmith is evolving toward complete Dataset State Management. While v0.2.0 ships the deterministic <strong>Review Engine</strong> and <strong>Dataset Diff</strong>, the long-term architecture completes a continuous engineering loop:
+            Featuresmith is evolving toward complete Dataset State Management. While v0.3.0 ships the deterministic <strong>Review Engine</strong>, <strong>Dataset Diff</strong>, and <strong>Diff-Aware Review</strong>, the long-term architecture completes a continuous engineering loop:
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 font-mono text-xs">
             {[
-              { step: "1. Review", desc: "Audit quality & leakage", status: "v0.2.0 Shipped" },
-              { step: "2. Recommend", desc: "Ranked fix suggestions", status: "Phase 4 Planned" },
-              { step: "3. Plan", desc: "Inspectable change set", status: "Phase 4 Planned" },
-              { step: "4. Apply", desc: "Generate sklearn/Polars code", status: "Phase 5 Planned" },
-              { step: "5. Review Again", desc: "Verify fix outcome", status: "Phase 5 Planned" },
-              { step: "6. Diff", desc: "Compare snapshot deltas", status: "v0.2.0 Shipped" },
-              { step: "7. Document", desc: "Record transformation log", status: "Phase 5 Planned" },
-              { step: "8. Lock / Contract", desc: "Write featuresmith.lock", status: "Phase 5 Planned" },
+              { step: "1. Review", desc: "Audit quality & leakage", status: "v0.3.0 Shipped" },
+              { step: "2. Recommend", desc: "Ranked fix suggestions", status: "Phase 5 Planned" },
+              { step: "3. Plan", desc: "Inspectable change set", status: "Phase 5 Planned" },
+              { step: "4. Apply", desc: "Generate sklearn/Polars code", status: "Phase 6 Planned" },
+              { step: "5. Review Again", desc: "Verify fix outcome", status: "Phase 6 Planned" },
+              { step: "6. Diff", desc: "Compare snapshot deltas", status: "v0.3.0 Shipped" },
+              { step: "7. Document", desc: "Record transformation log", status: "Phase 6 Planned" },
+              { step: "8. Lock / Contract", desc: "Write featuresmith.lock", status: "Phase 6 Planned" },
             ].map((s) => (
               <div key={s.step} className="rounded-md border border-border/80 bg-background/60 p-3 flex flex-col justify-between">
                 <div>

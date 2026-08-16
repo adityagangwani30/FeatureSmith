@@ -20,7 +20,7 @@ const QUICKSTART_CODE = `import featuresmith as fs
 dataset = fs.load("examples/data/processed/titanic.csv")
 print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 
-# 2. Perform automated dataset code review with 8 reviewers
+# 2. Perform automated dataset code review with 9 reviewers
 review_res = fs.review(dataset, target_column="survived")
 print(review_res.overall_summary)
 

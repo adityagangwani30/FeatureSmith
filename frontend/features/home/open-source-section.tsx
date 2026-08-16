@@ -16,7 +16,7 @@ function GithubIcon({ className }: { className?: string }) {
 
 const STATS = [
   { Icon: Scale, label: "License", value: "Apache 2.0" },
-  { Icon: CheckCircle2, label: "Unit Tests", value: "291 Passing" },
+  { Icon: CheckCircle2, label: "Unit Tests", value: "311 Passing" },
   { Icon: Code2, label: "Type Safety", value: "Strict MyPy" },
   { Icon: ShieldCheck, label: "Data Security", value: "Local-Only" },
 ]

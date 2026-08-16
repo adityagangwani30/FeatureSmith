@@ -437,7 +437,7 @@ test(profiling): add test for datetime timezone offset handling`} language="bash
             <li className="flex gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
               <div>
-                <strong>Compute and reasoning separation:</strong> Numerical algorithms and database scans run deterministically using vectorized backends. AI integrations (planned for Phase 6+) are only ever used for natural-language narration or chat - they never perform computation.
+                <strong>Compute and reasoning separation:</strong> Numerical algorithms and database scans run deterministically using vectorized backends. AI integrations (planned for Phase 7+) are only ever used for natural-language narration or chat - they never perform computation.
               </div>
             </li>
             <li className="flex gap-2">
@@ -989,7 +989,7 @@ fs.profile() fs.analyze() fs.review()
             </div>
             <div className="rounded-lg border border-border p-4 bg-card">
               <p className="font-semibold text-foreground">"How do I run a comprehensive automated dataset code review?"</p>
-              <p className="mt-1 text-xs">Use <code>rev = fs.review(ds, target_column=...)</code> to run 8 reviewers and get structured sections.</p>
+              <p className="mt-1 text-xs">Use <code>rev = fs.review(ds, target_column=...)</code> to run 9 reviewers and get structured sections.</p>
             </div>
             <div className="rounded-lg border border-border p-4 bg-card">
               <p className="font-semibold text-foreground">"How ready does the dataset appear for machine learning?"</p>
@@ -1164,9 +1164,14 @@ fs.profile() fs.analyze() fs.review()
                   <td className="px-4 py-3 font-mono text-xs">featuresmith analyze data.csv --target y</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-medium text-foreground">Run complete 8-reviewer dataset code review</td>
+                  <td className="px-4 py-3 font-medium text-foreground">Run complete 9-reviewer dataset code review</td>
                   <td className="px-4 py-3 font-mono text-xs text-primary">fs.review(ds, target_column="y")</td>
                   <td className="px-4 py-3 font-mono text-xs">featuresmith review data.csv --target y</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Run diff-aware review (compare with previous snapshot)</td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary">fs.review(ds, previous=prev, target_column="y")</td>
+                  <td className="px-4 py-3 font-mono text-xs">featuresmith review data.csv --previous prev.csv --target y</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-medium text-foreground">Extract 0–100 ML Readiness Scorecard</td>
@@ -1325,7 +1330,7 @@ fs.profile() fs.analyze() fs.review()
             {
               term: "Reviewer",
               meaning: "A domain-specific inspector inside the Review Engine that aggregates rule findings into a ReviewSection.",
-              matters: "8 built-in reviewers evaluate dataset health deterministically.",
+              matters: "9 built-in reviewers evaluate dataset health deterministically.",
               example: "LeakageReviewer evaluating target leakage risks."
             },
             {
@@ -1984,13 +1989,13 @@ for finding in result.findings:
           <h3 id="review-result-model" className="mb-3 text-lg font-semibold text-foreground">ReviewResult</h3>
           <CodeBlock code={`@dataclass(frozen=True, slots=True)
 class ReviewResult:
-    engine_version: str                       # "0.2.0"
+    engine_version: str                       # "0.3.0"
     dataset_summary: DatasetSummary
     generated_at: datetime                    # UTC
     sections: Sequence[ReviewSection]
     overall_summary: str
     score: MLReadinessScore | None
-    diff: Any = None                          # reserved for diff-aware reviews
+    diff: DatasetDiffResult | None = None                          # populated when previous snapshot provided
 
     def to_dict(self) -> dict[str, Any]: ...`} language="python" showCopy={false} />
           <p className="mt-3 text-sm text-muted-foreground">
@@ -2033,14 +2038,14 @@ class Severity(Enum):
     INFO = "info"
     PASSED = "passed"`} language="python" showCopy={false} />
           <p className="mt-3 text-sm text-muted-foreground">
-            <code>DIFF</code>, <code>FEATURE_QUALITY</code>, and <code>CUSTOM</code> are reserved categories. The built-in reviewers currently emit <code>schema</code>, <code>quality</code>, and <code>leakage</code> sections.
+            <code>DIFF</code>, <code>FEATURE_QUALITY</code>, and <code>CUSTOM</code> are reserved categories. The built-in reviewers currently emit <code>schema</code>, <code>quality</code>, <code>leakage</code>, and <code>diff</code> (when a previous snapshot is provided) sections.
           </p>
         </section>
 
         <section className="mb-8" aria-labelledby="review-builtins">
           <h3 id="review-builtins" className="mb-3 text-lg font-semibold text-foreground">Built-in Reviewers</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Eight reviewers ship out of the box. They are configurable via the <code>reviewer_config</code> argument of <code>fs.review()</code>, keyed by reviewer ID:
+            Nine reviewers ship out of the box. They are configurable via the <code>reviewer_config</code> argument of <code>fs.review()</code>, keyed by reviewer ID:
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="min-w-full divide-y divide-border text-left text-sm">
@@ -2101,11 +2106,17 @@ class Severity(Enum):
                   <td className="px-4 py-3">leakage</td>
                   <td className="px-4 py-3 font-mono text-xs">detectors=None (built-in set)</td>
                 </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.diff</td>
+                  <td className="px-4 py-3">Dataset Diff</td>
+                  <td className="px-4 py-3">diff</td>
+                  <td className="px-4 py-3 font-mono text-xs">requires previous snapshot</td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            The schema health reviewer surfaces fully empty columns (via <code>FullyEmptyColumnsRule</code>) plus structural warnings for empty datasets. The missingness reviewer intentionally excludes fully empty columns so each issue is reported exactly once. The data types reviewer flags numeric columns where every non-null value is distinct (identifier-like) and columns classified as free text. The leakage reviewer dispatches the pattern detectors documented on the <a href="/docs/sdk/models/leakage" className="text-primary hover:underline">Leakage Models</a> page.
+            The schema health reviewer surfaces fully empty columns (via <code>FullyEmptyColumnsRule</code>) plus structural warnings for empty datasets. The missingness reviewer intentionally excludes fully empty columns so each issue is reported exactly once. The data types reviewer flags numeric columns where every non-null value is distinct (identifier-like) and columns classified as free text. The leakage reviewer dispatches the pattern detectors documented on the <a href="/docs/sdk/models/leakage" className="text-primary hover:underline">Leakage Models</a> page. The diff reviewer activates only when a previous snapshot is provided and compares the two profiles using the standalone Dataset Diff Engine.
           </p>
         </section>
 
@@ -2714,7 +2725,7 @@ except SourceNotFoundError:
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith v0.2.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
+          Featuresmith v0.3.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
         </p>
 
         <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex gap-3">
@@ -2724,7 +2735,7 @@ except SourceNotFoundError:
           <div>
             <p className="font-semibold text-foreground mb-1 text-xs">Roadmap Notice: File-Based Config (.featuresmith.yml)</p>
             <p className="text-xs">
-              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 3+. In the current release, configure rules directly in code or use CLI flags.
+              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 4+. In the current release, configure rules directly in code or use CLI flags.
             </p>
           </div>
         </div>
@@ -2955,7 +2966,7 @@ jobs:
         <section className="mb-8" aria-labelledby="cicd-customization">
           <h3 id="cicd-customization" className="mb-3 text-lg font-semibold text-foreground">Customizing Gates</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            In v0.2.0, file-based configuration via a local <code>.featuresmith.yml</code> file is not yet available (it is a planned enhancement for a future release). Customize the strictness of your CI gate by passing the <code>--severity</code> flag to the CLI.
+            In v0.3.0, file-based configuration via a local <code>.featuresmith.yml</code> file is not yet available (it is a planned enhancement for a future release). Customize the strictness of your CI gate by passing the <code>--severity</code> flag to the CLI.
           </p>
           <CodeBlock code={`# Only fail builds on critical violations (fully empty columns or target leakage)
 featuresmith analyze data/train.csv --target churn --severity critical`} language="bash" showCopy />
@@ -2974,6 +2985,20 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           Featuresmith release schedules and packaged capabilities are tracked below.
         </p>
+
+        <section className="mb-8" aria-labelledby="rel-v030">
+          <h3 id="rel-v030" className="mb-3 text-lg font-semibold text-foreground">Featuresmith v0.3.0</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Featuresmith v0.3.0 adds the DiffReviewer, integrating snapshot comparison directly into the Review Engine pipeline.
+          </p>
+          <h4 className="mt-4 mb-2 text-sm font-semibold text-foreground">Highlights:</h4>
+          <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
+            <li><strong>DiffReviewer</strong>: 9th built-in reviewer that activates when a previous snapshot is provided, comparing the current dataset against it and attaching <code>DatasetDiffResult</code> to <code>result.diff</code>.</li>
+            <li><strong>Diff-Aware SDK Review</strong>: <code>fs.review(source, previous=...)</code> profiles the previous snapshot once and includes diff findings in the review.</li>
+            <li><strong>Diff-Aware CLI Review</strong>: <code>featuresmith review --previous</code> enables snapshot comparison with exit-code CI gating (exit 3 on missing/unparseable previous, exit 2 on unknown target column in either snapshot).</li>
+            <li><strong>GOVERNANCE.md</strong>: Baseline governance document for release, versioning, and contribution processes.</li>
+          </ul>
+        </section>
 
         <section className="mb-8" aria-labelledby="rel-v020">
           <h3 id="rel-v020" className="mb-3 text-lg font-semibold text-foreground">Featuresmith v0.2.0</h3>
@@ -3007,14 +3032,14 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="rel-distribution">
           <h3 id="rel-distribution" className="mb-3 text-lg font-semibold text-foreground">Distribution Packages Scope</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            The following packages are officially published on PyPI for <code>v0.2.0</code>:
+            The following packages are officially published on PyPI for <code>v0.3.0</code>:
           </p>
           <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
             <li><code>featuresmith-core</code>: Core engine library.</li>
             <li><code>featuresmith-cli</code>: CLI thin wrapper client.</li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 3) and is not published in <code>v0.2.0</code>.
+            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 4) and is not published in <code>v0.3.0</code>.
           </p>
         </section>
       </>
@@ -3031,7 +3056,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-privacy">
           <h3 id="faq-privacy" className="mb-2 text-base font-semibold text-foreground">Does Featuresmith send my dataset to third-party AI APIs?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <strong>No.</strong> Featuresmith v0.2.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 6+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
+            <strong>No.</strong> Featuresmith v0.3.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 7+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
           </p>
         </section>
 
@@ -3045,7 +3070,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-extend">
           <h3 id="faq-extend" className="mb-2 text-base font-semibold text-foreground">Can I add custom connectors and rules?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Yes! Custom connectors can be registered in <code>featuresmith.connectors.registry</code> and custom rules can be registered in the rule engine directly. Dynamic plugin autoloading via packaging entry points is scheduled for Phase 3.
+            Yes! Custom connectors can be registered in <code>featuresmith.connectors.registry</code> and custom rules can be registered in the rule engine directly. Dynamic plugin autoloading via packaging entry points is scheduled for Phase 4.
           </p>
         </section>
       </>
@@ -3122,7 +3147,7 @@ uv run pytest`} language="bash" showCopy />
           <h3 id="review-params" className="mb-3 text-lg font-semibold text-foreground">Parameters</h3>
           <ul className="space-y-3 text-sm text-muted-foreground" role="list">
             <li><strong>source</strong>: <code>Dataset</code> | <code>str</code> | <code>DataFrame</code>. The input dataset path (CSV, Parquet, Excel) or in-memory DataFrame (pandas, Polars).</li>
-            <li><strong>previous</strong>: <code>object | None</code> (default None). Prior snapshot for diff-aware reviews. <em>Note: Providing a value raises a <code>NotImplementedError</code>; use the standalone <code>fs.diff()</code> instead.</em></li>
+            <li><strong>previous</strong>: <code>object | None</code> (default None). Prior snapshot for diff-aware reviews. When provided, the DiffReviewer compares the current dataset against it and attaches the <code>DatasetDiffResult</code> to <code>result.diff</code>.</li>
             <li><strong>target_column</strong>: <code>str | None</code> (default None). Name of the target column. Highly recommended to enable target leakage checks.</li>
             <li><strong>enabled_reviewers</strong>: <code>Sequence[str] | None</code> (default None). Optional list of specific reviewer IDs to execute.</li>
             <li><strong>enabled_categories</strong>: <code>Sequence[ReviewCategory] | None</code> (default None). Optional list of reviewer categories to execute (schema, quality, leakage, diff, feature_quality, custom).</li>
@@ -3138,13 +3163,13 @@ uv run pytest`} language="bash" showCopy />
             Returns a frozen <code>ReviewResult</code> dataclass containing:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.2.0"</code>).</li>
+            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.3.0"</code>).</li>
             <li><code>dataset_summary</code>: <code>DatasetSummary</code> with row and column count descriptors.</li>
             <li><code>generated_at</code>: UTC timestamp.</li>
             <li><code>sections</code>: Sorted sequence of <code>ReviewSection</code> objects representing the active reviewers' sections (sorted from critical to passed).</li>
             <li><code>overall_summary</code>: Concise plain-text roll-up.</li>
             <li><code>score</code>: An optional <code>MLReadinessScore</code> containing overall rating and per-dimension breakdown.</li>
-            <li><code>diff</code>: Reserved for future diff-aware reviews (currently always <code>None</code>).</li>
+            <li><code>diff</code>: <code>DatasetDiffResult | None</code>. When <code>previous</code> is provided, the DiffReviewer attaches the computed diff result; otherwise <code>None</code>.</li>
           </ul>
         </section>
 
@@ -3208,7 +3233,6 @@ print(report_text)`} language="python" showCopy />
         <section className="mb-8" aria-labelledby="review-limitations">
           <h3 id="review-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
-            <li><strong>No Diff-Aware Review</strong>: Passing a prior snapshot to <code>previous</code> raises a <code>NotImplementedError</code>. Comparing snapshots requires the standalone <code>fs.diff()</code> engine.</li>
             <li><strong>Deferred Features</strong>: Centralized recommendation generation is not implemented. Reviewers output findings only. Observability trend logs and HTML static reports are planned for future releases.</li>
           </ul>
         </section>
@@ -3338,7 +3362,7 @@ report_text = fs.render_diff(result, target="console")`} language="python" showC
         <section className="mb-8" aria-labelledby="diff-limitations">
           <h3 id="diff-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
-            <li><strong>Standalone Operation</strong>: Dataset Diff is implemented as a standalone engine. It is not integrated as a reviewer inside the Review Engine pipeline. Calling <code>fs.review(previous=...)</code> raises a <code>NotImplementedError</code>.</li>
+            <li><strong>Integrated Diff Reviewer</strong>: The Dataset Diff Engine is also available as the <code>review.diff</code> reviewer inside the Review Engine. Calling <code>fs.review(previous=...)</code> activates the DiffReviewer, which attaches the <code>DatasetDiffResult</code> to <code>result.diff</code>.</li>
             <li><strong>Advisory Recommendations</strong>: Findings and overall health recommendations are purely advisory and do not automatically mutate data or abort processes unless coded into your caller logic.</li>
             <li><strong>Diff Findings Accessor</strong>: Use <code>fs.diff_findings(result)</code> to derive standard <code>RuleFinding</code> objects from a diff result. The CLI's diff command consumes these findings for severity-based exit-code gating.</li>
           </ul>
@@ -3564,7 +3588,7 @@ print(dataset.preview(5))       # first 5 rows as a dataframe`} language="python
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--previous PATH</td>
-                  <td className="px-4 py-3 text-sm">Path to a prior snapshot for diff-aware reviews. <em>Note: Not yet available; triggers an error.</em></td>
+                  <td className="px-4 py-3 text-sm">Path to a prior snapshot for diff-aware review. When provided, the DiffReviewer compares the current dataset against it and includes the diff in the review output.</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">--format [table|json]</td>
@@ -3632,7 +3656,6 @@ featuresmith review train.csv --format json --output review_report.json`} langua
         <section className="mb-8" aria-labelledby="review-cli-limitations">
           <h3 id="review-cli-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
-            <li><strong>--previous Unavailable</strong>: The review CLI does not support diff-aware audits yet. Providing the flag displays an error message and exits with code 2. Use <code>featuresmith diff</code> instead.</li>
             <li><strong>Target column validation</strong>: When <code>--target</code> is specified, the CLI actively checks for column presence in the schema and fails early with code 2 if not found.</li>
           </ul>
         </section>

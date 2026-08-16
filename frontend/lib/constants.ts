@@ -14,7 +14,7 @@ export const FEATURES: Feature[] = [
     icon: "ShieldCheck",
     title: "Dataset Code Review",
     description:
-      "Automate code reviews for your datasets before model training. 8 automated reviewers inspect schema, data types, missingness, duplicates, and distributions.",
+      "Automate code reviews for your datasets before model training. 9 automated reviewers inspect schema, data types, missingness, duplicates, distributions, and snapshot deltas.",
   },
   {
     icon: "Sparkles",
@@ -86,7 +86,18 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     phase: "Phase 3",
-    title: "Developer Experience — Dashboard, Connectors, CI/CD, Plugins (v0.3)",
+    title: "Diff-Aware Dataset Review (v0.3)",
+    status: "done",
+    items: [
+      "DiffReviewer: snapshot comparison integrated into the Review Engine as the 9th built-in reviewer",
+      "fs.review(source, previous=...) SDK support attaching DatasetDiffResult to result.diff",
+      "CLI: featuresmith review --previous for diff-aware reviews with exit-code CI gating",
+      "GOVERNANCE.md baseline documenting release, versioning, and contribution governance",
+    ],
+  },
+  {
+    phase: "Phase 4",
+    title: "Developer Experience — Dashboard, Connectors, CI/CD, Plugins (v0.3+)",
     status: "planned",
     items: [
       "featuresmith dashboard (Streamlit) browser interface for browsing findings",
@@ -96,7 +107,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 4",
+    phase: "Phase 5",
     title: "Recommendation & Planning — Recommendation Engine & Plan primitive (v0.4)",
     status: "planned",
     items: [
@@ -107,7 +118,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 5",
+    phase: "Phase 6",
     title: "Dataset Contracts — Apply, Validation, featuresmith.lock (v0.5)",
     status: "planned",
     items: [
@@ -117,7 +128,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 6",
+    phase: "Phase 7",
     title: "Certification & Observability — Badge, Scheduled Re-review, Quality History (v0.6-v1.0)",
     status: "planned",
     items: [
@@ -128,7 +139,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 7",
+    phase: "Phase 8",
     title: "AI-Assisted Planning — Provider Layer, Narration, Natural-Language Plan Authoring (v1.x)",
     status: "planned",
     items: [
@@ -139,7 +150,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 8",
+    phase: "Phase 9",
     title: "Ecosystem Integrations & Scale — Exporters, VS Code, Distributed Compute, Hosted Tier (v2.0+)",
     status: "planned",
     items: [
@@ -165,8 +176,8 @@ export const ARCHITECTURE_NODES: ArchitectureNode[] = [
   },
   {
     id: "review",
-    label: "Dataset Review Engine (v0.2.0)",
-    sublabel: "8 automated reviewers · 0–100 ML Readiness Score · 6 Leakage detectors · Diff",
+    label: "Dataset Review Engine (v0.3.0)",
+    sublabel: "9 automated reviewers · 0–100 ML Readiness Score · 6 Leakage detectors · Diff-aware review",
   },
   {
     id: "cli_sdk",
@@ -175,19 +186,19 @@ export const ARCHITECTURE_NODES: ArchitectureNode[] = [
   },
   {
     id: "plan",
-    label: "Recommendation & Plan Primitive (Phase 4+)",
+    label: "Recommendation & Plan Primitive (Phase 5+)",
     sublabel: "Inspectable transformation steps and rationales before execution",
     future: true,
   },
   {
     id: "contract",
-    label: "Dataset Contracts & featuresmith.lock (Phase 5+)",
+    label: "Dataset Contracts & featuresmith.lock (Phase 6+)",
     sublabel: "Versioned lockfiles, post-apply validation, CI drift-gating",
     future: true,
   },
   {
     id: "ai",
-    label: "AI-Assisted Planning & Chat (Phase 7+)",
+    label: "AI-Assisted Planning & Chat (Phase 8+)",
     sublabel: "Natural-language plan authoring & narrative summaries over deterministic facts",
     future: true,
   },
@@ -287,7 +298,7 @@ export const PYTHON_EXAMPLE_CODE = `import featuresmith as fs
 dataset = fs.load("examples/data/processed/titanic.csv")
 print(f"Loaded {dataset.row_count} rows across {len(dataset.schema.names)} columns.")
 
-# 2. Run automated dataset code review with 8 reviewers
+# 2. Run automated dataset code review with 9 reviewers
 review_res = fs.review(dataset, target_column="survived")
 
 # 3. Extract 0-100 ML Readiness Scorecard
