@@ -88,4 +88,5 @@ def test_default_registry_ships_builtin_reviewers() -> None:
         "review.quality.cardinality",
         "review.quality.basic_statistics",
         "review.leakage",
+        "review.diff",
     }

@@ -127,7 +127,7 @@ def test_cli_review_json_format(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     data = json.loads(result.stdout)
-    assert data["engine_version"] == "0.2.0"
+    assert data["engine_version"] == "0.3.0"
     assert len(data["sections"]) == 8
     missingness = next(
         s for s in data["sections"] if s["id"] == "review.quality.missingness"
@@ -216,15 +216,54 @@ def test_cli_review_only_valid_category(tmp_path: Path) -> None:
     assert "review.schema.health" not in result.stdout
 
 
-def test_cli_review_previous_not_available(tmp_path: Path) -> None:
-    """--previous is rejected with a clear message."""
+def test_cli_review_previous_activates_diff(tmp_path: Path) -> None:
+    """--previous activates the diff section in the review report."""
+    runner = CliRunner()
+    old = tmp_path / "old.csv"
+    pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}).to_csv(old, index=False)
+    new = tmp_path / "new.csv"
+    pd.DataFrame({"a": [1, 2, 3], "c": [7, 8, 9]}).to_csv(new, index=False)
+
+    result = runner.invoke(
+        app, ["review", str(new), "--previous", str(old), "--format", "json"]
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert len(data["sections"]) == 9
+    diff_section = next(s for s in data["sections"] if s["id"] == "review.diff")
+    assert diff_section["category"] == "diff"
+    assert diff_section["findings"]
+    assert data["diff"] is not None
+    assert data["diff"]["schema"]["added_columns"] == ["c"]
+
+
+def test_cli_review_previous_missing_file(tmp_path: Path) -> None:
+    """A missing --previous snapshot exits 3 with a clear error."""
     runner = CliRunner()
     result = runner.invoke(
-        app, ["review", str(sample_csv(tmp_path)), "--previous", "old.csv"]
+        app, ["review", str(sample_csv(tmp_path)), "--previous", "non_existent.csv"]
+    )
+
+    assert result.exit_code == 3
+    assert "Error:" in result.stderr
+    assert "does not exist" in result.stderr
+
+
+def test_cli_review_previous_target_unknown_column(tmp_path: Path) -> None:
+    """An unknown --target column in the previous snapshot exits 2."""
+    runner = CliRunner()
+    old = tmp_path / "old.csv"
+    pd.DataFrame({"a": [1, 2, 3]}).to_csv(old, index=False)
+    new = tmp_path / "new.csv"
+    pd.DataFrame({"target": [1, 2, 3], "a": [4, 5, 6]}).to_csv(new, index=False)
+
+    result = runner.invoke(
+        app, ["review", str(new), "--previous", str(old), "--target", "target"]
     )
 
     assert result.exit_code == 2
-    assert "not available yet" in result.stderr
+    assert "not found in previous dataset" in result.stderr
 
 
 def test_cli_review_target_column(tmp_path: Path) -> None:

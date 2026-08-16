@@ -148,6 +148,96 @@ def test_previous_snapshot_reviewer_is_skipped() -> None:
     assert result.sections == ()
 
 
+def test_previous_snapshot_reviewer_runs_with_previous() -> None:
+    """Diff-category reviewers run when a previous profile is provided."""
+    registry = ReviewerRegistry(
+        (FakeReviewer("review.diff.a", requires_previous=True),)
+    )
+    previous = fs.profile(pd.DataFrame({"a": [1, 2, 3]}))
+
+    result = ReviewEngine(registry=registry).run(
+        profile=build_profile(), previous_profile=previous
+    )
+
+    assert [section.id for section in result.sections] == ["review.diff.a"]
+
+
+def test_diff_result_is_attached_to_review_result() -> None:
+    """A reviewer exposing a diff output attaches it to ReviewResult.diff."""
+    from featuresmith.diff.schema import (
+        ConstantColumnDiff,
+        DatasetDiffResult,
+        DatasetDiffSummary,
+        DuplicateDiff,
+        SchemaDiff,
+        StructureDiff,
+    )
+
+    class DiffFake(FakeReviewer):
+        """A fake reviewer that also exposes a diff output."""
+
+        def __init__(self, reviewer_id: str) -> None:
+            """Configure the fake diff reviewer."""
+            super().__init__(reviewer_id, requires_previous=True)
+            self._diff = DatasetDiffResult(
+                version="0.2.0",
+                schema=SchemaDiff(),
+                structure=StructureDiff(0, 0, 0, 0),
+                missing_values=(),
+                duplicates=DuplicateDiff(0, 0, 0.0, 0.0),
+                constant_columns=ConstantColumnDiff(),
+                cardinality=(),
+                statistics=(),
+                distributions=(),
+                leakage=None,
+                summary=DatasetDiffSummary(
+                    rows_added=0,
+                    rows_removed=0,
+                    columns_added=0,
+                    columns_removed=0,
+                    columns_renamed=0,
+                    type_changes=0,
+                    schema_changed=False,
+                    missing_values_increased=0,
+                    missing_values_decreased=0,
+                    duplicate_rows_increased=False,
+                    duplicate_rows_decreased=False,
+                    newly_constant_columns=0,
+                    no_longer_constant_columns=0,
+                    leakage_new=0,
+                    leakage_removed=0,
+                    leakage_escalated=0,
+                    leakage_de_escalated=0,
+                    overall_health="unchanged",
+                    recommendation="No meaningful quality change detected.",
+                ),
+                overall_summary="Rows 0 removed, 0 added; overall health: unchanged.",
+            )
+
+        @property
+        def diff_result(self) -> DatasetDiffResult | None:
+            """Return the fake diff output."""
+            return self._diff
+
+    registry = ReviewerRegistry((DiffFake("review.diff.a"),))
+    previous = fs.profile(pd.DataFrame({"a": [1, 2, 3]}))
+
+    result = ReviewEngine(registry=registry).run(
+        profile=build_profile(), previous_profile=previous
+    )
+
+    assert result.diff is not None
+    assert result.diff.summary.overall_health == "unchanged"
+
+
+def test_no_diff_attached_without_diff_reviewer() -> None:
+    """ReviewResult.diff stays None when no reviewer exposes a diff output."""
+    registry = ReviewerRegistry((FakeReviewer("review.quality.a"),))
+    result = ReviewEngine(registry=registry).run(profile=build_profile())
+
+    assert result.diff is None
+
+
 def test_applicable_false_skips_reviewer() -> None:
     """Reviewers declaring themselves not applicable are skipped."""
     registry = ReviewerRegistry(

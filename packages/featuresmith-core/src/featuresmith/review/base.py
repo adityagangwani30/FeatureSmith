@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from typing import Any
 
 from featuresmith.review.context import ReviewContext
 from featuresmith.review.schema import ReviewCategory, ReviewSection
@@ -43,6 +44,18 @@ class BaseReviewer(abc.ABC):
     def requires_previous_snapshot(self) -> bool:
         """Return whether this reviewer needs a previous snapshot to run."""
         pass
+
+    @property
+    def diff_result(self) -> Any:
+        """Return an optional diff output to attach to the ReviewResult.
+
+        Only diff-category reviewers produce a diff output; the default
+        returns None so the engine can attach it generically after dispatch.
+
+        Returns:
+            The diff output (e.g. a DatasetDiffResult), or None.
+        """
+        return None
 
     def applicable(self, context: ReviewContext) -> bool:
         """Return whether this reviewer applies to the given context.

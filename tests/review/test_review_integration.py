@@ -204,3 +204,58 @@ def test_review_sections_never_absent() -> None:
 
     assert len(result.sections) == 8
     assert all(section.severity is Severity.PASSED for section in result.sections)
+
+
+def test_review_with_previous_adds_diff_section() -> None:
+    """Diff-aware review adds a diff section to the built-in sections."""
+    old = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    new = pd.DataFrame({"a": [1, 2, 3], "c": [7, 8, 9]})
+
+    result = fs.review(new, previous=old)
+
+    assert {section.id for section in result.sections} == BUILTIN_REVIEWER_IDS | {
+        "review.diff"
+    }
+    diff_section = section_by_id(result, "review.diff")
+    assert diff_section.category.value == "diff"
+    assert diff_section.severity is Severity.WARNING
+    assert result.diff is not None
+    assert result.diff.schema.added_columns == ("c",)
+
+
+def test_review_with_previous_identical_snapshots() -> None:
+    """Identical snapshots produce a passed diff section and unchanged health."""
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+
+    result = fs.review(df, previous=df.copy())
+
+    diff_section = section_by_id(result, "review.diff")
+    assert diff_section.severity is Severity.PASSED
+    assert result.diff is not None
+    assert result.diff.summary.overall_health == "unchanged"
+
+
+def test_review_with_previous_json_serializable() -> None:
+    """A diff-aware review serializes to clean JSON including the diff."""
+    old = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    new = pd.DataFrame({"a": [1, 2, 3], "c": [7, 8, 9]})
+
+    data = fs.review(new, previous=old).to_dict()
+
+    serialized = json.dumps(data)
+    parsed = json.loads(serialized)
+    assert len(parsed["sections"]) == 9
+    assert parsed["diff"] is not None
+    assert parsed["diff"]["schema"]["added_columns"] == ["c"]
+    assert parsed["diff"]["summary"]["overall_health"] == "regressed"
+
+
+def test_review_with_previous_keeps_score_dimensions() -> None:
+    """The diff section does not alter the ML Readiness Score dimensions."""
+    old = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    new = pd.DataFrame({"a": [1, 2, 3], "c": [7, 8, 9]})
+
+    result = fs.review(new, previous=old)
+
+    assert result.score is not None
+    assert len(result.score.dimensions) == 8

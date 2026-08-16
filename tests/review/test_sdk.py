@@ -6,7 +6,6 @@ import json
 
 import pandas as pd
 import polars as pl
-import pytest
 
 import featuresmith as fs
 from featuresmith.review.schema import ReviewResult
@@ -58,7 +57,7 @@ def test_review_result_is_json_serializable() -> None:
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert parsed["engine_version"] == "0.2.0"
+    assert parsed["engine_version"] == "0.3.0"
     assert len(parsed["sections"]) == 8
     assert all(section["severity"] == "passed" for section in parsed["sections"])
     assert "overall_summary" in parsed
@@ -66,9 +65,41 @@ def test_review_result_is_json_serializable() -> None:
     assert len(parsed["score"]["dimensions"]) == 8
 
 
-def test_review_previous_not_implemented() -> None:
-    """Diff-aware review raises NotImplementedError for now."""
+def test_review_previous_activates_diff_section() -> None:
+    """Diff-aware review activates the diff section against a prior snapshot."""
+    old_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    new_df = pd.DataFrame({"a": [1, 2, 3], "c": [7, 8, 9]})
+
+    result = fs.review(new_df, previous=old_df)
+
+    assert isinstance(result, ReviewResult)
+    assert len(result.sections) == 9
+    diff_section = next(
+        section for section in result.sections if section.category.value == "diff"
+    )
+    assert diff_section.id == "review.diff"
+    assert diff_section.findings
+    assert result.diff is not None
+    assert result.diff.schema.added_columns == ("c",)
+    assert result.diff.schema.removed_columns == ("b",)
+
+
+def test_review_without_previous_has_no_diff_section() -> None:
+    """A single-dataset review never includes a diff section or diff output."""
     df = pd.DataFrame({"a": [1, 2, 3]})
 
-    with pytest.raises(NotImplementedError, match="not available yet"):
-        fs.review(df, previous="train_v1.csv")
+    result = fs.review(df)
+
+    assert all(section.category.value != "diff" for section in result.sections)
+    assert result.diff is None
+
+
+def test_review_previous_polars_dataframe() -> None:
+    """Diff-aware review accepts a Polars previous snapshot."""
+    old_df = pl.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+    new_df = pl.DataFrame({"a": [1, 2, 3, 4], "b": ["x", "y", "z", "w"]})
+
+    result = fs.review(new_df, previous=old_df)
+
+    assert result.diff is not None
+    assert result.diff.structure.rows_added == 1

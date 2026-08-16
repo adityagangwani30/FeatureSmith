@@ -313,8 +313,10 @@ def review(
         source: The data source to review. This can be a pre-loaded Dataset
             object, a string representing a local file path (CSV, Excel,
             Parquet), or an in-memory pandas or Polars DataFrame.
-        previous: Optional prior snapshot for diff-aware review. Not yet
-            available; providing a value raises NotImplementedError.
+        previous: Optional prior snapshot for diff-aware review, in the same
+            accepted forms. When provided, the DiffReviewer compares the
+            current dataset against it and attaches the DatasetDiffResult to
+            ``result.diff``.
         target_column: Optional name of the target column in the dataset,
             forwarded for reviewers that use it.
         enabled_reviewers: Optional list of reviewer IDs to execute. If not
@@ -330,20 +332,21 @@ def review(
 
     Returns:
         ReviewResult: The canonical Review Engine output containing the
-            aggregated review sections and an overall summary.
+            aggregated review sections and an overall summary. When ``previous``
+            is provided, the result also carries the DatasetDiffResult on its
+            ``diff`` field.
 
     Raises:
         ConnectorError: If the source is a file path or dataframe that fails to
             load before profiling.
         ValueError: If reviewer_config references an unknown reviewer ID.
-        NotImplementedError: If ``previous`` is provided (diff-aware review is
-            a future capability).
 
     Notes:
         The review reuses ``fs.analyze()`` internally to obtain the profile and
         rule findings, so reviewers never re-read or re-profile the dataset.
-        The Dataset Diff capability ships as a standalone engine behind
-        ``fs.diff()``; the diff-aware review bridge remains future work.
+        The previous snapshot is profiled once through the existing profiling
+        engine; the DiffReviewer then compares the two profiles without
+        re-profiling either dataset.
 
     Examples:
         >>> import pandas as pd
@@ -353,15 +356,22 @@ def review(
         >>> result.overall_summary
         '8 of 8 sections passed with 0 finding(s) identified across the review.'
     """
-    if previous is not None:
-        raise NotImplementedError(
-            "Diff-aware review ('previous') is not available yet; "
-            "use the standalone Dataset Diff capability via fs.diff()."
-        )
     if isinstance(source, Dataset):
         dataset = source
     else:
         dataset = load(source)
+
+    previous_profile = None
+    if previous is not None:
+        if isinstance(previous, Dataset):
+            previous_dataset = previous
+        else:
+            previous_dataset = load(previous)
+        previous_profile = profile(
+            previous_dataset,
+            max_correlation_columns=max_correlation_columns,
+            max_frequency_table_size=max_frequency_table_size,
+        )
 
     analysis = analyze(
         dataset,
@@ -378,6 +388,7 @@ def review(
         dataset=dataset,
         findings=analysis.findings,
         target_column=target_column,
+        previous_profile=previous_profile,
         enabled_reviewers=enabled_reviewers,
         enabled_categories=enabled_categories,
         reviewer_config=reviewer_config,

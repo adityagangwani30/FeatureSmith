@@ -67,9 +67,9 @@ def default_registry() -> ReviewerRegistry:
 
     The default registry ships the built-in reviewers implemented so far:
     schema health, data types, missing values, duplicate rows, constant
-    columns, high cardinality, basic statistics, and leakage detection.
-    Remaining reviewers (outliers, distribution, feature quality, diff) land
-    in future sprints and register through the same registry.
+    columns, high cardinality, basic statistics, leakage detection, and the
+    diff reviewer. Remaining reviewers (outliers, distribution, feature
+    quality) land in future sprints and register through the same registry.
     """
     from featuresmith.review.reviewers import builtin_reviewers
 

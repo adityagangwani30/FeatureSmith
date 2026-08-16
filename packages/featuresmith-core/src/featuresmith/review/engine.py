@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import traceback
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any
 
 from featuresmith.core.dataset import Dataset
@@ -16,7 +17,7 @@ from featuresmith.review.registry import ReviewerRegistry, default_registry
 from featuresmith.review.schema import ReviewCategory, ReviewResult, ReviewSection
 from featuresmith.review.scoring_adapter import ScoreAdapter
 
-REVIEW_ENGINE_VERSION = "0.2.0"
+REVIEW_ENGINE_VERSION = "0.3.0"
 
 
 class ReviewEngine:
@@ -61,6 +62,7 @@ class ReviewEngine:
         dataset: Dataset | None = None,
         findings: Sequence[RuleFinding] = (),
         target_column: str | None = None,
+        previous_profile: ProfileResult | None = None,
         enabled_reviewers: Sequence[str] | None = None,
         enabled_categories: Sequence[ReviewCategory] | None = None,
         reviewer_config: Mapping[str, Mapping[str, Any]] | None = None,
@@ -73,6 +75,9 @@ class ReviewEngine:
             findings: The rule findings already computed by ``fs.analyze()``.
             target_column: Optional name of the target column, forwarded for
                 reviewers that use it.
+            previous_profile: Optional profile of a prior snapshot; when
+                provided, diff-category reviewers activate and compare the
+                current profile against it.
             enabled_reviewers: Optional allowlist of reviewer IDs to execute.
             enabled_categories: Optional allowlist of reviewer categories to
                 execute.
@@ -81,7 +86,8 @@ class ReviewEngine:
 
         Returns:
             A frozen ReviewResult containing the aggregated sections, with the
-            ML Readiness Score attached when any dimension applies.
+            ML Readiness Score attached when any dimension applies and the
+            Dataset Diff output attached when a diff reviewer ran.
 
         Raises:
             ValueError: If reviewer_config references an unknown reviewer ID.
@@ -99,10 +105,12 @@ class ReviewEngine:
             dataset=dataset,
             findings=findings,
             config=config,
+            previous_profile=previous_profile,
         )
 
         sections: list[ReviewSection] = []
         failed: dict[str, str] = {}
+        diff_result: Any = None
         for reviewer in self.registry.list_reviewers():
             if not self._reviewer_enabled(reviewer, config):
                 continue
@@ -112,6 +120,8 @@ class ReviewEngine:
                 continue
             try:
                 sections.append(reviewer.review(context))
+                if reviewer.diff_result is not None:
+                    diff_result = reviewer.diff_result
             except Exception as error:
                 failed[reviewer.id] = "".join(
                     traceback.format_exception(type(error), error, error.__traceback__)
@@ -123,6 +133,8 @@ class ReviewEngine:
             sections=sections,
             failed_reviewers=failed,
         )
+        if diff_result is not None:
+            result = replace(result, diff=diff_result)
         return self.score_adapter.attach(result)
 
     def _validate_config(self, config: ReviewConfig) -> None:
