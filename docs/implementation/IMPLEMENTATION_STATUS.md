@@ -1,8 +1,8 @@
 # Implementation Status Tracker
 
-> Authoritative implementation tracker for Featuresmith v0.2.0. This document records what is implemented, what is intentionally deferred, and what is planned future work. It does not duplicate architecture — it only records implementation status.
+> Authoritative implementation tracker for Featuresmith v0.3.0. This document records what is implemented, what is intentionally deferred, and what is planned future work. It does not duplicate architecture — it only records implementation status.
 
-Last Updated: 2026-08-02 (v0.2.0)
+Last Updated: 2026-08-15 (v0.3.0)
 
 ---
 
@@ -13,7 +13,7 @@ Last Updated: 2026-08-02 (v0.2.0)
 - **Reviewer Registry** (`ReviewerRegistry`) — explicit registration in `featuresmith/review/registry.py`
 - **Result Aggregator** (`ResultAggregator`) — `featuresmith/review/aggregator.py`
 - **BaseReviewer interface** — `featuresmith/review/base.py`
-- **Built-in Reviewers (8/12)**:
+- **Built-in Reviewers (9/12)**:
   - `SchemaHealthReviewer` (`review.schema.health`)
   - `TypeReviewer` (`review.schema.types`)
   - `MissingValueReviewer` (`review.quality.missingness`)
@@ -22,12 +22,13 @@ Last Updated: 2026-08-02 (v0.2.0)
   - `CardinalityReviewer` (`review.quality.cardinality`)
   - `BasicStatisticsReviewer` (`review.quality.basic_statistics`)
   - `LeakageReviewer` (`review.leakage`) — 6 pattern detectors merged per column
-- **Review Categories** (`ReviewCategory` enum) — 7 categories: `schema`, `quality`, `leakage`, `diff`, `feature_quality`, `custom`
+  - `DiffReviewer` (`review.diff`) — diff-aware review, active only when a previous snapshot is provided (added v0.3.0)
+- **Review Categories** (`ReviewCategory` enum) — 6 categories: `schema`, `quality`, `leakage`, `diff`, `feature_quality`, `custom`
 - **Score Adapter** — bridges Review Engine to `featuresmith.scoring` in `featuresmith/review/scoring_adapter.py`
 - **Console Renderer** (`ConsoleRenderer` + `RendererRegistry`) — `featuresmith/review/render.py`
 - **SDK Entrypoint** — `fs.review()` in `featuresmith/api.py`
 - **CLI Command** — `featuresmith review` with `--target`, `--format`, `--output`, `--fail-on`, `--only`, `--no-score`, `--quiet`, `--verbose`, `--version`
-- **CI Exit Codes** — 0 (clean), 1 (findings ≥ threshold), 2 (usage/unknown category/`--previous`), 3 (source missing/parse), 4 (unexpected error)
+- **CI Exit Codes** — 0 (clean), 1 (findings ≥ threshold), 2 (usage/unknown category), 3 (source missing/parse), 4 (unexpected error)
 
 ### Deferred (Intentionally Not Yet Implemented)
 - **Recommendation Engine / Adapter** — centralized recommendation generation; reviewers produce findings only
@@ -37,12 +38,10 @@ Last Updated: 2026-08-02 (v0.2.0)
 - **AI Integration** (narration, AI-enhanced ranking) — Phase 6
 
 ### Future Work (Planned)
-- **DiffReviewer** — Dataset Diff ships as standalone engine (`featuresmith.diff`); Review Engine integration is future work
 - **DuplicateColumnReviewer** (`review.quality.duplicate_columns`)
 - **OutlierReviewer** (`review.statistics.outliers`)
 - **DistributionReviewer** (`review.distribution`)
 - **FeatureQualityReviewer** (`review.feature_quality`) — requires Phase 4 Feature Engineering Engine
-- **`fs.review(previous=...)`** — currently raises `NotImplementedError`; use `fs.diff()` instead
 - **Reviewer priority/ordering config** in `.featuresmith.yml`
 - **Custom review profiles** (e.g., `--profile pre-training`)
 - **Cross-reviewer dependencies**
@@ -77,7 +76,6 @@ Last Updated: 2026-08-02 (v0.2.0)
 - **Outliers** section (`OutlierReviewer`)
 - **Distribution issues** section (`DistributionReviewer`)
 - **Feature quality** section (`FeatureQualityReviewer`) — Phase 4
-- **Diff-aware review** (`--previous`) — use `fs.diff()` instead
 - **Dashboard "Review" tab**
 - **HTML static report**
 - **Named review profiles** (`--profile`)
@@ -171,14 +169,13 @@ Last Updated: 2026-08-02 (v0.2.0)
 - **JSON output** — deterministic serialization via `_asdict_custom`
 
 ### Architectural Decision
-Dataset Diff is a **standalone engine** (`featuresmith.diff` package), NOT a `DiffReviewer` in the Review Engine. This was a deliberate scope decision (Sprint 5):
-- Review Engine keeps its 8-reviewer `default_registry()`
-- `fs.review(previous=...)` raises `NotImplementedError` with message pointing to `fs.diff()`
-- Single-dataset review and two-dataset diff remain separate workflows
+Dataset Diff ships as a **standalone engine** (`featuresmith.diff` package) AND as a **`DiffReviewer`** in the Review Engine (added v0.3.0):
+- The standalone `featuresmith diff` CLI and `fs.diff()` remain the primary two-dataset workflow
+- `DiffReviewer` (`review.diff`) reuses the standalone engine — it calls `compute_diff()` and `findings_from_diff()` — it does not re-profile the previous snapshot when a previous profile is available
+- `fs.review(source, previous=...)` profiles the previous snapshot once at the SDK boundary and passes `previous_profile` to the engine; the diff section is appended only when a previous snapshot is provided
+- Single-dataset review (`fs.review(source)` without `previous`) is unchanged: 8 sections, no diff section, `result.diff is None`
 
 ### Deferred / Future Work
-- **DiffReviewer** — Review Engine integration of diff capability
-- **ReviewResult.diff field** — reserved, always `None`
 - **ProfileDiff extension fields** (`distribution_shifts`, `quality_regressions`) — standalone `DatasetDiffResult` used instead
 
 ---
@@ -209,26 +206,24 @@ Full specification in `features/Dataset-Contracts-And-Planning.md`; no code exis
 
 ---
 
-## Summary: v0.2.0 Release Readiness
+## Summary: v0.3.0 Release Readiness
 
 | Capability | Implementation % | Release Ready |
 |------------|------------------|---------------|
-| Review Engine Core | ~70% | ✅ Yes (usable with 8 reviewers) |
-| Dataset Review | ~75% | ✅ Yes (8/11 sections, score, CLI) |
+| Review Engine Core | ~75% | ✅ Yes (usable with 9 reviewers) |
+| Dataset Review | ~80% | ✅ Yes (9/11 sections, score, CLI) |
 | ML Readiness Score | ~80% | ✅ Yes (8 dims, CLI, SDK) |
 | Leakage Detection | 100% | ✅ Yes (6 detectors, reviewer, scoring) |
-| Dataset Diff | 100% | ✅ Yes (standalone engine, CLI, SDK) |
+| Dataset Diff | 100% | ✅ Yes (standalone engine + DiffReviewer, CLI, SDK) |
 | Connectors (CSV/Excel/Parquet/DataFrame) | 100% | ✅ Yes (static registry) |
 | Dataset Contracts / Plan / Apply | 0% | ⛔ Not started — design complete, see `features/Dataset-Contracts-And-Planning.md` |
 
-### Known Gaps for v0.2.0 (Documented, Not Blockers)
+### Known Gaps for v0.3.0 (Documented, Not Blockers)
 1. No centralized Recommendation Engine — findings only, no actionable recommendations
-2. 3 of 11 Dataset Review sections missing (duplicate columns, outliers, distribution, feature quality)
-3. No `DiffReviewer` — diff is standalone only
-4. No `fs.review(previous=...)` — use `fs.diff()`
-5. No `.featuresmith.yml` config system
-6. No dashboard, HTML report, or JSON renderer for review
-7. No CI score gating (`--fail-below`)
-8. No Plan/Apply/Contract lifecycle (`features/Dataset-Contracts-And-Planning.md`) — this is a Phase 4-6 addition, not a v0.2.0 gap; listed for completeness
+2. 2 of 11 Dataset Review sections missing (duplicate columns, outliers, distribution, feature quality)
+3. No `.featuresmith.yml` config system
+4. No dashboard, HTML report, or JSON renderer for review
+5. No CI score gating (`--fail-below`)
+6. No Plan/Apply/Contract lifecycle (`features/Dataset-Contracts-And-Planning.md`) — this is a Phase 4-6 addition, not a v0.3.0 gap; listed for completeness
 
-All gaps are documented in the architecture documents as deferred/future work and do not block the v0.2.0 release.
+All gaps are documented in the architecture documents as deferred/future work and do not block the v0.3.0 release.

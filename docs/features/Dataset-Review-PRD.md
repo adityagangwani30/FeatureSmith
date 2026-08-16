@@ -1,6 +1,6 @@
 # Dataset Review — Product Requirements Document
 
-> **Status: Partially Implemented (Sprints 1-5, Sprint 4.1).** The `fs.review()` SDK entrypoint, `featuresmith review` CLI command, 8 of 11 required built-in reviewers, ML Readiness Score attachment, `--no-score`, `--fail-on`, `--only` category filtering, and console rendering are implemented. Missing reviewers: `DuplicateColumnReviewer`, `OutlierReviewer`, `DistributionReviewer`, `FeatureQualityReviewer`. Diff-aware review (`--previous`) raises `NotImplementedError` (use standalone `fs.diff()`). Dashboard "Review" tab, HTML report, and centralized Recommendation Engine remain future work.
+> **Status: Partially Implemented (Sprints 1-5, Sprint 4.1, v0.3.0).** The `fs.review()` SDK entrypoint, `featuresmith review` CLI command, 9 of 11 required built-in reviewers (including diff-aware review via `DiffReviewer` since v0.3.0), ML Readiness Score attachment, `--no-score`, `--fail-on`, `--only` category filtering, and console rendering are implemented. Missing reviewers: `DuplicateColumnReviewer`, `OutlierReviewer`, `DistributionReviewer`, `FeatureQualityReviewer`. Dashboard "Review" tab, HTML report, and centralized Recommendation Engine remain future work.
 
 ## 1. Overview
 
@@ -64,19 +64,19 @@ The review must include a dedicated section for each of the following, sourced f
 | Section | Reviewer | Category | Source signal |
 |---|---|---|---|
 | Schema health | `SchemaHealthReviewer` | `schema` | dtype consistency, unexpected nulls in typed columns, schema vs. declared config |
-| Missing values | `MissingValueReviewer` | `data_quality` | missingness ratio and pattern per column (existing quality rules) |
-| Duplicate rows | `DuplicateRowReviewer` | `data_quality` | exact and near-duplicate row detection |
-| Duplicate columns | `DuplicateColumnReviewer` | `data_quality` | fully or near-fully correlated/identical columns |
+| Missing values | `MissingValueReviewer` | `quality` | missingness ratio and pattern per column (existing quality rules) |
+| Duplicate rows | `DuplicateRowReviewer` | `quality` | exact and near-duplicate row detection |
+| Duplicate columns | `DuplicateColumnReviewer` | `quality` | fully or near-fully correlated/identical columns |
 | Data types | `TypeReviewer` | `schema` | inferred vs. expected dtype mismatches |
-| Constant columns | `ConstantColumnReviewer` | `data_quality` | zero/near-zero variance columns |
-| High-cardinality columns | `CardinalityReviewer` | `statistics` | categorical columns above a configurable unique-value threshold |
-| Outliers | `OutlierReviewer` | `statistics` | IQR/Z-score/Isolation Forest flags (existing statistical rules) |
-| Distribution issues | `DistributionReviewer` | `distribution` | skew, unexpected multimodality, distribution shape flags |
+| Constant columns | `ConstantColumnReviewer` | `quality` | zero/near-zero variance columns |
+| High-cardinality columns | `CardinalityReviewer` | `quality` | categorical columns above a configurable unique-value threshold |
+| Outliers | `OutlierReviewer` | `quality` (deferred) | IQR/Z-score/Isolation Forest flags (existing statistical rules) |
+| Distribution issues | `DistributionReviewer` | `quality` (deferred) | skew, unexpected multimodality, distribution shape flags |
 | Feature quality | `FeatureQualityReviewer` | `feature_quality` | low-signal / near-constant / redundant feature flags |
 | Target leakage warnings | `LeakageReviewer` | `leakage` | pattern-based leakage detection, detailed in `Dataset-Diff-And-Leakage-Detection.md` |
 | Overall summary | Aggregator | *(none — dataset-level)* | dataset-level roll-up, always present even if every section is clean |
 
-Every section must be present in the output even when it finds nothing — an explicit "no issues found" state, not an absent section, per `Design.md` §13's empty-state principle. The category column above is what makes future category-scoped views (`Review-Engine-Architecture.md` §9.3) — a leakage-only report, a schema-only CLI filter — a pure filter over this same table, not a redesign.
+Every section must be present in the output even when it finds nothing — an explicit "no issues found" state, not an absent section, per `Design.md` §13's empty-state principle. The category column above is what makes category-scoped views (`Review-Engine-Architecture.md` §9.3) — a leakage-only report, a schema-only CLI filter — a pure filter over this same table, not a redesign. `statistics`/`distribution` are not shipped categories (`Review-Engine-Architecture.md` §9.2); the deferred `OutlierReviewer`/`DistributionReviewer` will be tagged `quality` when implemented.
 
 ### 7.2 Actionability requirement
 
@@ -143,12 +143,12 @@ for section in result.sections:
 featuresmith review train.csv
 featuresmith review train.csv --format json
 featuresmith review train.csv --previous train_v1.csv
-featuresmith review train.csv --only leakage,data_quality   # illustrative — see note below
+featuresmith review train.csv --only leakage,quality
 featuresmith review train.csv --fail-on critical
 featuresmith review train.csv --no-score               # opt out of the ML Readiness Score section
 ```
 
-`--only`/`--skip` are shown here to illustrate what the Review Category design (`Review-Engine-Architecture.md` §9) enables; per that document, they are not part of the committed, near-term CLI surface and are not being implemented alongside this design freeze — only the underlying category tagging is.
+`--only <category>` is shipped (`IMPLEMENTATION_STATUS.md`); `--skip` is not part of the committed, near-term CLI surface and is not being implemented alongside this design freeze — only the underlying category tagging and `--only` are.
 
 Default output is a `rich`-rendered, severity-sorted tree (critical → warning → info → passed), with the overall summary and score printed first — mirroring the existing CLI UX conventions in `Design.md` §4 exactly (human-readable by default, `--format json` for machine consumption, meaningful exit codes).
 
@@ -182,12 +182,12 @@ A new "Review" tab, alongside the existing Overview/Data Quality/Recommendations
 |-----------|--------|-------|
 | `fs.review()` SDK entrypoint | ✅ Implemented | `featuresmith.api.review()` |
 | `featuresmith review` CLI | ✅ Implemented | `featuresmith_cli/commands/review.py` |
-| Built-in Reviewers (11 per §7.1) | 🟡 8/11 Implemented | See table below |
+| Built-in Reviewers (11 per §7.1) | 🟡 9/11 Implemented | See table below |
 | ML Readiness Score attachment | ✅ Implemented | Automatic via ScoreAdapter |
 | CLI `--no-score` | ✅ Implemented | Omits score section |
 | CLI `--fail-on` | ✅ Implemented | Mirrors `analyze` exit codes |
 | CLI `--only` category filter | ✅ Implemented | `featuresmith review --only schema,leakage` |
-| CLI `--previous` (diff-aware) | ❌ Not Implemented | Raises `NotImplementedError`; use `fs.diff()` |
+| CLI `--previous` (diff-aware) | ✅ Implemented (v0.3.0) | Activates `review.diff` section via `DiffReviewer`; exit 3 on missing previous source, exit 2 on unknown target column |
 | Dashboard "Review" tab | 🚧 Not Implemented | Dashboard not yet built |
 | HTML static report | 🚧 Not Implemented | Deferred |
 | Centralized Recommendation Engine | ❌ Not Implemented | Deferred |
@@ -197,14 +197,14 @@ A new "Review" tab, alongside the existing Overview/Data Quality/Recommendations
 | Section | Reviewer | Category | Implemented |
 |---------|----------|----------|-------------|
 | Schema health | `SchemaHealthReviewer` | `schema` | ✅ |
-| Missing values | `MissingValueReviewer` | `data_quality` | ✅ |
-| Duplicate rows | `DuplicateReviewer` | `data_quality` | ✅ |
-| Duplicate columns | `DuplicateColumnReviewer` | `data_quality` | ❌ Deferred |
+| Missing values | `MissingValueReviewer` | `quality` | ✅ |
+| Duplicate rows | `DuplicateReviewer` | `quality` | ✅ |
+| Duplicate columns | `DuplicateColumnReviewer` | `quality` | ❌ Deferred |
 | Data types | `TypeReviewer` | `schema` | ✅ |
-| Constant columns | `ConstantColumnReviewer` | `data_quality` | ✅ |
-| High-cardinality columns | `CardinalityReviewer` | `statistics` | ✅ |
-| Outliers | `OutlierReviewer` | `statistics` | ❌ Deferred |
-| Distribution issues | `DistributionReviewer` | `distribution` | ❌ Deferred |
+| Constant columns | `ConstantColumnReviewer` | `quality` | ✅ |
+| High-cardinality columns | `CardinalityReviewer` | `quality` | ✅ |
+| Outliers | `OutlierReviewer` | `quality` | ❌ Deferred |
+| Distribution issues | `DistributionReviewer` | `quality` | ❌ Deferred |
 | Feature quality | `FeatureQualityReviewer` | `feature_quality` | ❌ Deferred (Phase 4) |
 | Target leakage warnings | `LeakageReviewer` | `leakage` | ✅ |
 | Overall summary | Aggregator | — | ✅ |

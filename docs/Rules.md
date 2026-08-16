@@ -2,6 +2,8 @@
 
 Every contributor, including AI coding assistants, must follow this document. When in doubt, this file wins over personal preference.
 
+> **Reading this document: current vs. future.** Some rules below govern code that exists and ships in v0.2.0 today (profiling, rules, review, scoring, leakage, diff, connectors, CLI). Others govern capabilities that are designed but not yet built — the AI layer/`AIProvider` (Future — applicable when the AI layer is introduced in v1.x, `Architecture.md` §7), `.featuresmith.yml` configuration (Future — applicable when the config system is introduced, `implementation/IMPLEMENTATION_STATUS.md`), the dashboard and VS Code surfaces (Future — applicable from v0.3 and v2.0 respectively), and entry-point plugin discovery (Future — applicable per category, incrementally, `Architecture.md` §25.1). Rules for future capabilities are marked **[Future]** inline where a section is future-only, or with an inline note where a section mixes both. A rule being documented here is a standard the capability must meet *when it's built* — it is never evidence that the capability already exists. `implementation/IMPLEMENTATION_STATUS.md` is the authoritative record of what's actually shipped.
+
 ## 1. Coding Standards
 
 - Python 3.11+ only. Type hints are **mandatory** on all public functions; `mypy --strict` runs in CI.
@@ -9,20 +11,20 @@ Every contributor, including AI coding assistants, must follow this document. Wh
 - Linting: `ruff check` with a shared `pyproject.toml` config; no per-module overrides without a documented reason in the PR.
 - Docstrings: Google-style, required on every public class/function. Private (`_prefixed`) helpers are exempt but encouraged.
 - No bare `except:` — always catch specific exceptions; custom exceptions live in `featuresmith.core.exceptions`.
-- Prefer composition over inheritance except for the explicit `Base*`/`AIProvider` extension-point classes defined in `Architecture.md`.
+- Prefer composition over inheritance except for the explicit `Base*`/`AIProvider` extension-point classes defined in `Architecture.md` (`AIProvider` itself is **[Future]** — the AI layer is not built in v0.2.0, `Architecture.md` §7).
 
 ## 2. Naming Conventions
 
 - Modules: `snake_case`. Classes: `PascalCase`. Functions/vars: `snake_case`. Constants: `UPPER_SNAKE_CASE`.
 - Every `Base*` interface subclass is named `<Thing><Category>`, e.g. `CsvConnector`, `LeakageRuleTargetCorrelation`, `OpenAIProvider` — no ambiguous names like `Helper` or `Utils2`.
 - Rule IDs are stable, namespaced strings (`quality.missingness.high_null_ratio`), never renamed once released — treat them like a public API.
-- AI provider IDs follow the same rule: `ollama`, `openai`, `anthropic` are stable config values (`ai.provider: <id>`) — never renamed once released.
+- AI provider IDs follow the same rule: `ollama`, `openai`, `anthropic` are stable config values (`ai.provider: <id>`) — never renamed once released. **[Future]** — the AI layer and `ai.provider` config don't exist in v0.2.0; this is the naming standard they'll be held to once built.
 - Package names follow the pattern `featuresmith-<surface>` for anything outside core (`featuresmith-cli`, `featuresmith-dashboard`, `featuresmith-vscode`); the core library is published as `featuresmith-core` (and imported as `featuresmith`).
 
 ## 3. Folder Rules
 
 - Never add a new top-level package under `packages/` without an ADR (see §11) — new interfaces should happen *inside* `featuresmith-core`'s existing extension points, and new surfaces are rare, deliberate additions.
-- **No business logic (profiling, rules, feature engineering, AI calls, export generation) may live outside `packages/featuresmith-core`.** `featuresmith-cli`, `featuresmith-dashboard`, and `featuresmith-vscode` may only import `featuresmith.api` — a linter rule (`import-linter`) enforces this boundary in CI on every PR touching a surface package.
+- **No business logic (profiling, rules, feature engineering, AI calls, export generation) may live outside `packages/featuresmith-core`.** `featuresmith-cli` (shipped, v0.2.0), `featuresmith-dashboard` (**[Future]** — v0.3, not yet built), and `featuresmith-vscode` (**[Future]** — v2.0+, not yet built) may only import `featuresmith.api` — a linter rule (`import-linter`) enforces this boundary in CI on every PR touching a surface package that exists.
 - Test files mirror source structure 1:1: `packages/featuresmith-core/src/featuresmith/rules/quality/missingness.py` → `packages/featuresmith-core/tests/rules/quality/test_missingness.py`.
 - No file should exceed ~400 lines; split by responsibility, not by convenience.
 
@@ -41,18 +43,18 @@ Nothing should be implemented unless it already exists in the documentation firs
 
 Whenever code changes in a way that affects behavior — a feature, module, CLI command, API, architecture decision, or workflow — the documentation update ships **in the same change**, never a follow-up. Documentation and implementation are never allowed to diverge; this is the concrete workflow enforcement of the "docs updated in the same PR" rule below and the Code Review Checklist (§17).
 
-- Every module directory has a `README.md` explaining its purpose and, if it's an extension point, a "how to add a new X" walkthrough — this now explicitly includes `featuresmith/ai/providers/README.md` ("how to add a new AI provider").
+- Every module directory has a `README.md` explaining its purpose and, if it's an extension point, a "how to add a new X" walkthrough — this will include `featuresmith/ai/providers/README.md` ("how to add a new AI provider") once the AI layer is built (**[Future]** — v1.x, `Architecture.md` §7).
 - Every public-facing behavior change requires a corresponding docs update in the same PR — docs and code are never allowed to drift, enforced via a CI checklist item.
 - Mermaid diagrams preferred over prose for anything describing flow/sequence.
 
 ## 5. Testing Rules
 
-- Minimum 85% coverage on `core/`, `rules/`, `feature_engine/` (the deterministic, trust-critical layers). The AI layer (narration, ranking, chat) is tested via a mocked `AIProvider` implementation, not live LLM calls, in CI.
+- Minimum 85% coverage on `core/`, `rules/`, `feature_engine/` (the deterministic, trust-critical layers). **[Future]** The AI layer (narration, ranking, chat) will be tested via a mocked `AIProvider` implementation, not live LLM calls, in CI, once it's built (`Architecture.md` §7).
 - Every rule ships with at least one fixture dataset that triggers it and one that doesn't (positive + negative case) — prevents false-positive drift over time.
-- Every `AIProvider` implementation ships a conformance test suite run against the shared `AIProvider` protocol (narrate/rank/chat) using a mocked HTTP layer, so a community-contributed provider can prove correctness without needing a real API key in CI.
-- `ChatSession` tests assert, structurally, that no code path in `featuresmith.ai.chat` has access to the raw `Dataset`/dataframe object — only `ProfileResult`/`RuleFinding[]` — enforced as an explicit unit test, not just a design intent.
-- Golden-file tests for exporters: generated pipeline code is diffed against a checked-in expected output; intentional changes require updating the golden file in the same PR with justification.
-- **Surface parity tests**: a dedicated integration suite runs the same fixture dataset through the SDK, the CLI, and the dashboard's underlying calls, asserting identical `ProfileResult` output — this is the automated enforcement of `PRD.md` §12's "surface parity" success metric.
+- **[Future]** Every `AIProvider` implementation will ship a conformance test suite run against the shared `AIProvider` protocol (narrate/rank/chat) using a mocked HTTP layer, so a community-contributed provider can prove correctness without needing a real API key in CI — applicable once the AI layer is introduced.
+- **[Future]** `ChatSession` tests will assert, structurally, that no code path in `featuresmith.ai.chat` has access to the raw `Dataset`/dataframe object — only `ProfileResult`/`RuleFinding[]` — enforced as an explicit unit test, not just a design intent. `ChatSession` does not exist in v0.2.0.
+- **[Future]** Golden-file tests for exporters: generated pipeline code is diffed against a checked-in expected output; intentional changes require updating the golden file in the same PR with justification. The Export Layer this applies to (`Architecture.md` §12) is not built in v0.2.0 — it ships starting Phase 5 (`features/Dataset-Contracts-And-Planning.md`).
+- **Surface parity tests**: a dedicated integration suite runs the same fixture dataset through the SDK and the CLI (the two surfaces that exist today), asserting identical `ProfileResult` output — this is the automated enforcement of `PRD.md` §12's "surface parity" success metric. Extends to the dashboard's underlying calls once it ships (**[Future]**, v0.3).
 - No PR merges with failing or skipped tests without an explicit, reviewed `# TODO(issue-link)` justification.
 
 ## 6. PR Guidelines
@@ -88,14 +90,14 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 ## 10. Architecture Rules
 
 - No module imports "up" the pipeline (see `Architecture.md` §5) — enforced via an `import-linter` CI check with explicit contract definitions.
-- **No surface package (`featuresmith-cli`, `featuresmith-dashboard`, `featuresmith-vscode`) may import anything from `featuresmith-core` except `featuresmith.api`.** This is the structural enforcement of the "one core, many thin surfaces" principle and is checked by the same `import-linter` contract as the point above.
-- The AI layer must never compute a statistic — it only narrates/ranks/answers questions using pre-computed, typed data. Any PR that has the AI provider producing a raw number instead of narrating one, or that gives `ChatSession` access to the raw dataframe, must be rejected in review.
-- Every extension point (`connectors`, `rules`, `exporters`, `ai_providers`) must remain independently unit-testable without a live LLM or network call.
+- **No surface package (`featuresmith-cli` — shipped; `featuresmith-dashboard`, `featuresmith-vscode` — **[Future]**) may import anything from `featuresmith-core` except `featuresmith.api`.** This is the structural enforcement of the "one core, many thin surfaces" principle and is checked by the same `import-linter` contract as the point above, for whichever surface packages exist at a given time.
+- **[Future]** The AI layer must never compute a statistic — it only narrates/ranks/answers questions using pre-computed, typed data. Any PR that has the AI provider producing a raw number instead of narrating one, or that gives `ChatSession` access to the raw dataframe, must be rejected in review. This rule is dormant until the AI layer is introduced (v1.x, `Architecture.md` §7) — no AI provider or `ChatSession` exists in v0.2.0 to violate it.
+- Every extension point (`connectors`, `rules`, `exporters` — shipped or partially shipped; `ai_providers` — **[Future]**) must remain independently unit-testable without a live LLM or network call.
 
 ## 11. Dependency Rules
 
 - New third-party dependencies require an **Architecture Decision Record** (ADR) in `docs/adr/`, even a short one — justify why, alternatives considered, and whether it's core or optional (`extras`).
-- Heavy/optional deps (Featuretools, cloud SDKs, specific DB drivers, individual AI provider SDKs like `openai`/`anthropic`) go under `pyproject.toml` extras (`pip install featuresmith-core[openai]`, `pip install featuresmith-core[sql]`), never core dependencies. `featuresmith-core` with no extras must remain installable and fully functional (via Ollama + local rules) with zero cloud SDK dependencies.
+- Heavy/optional deps (Featuretools, cloud SDKs, specific DB drivers, individual AI provider SDKs like `openai`/`anthropic` — **[Future]**, not yet a dependency of anything) go under `pyproject.toml` extras (`pip install featuresmith-core[openai]`, `pip install featuresmith-core[sql]`), never core dependencies. `featuresmith-core` with no extras must remain installable and fully functional today (via local rules; the "Ollama by default" fallback described elsewhere is the future AI layer's design, not a current dependency) with zero cloud SDK dependencies.
 - Pin direct dependencies with compatible-release specifiers (`~=`); avoid unpinned ranges that can silently break CI.
 
 ## 12. Performance Rules
@@ -107,32 +109,32 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 
 ## 13. Security Rules
 
-- Never log or include raw data values in error messages, telemetry, or AI provider requests (narration, ranking, *or chat*) sent to a cloud provider by default — only schema, aggregate stats, and column names, per the grounding contract in `Architecture.md` §7.2.
-- API keys for OpenAI/Anthropic are read from environment variables referenced by name in `.featuresmith.yml` (`api_key_env: OPENAI_API_KEY`) — never written directly into config files, never logged, never included in generated reports or exported notebooks.
-- SQL connectors use parameterized queries exclusively; no string-interpolated SQL, ever.
+- **[Future]** Never log or include raw data values in error messages, telemetry, or AI provider requests (narration, ranking, *or chat*) sent to a cloud provider by default — only schema, aggregate stats, and column names, per the grounding contract in `Architecture.md` §7.2. Applicable once the AI layer exists; no AI provider requests are made in v0.2.0.
+- **[Future]** API keys for OpenAI/Anthropic are read from environment variables referenced by name in `.featuresmith.yml` (`api_key_env: OPENAI_API_KEY`) — never written directly into config files, never logged, never included in generated reports or exported notebooks. Neither the AI providers nor `.featuresmith.yml` exist in v0.2.0; this is the standard both are held to once built.
+- SQL connectors use parameterized queries exclusively; no string-interpolated SQL, ever. Applicable once the SQL connector ships (**[Future]** — planned Phase 3, `implementation/IMPLEMENTATION_STATUS.md`); v0.2.0's shipped connectors (CSV/Excel/Parquet/DataFrame) don't touch SQL.
 - Dependency vulnerabilities scanned via `pip-audit` in CI on every PR touching any `pyproject.toml` in the workspace.
 
 ## 14. Privacy Rules
 
-- Cloud AI provider usage is opt-in and requires an explicit config value (`ai.provider: openai`) — default is local (Ollama) or no-AI template mode.
-- Telemetry (if enabled) is opt-in, anonymized, aggregate-only (e.g., "rule X fired," "chat used," never column names, values, or chat message content), and documented in a public `TELEMETRY.md`.
-- Any connector reading from PII-likely sources should support column-level redaction/exclusion config before any profiling, AI narration, or chat step runs.
+- **[Future]** Cloud AI provider usage is opt-in and requires an explicit config value (`ai.provider: openai`) — default is local (Ollama) or no-AI template mode. There is no AI layer, no `ai.provider` config, and no Ollama integration in v0.2.0 to apply this to yet.
+- Telemetry (if enabled) is opt-in, anonymized, aggregate-only (e.g., "rule X fired," "chat used," never column names, values, or chat message content), and documented in a public `TELEMETRY.md`. ("chat used" is a **[Future]** event category, applicable once chat exists.)
+- Any connector reading from PII-likely sources should support column-level redaction/exclusion config before any profiling, AI narration, or chat step runs. The AI-narration/chat portion is **[Future]**; the redaction-before-profiling portion applies to connectors as they exist today.
 
 ## 15. Logging Rules
 
 - Structured logging (`structlog` or equivalent) — no bare `print()` in library code, ever (CLI output is a separate, deliberate presentation layer).
-- Log levels: `DEBUG` for internal flow, `INFO` for user-relevant milestones ("profiled 42 columns", "chat session started"), `WARNING` for degraded-but-continuing states (e.g., "AI provider unreachable, using template narrator, chat disabled"), `ERROR` for failures.
+- Log levels: `DEBUG` for internal flow, `INFO` for user-relevant milestones (e.g., "profiled 42 columns" today; "chat session started" once chat exists, **[Future]**), `WARNING` for degraded-but-continuing states (e.g., "AI provider unreachable, using template narrator, chat disabled" — **[Future]** example, applicable once the AI layer exists), `ERROR` for failures.
 
 ## 16. Error Handling Rules
 
-- User-facing errors must be actionable — never a raw stack trace as the only output in the CLI; wrap with a clear message and, where possible, a suggested fix (e.g., "AI provider 'openai' failed: missing OPENAI_API_KEY — set it or switch `ai.provider` to `ollama` in .featuresmith.yml").
-- Library-level exceptions are typed and documented (`ConnectorError`, `RuleExecutionError`, `ExportError`, `AIProviderError`, `ChatSessionError`) so calling code can handle them specifically.
-- A single failing rule, plugin, or AI provider call must never crash the whole analysis run — failures are isolated, logged, and surfaced as a partial-result warning; a failed AI narration still returns the full deterministic report.
+- User-facing errors must be actionable — never a raw stack trace as the only output in the CLI; wrap with a clear message and, where possible, a suggested fix (e.g., `ConnectorError` on a missing file today; "AI provider 'openai' failed: missing OPENAI_API_KEY — set it or switch `ai.provider` to `ollama` in .featuresmith.yml" once the AI layer and config system exist, **[Future]**).
+- Library-level exceptions are typed and documented — `ConnectorError`, `RuleExecutionError` exist today; `ExportError`, `AIProviderError`, `ChatSessionError` are **[Future]**, applicable once the export/apply and AI layers are built — so calling code can handle them specifically.
+- A single failing rule or plugin must never crash the whole analysis run — failures are isolated, logged, and surfaced as a partial-result warning. **[Future]**: the same applies to an AI provider call once the AI layer exists — a failed AI narration still returns the full deterministic report.
 
 ## 17. Code Review Checklist
 
 - [ ] Type hints complete; `mypy --strict` passes
-- [ ] Tests added/updated, including a negative case for new rules and a conformance test for new AI providers
+- [ ] Tests added/updated, including a negative case for new rules, and a conformance test for new AI providers once that extension point exists (**[Future]**)
 - [ ] Docs updated in the same PR
 - [ ] No new hard dependency without an ADR
 - [ ] No raw data in logs/prompts/chat context
@@ -143,8 +145,8 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 ## 18. Contributor Guidelines
 
 - Start with issues labeled `good-first-issue` (see `Phases.md` for how these are seeded per phase).
-- One-command setup: `make dev` (creates venv, installs all workspace packages + pre-commit hooks, runs a smoke test across SDK, CLI, and dashboard entrypoints).
-- `CONTRIBUTING.md` links directly to the relevant extension-point README (`connectors/README.md`, `rules/README.md`, `exporters/README.md`, `ai/providers/README.md`) so new contributors don't need to read the whole architecture doc to make a first contribution.
+- One-command setup: `make dev` (creates venv, installs all workspace packages + pre-commit hooks, runs a smoke test across SDK and CLI entrypoints today; extends to the dashboard entrypoint once it ships, **[Future]**, v0.3).
+- `CONTRIBUTING.md` links directly to the relevant extension-point README (`connectors/README.md`, `rules/README.md` — exist today; `exporters/README.md`, `ai/providers/README.md` — **[Future]**, created when those extension points ship) so new contributors don't need to read the whole architecture doc to make a first contribution.
 
 ## 19. Release Process
 
@@ -152,7 +154,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`. Breaking chan
 2. `CHANGELOG.md` auto-generated per package from Conventional Commits (`release-please` or equivalent, configured for the monorepo).
 3. Version bump PR reviewed by core team, respecting per-package independent versioning (§9).
 4. Tag → GitHub Release → PyPI publish via GitHub Actions (trusted publishing, no long-lived tokens) for each changed package.
-5. Docs site (MkDocs) redeployed automatically on tag push.
+5. Docs site (Next.js documentation website, `frontend/`) redeployed automatically on tag push.
 
 ## 20. Definition of Done
 
@@ -164,7 +166,7 @@ A feature is "done" when: code is merged to `main`, tests cover the happy path a
 - Letting the AI layer touch raw data or compute statistics directly, in narration, ranking, **or chat**.
 - Giving `ChatSession` a raw-dataframe tool/re-profiling capability "for convenience."
 - Silent auto-application of any recommendation without explicit user acceptance.
-- Implementing a feature in `featuresmith-cli` or `featuresmith-dashboard` first and "promoting it to core later" — logic is written in core from the start, even for a single-surface feature.
+- Implementing a feature in `featuresmith-cli` first and "promoting it to core later" — logic is written in core from the start, even for a single-surface feature. The same will apply to `featuresmith-dashboard` once it exists (**[Future]**, v0.3).
 - God-objects: a `Dataset` class that grows connector-specific or rule-specific methods over time — extension belongs in plugins, not the core class.
 - Breaking a `Base*`/`AIProvider` interface without a deprecation cycle.
 

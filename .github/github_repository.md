@@ -40,10 +40,10 @@ machine-learning
 
 ## 3. Repository Homepage
 
-Once a documentation site is available (Phase 5 with MkDocs Material):
+The documentation website is the Next.js app in `frontend/`:
 
 ```
-https://featuresmith.readthedocs.io
+https://featuresmith.adityagangwani.me
 ```
 
 Until then, leave blank or point to the GitHub repository itself.
@@ -130,7 +130,7 @@ Apply to the `main` branch:
 - ✅ Issues
 - ✅ Discussions
 - ✅ Projects (for roadmap tracking per phase)
-- ✅ Wiki — disabled (docs live in `docs/` and future MkDocs site)
+- ✅ Wiki — disabled (docs live in `docs/` and the Next.js documentation website in `frontend/`)
 - ✅ Sponsorships (optional, for future sustainability)
 
 ---

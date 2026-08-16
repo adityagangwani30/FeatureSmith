@@ -1,5 +1,7 @@
 # Design.md — Product & Design System (Featuresmith)
 
+> **Status note:** this document specifies the target design for all four planned surfaces (SDK output, CLI, dashboard, chat). The dashboard and chat don't exist in v0.2.0 (`implementation/IMPLEMENTATION_STATUS.md`); v0.2.0's actual interface today is `ConsoleRenderer`'s text/JSON output via the CLI and SDK. Nothing here should be read as describing current v0.2.0 behavior.
+
 ## 1. Design Philosophy
 
 Featuresmith's interfaces (SDK output, CLI, dashboard, reports, chat) should read like **engineering documentation, not a marketing dashboard**. The product's credibility depends on looking rigorous and legible, not flashy. Every screen — and every chat answer — answers three questions at a glance: *what did we find, how confident are we, and what should I do about it.* Because the same core produces every surface's content (`Architecture.md` §2), the design system's real job is ensuring that content looks and reads consistently no matter which of the four surfaces renders it.

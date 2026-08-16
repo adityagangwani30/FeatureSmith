@@ -1,6 +1,6 @@
-# Dataset Contracts & the Plan/Apply Lifecycle
+# Dataset Contracts & the Plan/Export Lifecycle
 
-> **Status: Design Only — Not Yet Implemented.** Per `Rules.md` §4 (Documentation-First Development), this document exists so implementation can begin against an agreed design; no code referenced here exists yet. It formalizes the direction set in `VISION.md` §2: Featuresmith is the Dataset Contract / Dataset State Management layer for structured data, and this document is the concrete mechanism — Plan, Apply, Contract — that makes a dataset's state provable rather than assumed. Placement on the roadmap is in `Phases.md` Phases 4-6.
+> **Status: Design Only — Not Yet Implemented.** Per `Rules.md` §4 (Documentation-First Development), this document exists so implementation can begin against an agreed design; no code referenced here exists yet. It formalizes the direction set in `VISION.md` §2: Featuresmith is the Dataset Contract / Dataset State Management layer for structured data, and this document is the concrete mechanism — Plan, Export/Apply, Contract — that makes a dataset's state provable rather than assumed. Placement on the roadmap is in `Phases.md` Phases 4-6. **Naming note:** "Apply" and "Export" are used interchangeably throughout this document for the code-generation step; the final public name is an implementation-time decision (§10), not fixed here — what is fixed is the default behavior: generate readable code, don't silently execute it.
 
 ## 1. Overview
 
@@ -8,17 +8,31 @@ Everything Featuresmith ships today (`features/Review-Engine-Architecture.md`, `
 
 Three new, small capabilities answer that, in order:
 
-1. **Plan** — an accepted recommendation becomes a deterministic, inspectable, serializable object describing exactly what would change, before anything runs.
-2. **Apply** — a thin dispatcher that turns an accepted Plan into real, generated code for an ecosystem the user already runs (Polars, pandas, scikit-learn, dbt) — never a Featuresmith-owned execution engine.
+1. **Plan** — an accepted recommendation becomes a deterministic, inspectable, serializable object describing exactly what would change, before anything runs. Plan is the central domain primitive this whole lifecycle is built around — see §3.1.
+2. **Apply/Export** — a thin dispatcher that turns an accepted Plan into real, generated code for an ecosystem the user already runs (Polars, pandas, scikit-learn, dbt) — never a Featuresmith-owned execution engine. **By default, this step generates and hands back readable code; it does not silently mutate the user's dataset in place.** See §7.2 for exactly what "Apply" means and does not mean.
 3. **Contract** — the versioned, diffable artifact (`featuresmith.lock`) that persists a dataset's state (schema fingerprint, readiness score, leakage findings, transformation lineage) so it can be committed to git, diffed in a pull request, gated in CI, and referenced by anything downstream that needs to trust the data.
 
-None of the three are new engines. Plan reuses the existing Recommendation Engine (`Architecture.md` §8). Apply reuses the existing Export Layer (`Architecture.md` §12). Contract reuses the existing Diff primitive (`Architecture.md` §5, `features/Dataset-Diff-And-Leakage-Detection.md`) as its comparison mechanism. What's new is the loop that connects them and the artifact that persists what the loop produced — see §8 for the full state-machine view.
+None of the three are new engines. Plan reuses the existing Recommendation Engine (`Architecture.md` §8). Apply/Export reuses the existing Export Layer (`Architecture.md` §12). Contract reuses the existing Diff primitive (`Architecture.md` §5, `features/Dataset-Diff-And-Leakage-Detection.md`) as its comparison mechanism. What's new is the loop that connects them and the artifact that persists what the loop produced — see §8 for the full state-machine view.
+
+### 3.1 Plan as the central domain primitive
+
+Plan is not merely the output of a "Recommendation Engine" — it is the one representation every future path through the lifecycle converges on, and every future source of a proposed change must resolve into it. A `Plan` is:
+
+- **Deterministic** — the same accepted findings (or the same natural-language instruction, translated once) always produce the same Plan, byte-for-byte excluding timestamps (`§13`'s determinism tests).
+- **Inspectable** — every step is readable before anything runs, with a rationale traceable back to a specific finding.
+- **Serializable** — a Pydantic object with a versioned schema (`plan_schema_version`), diffable against another Plan or against a dataset's current state (§7.1).
+- **Versionable** — evolves independently of `engine_version`/`scoring_version`, following the precedent `features/ML-Readiness-Score.md` §11 already set.
+- **Explainable** — every step carries a rationale and a confidence score inherited from the Recommendation Engine, never a bare instruction with no justification attached.
+- **Independent of AI** — a Plan produced from a rule-based recommendation and a Plan produced from a natural-language instruction are the identical object, reviewed and applied identically (§20.4). AI involvement is invisible downstream of Plan.
+- **Independent of the eventual execution backend** — a Plan describes *what* should change, never *how* a specific target (sklearn, Polars, dbt) expresses it; that translation is Apply/Export's job, entirely downstream and swappable without touching the Plan.
+
+This is a deliberate design constraint, not just a description of what Plan happens to be: **exactly one Plan representation exists, and every future authoring path — a rule/reviewer finding, a user instruction, a future AI translation — must resolve into it.** This is what prevents a second, competing recommendation or transformation-description system from emerging as the product grows (`Architecture.md` §23.1's guardrail question 3 — "is the abstraction used by more than one real component" — is answered here by design, not by accretion).
 
 ## 2. Vision
 
 **A dataset review that nobody acts on is a report. A dataset review that produces a fix, proves the fix worked, and remembers that it happened is a contract.** Featuresmith's acquisition message — "every dataset deserves a code review" — gets a team to run `featuresmith review` once. What keeps them running it is the same thing that keeps a team running `git diff` and a CI type-check: the tool sits in the critical path and has already saved them from a mistake they didn't see coming.
 
-The reference model is not another EDA tool — it's **Terraform's plan → apply → state loop**, applied to dataset transformations instead of infrastructure, and **a package manager's lockfile**, applied to dataset state instead of a dependency tree. Terraform doesn't reimplement the AWS API; it wraps it in a reviewable plan and a persisted state file. A lockfile doesn't reimplement `pip`/`npm`; it pins what actually got resolved so a build is reproducible later. Featuresmith's Plan/Apply/Contract lifecycle does the same for data: it never reimplements Polars or scikit-learn, it wraps a proposed change in something reviewable and persists what actually happened.
+The reference model is not another EDA tool — it's **Terraform's plan → apply → state loop**, applied to dataset transformations instead of infrastructure, and **a package manager's lockfile**, applied to dataset state instead of a dependency tree. Terraform doesn't reimplement the AWS API; it wraps it in a reviewable plan and a persisted state file. A lockfile doesn't reimplement `pip`/`npm`; it pins what actually got resolved so a build is reproducible later. Featuresmith's Plan/Export/Contract lifecycle does the same for data: it never reimplements Polars or scikit-learn, it wraps a proposed change in something reviewable — generating real code by default rather than running it — and persists what actually happened once a human-approved change has been externally executed and validated.
 
 ## 3. Goals
 
@@ -61,16 +75,16 @@ flowchart TB
     D --> E["Plan produced\n(inspectable, diffable, not yet run)"]
     E --> F{"User reviews the plan"}
     F -->|Reject/edit| C
-    F -->|Accept| G["featuresmith apply <plan>"]
-    G --> H["Generated code executed\n(pandas/Polars/sklearn — external)"]
-    H --> I["Automatic re-review + fs.diff()\nagainst the pre-apply state"]
+    F -->|Accept| G["featuresmith export <plan> --target sklearn\n(generates real, readable code)"]
+    G --> H["User runs the generated code\n(pandas/Polars/sklearn — external;\nor an explicit, separately-opted-into\nexecution step — never the default)"]
+    H --> I["Automatic re-review + fs.diff()\nagainst the pre-export state"]
     I --> J{"Did readiness improve\nand no new critical findings?"}
     J -->|Yes| K["featuresmith lock\n-> featuresmith.lock updated"]
     J -->|No| L["Reported as a failed validation;\nlock NOT updated, user decides next step"]
     K --> M["Commit featuresmith.lock\nCI diffs/gates on it next PR"]
 ```
 
-A typical session: review a dataset, accept one or more findings' recommendations (or describe the fix in natural language), inspect the resulting Plan, apply it, and let Featuresmith's own Review Engine confirm the fix worked before it's allowed to update the committed Contract. Nothing after "accept" happens without the human step at `F`; nothing after "apply" updates the Contract without the validation step at `J`.
+A typical session: review a dataset, accept one or more findings' recommendations (or describe the fix in natural language), inspect the resulting Plan, export it as real code (and run that code, in the user's own environment or via an explicit opt-in execution step), and let Featuresmith's own Review Engine confirm the fix worked before it's allowed to update the committed Contract. Nothing after "accept" happens without the human step at `F`; nothing after "export" updates the Contract without the validation step at `J`.
 
 ## 7. Product Requirements
 
@@ -81,12 +95,12 @@ A typical session: review a dataset, accept one or more findings' recommendation
 - A Plan is diffable against another Plan and against a dataset's current schema, so "what would this plan actually change" is answerable without applying it.
 - A Plan never mutates data. Producing a Plan has the same read-only guarantee as `fs.review()`.
 
-### 7.2 Apply requirements
+### 7.2 Apply/Export requirements
 
-- Apply consumes exactly one accepted Plan and produces one `ExportArtifact` via the existing Export Layer (`Architecture.md` §12) — a `sklearn.Pipeline`/`ColumnTransformer`, a Polars expression chain, or (later) a dbt model stub.
+- **Naming and default semantics:** this capability's job, by default, is to turn an accepted Plan into real, readable code — it is closer to `fs.export(plan, target=...)` than to an in-place data mutation, and the documentation and eventual API naming should make that unambiguous. "Prove state, don't own execution" (`Design-Principles.md`) means Featuresmith does not, by default, silently mutate a user's dataset in place or become the thing standing between a user and their production execution environment. Whatever the final command/function is called (`apply`, `export`, or something else — an implementation-time naming decision, not fixed by this document), its default behavior is: consume one accepted Plan, produce one `ExportArtifact` via the existing Export Layer (`Architecture.md` §12) — a `sklearn.Pipeline`/`ColumnTransformer`, a Polars expression chain, or (later) a dbt model stub — and hand it back to the user to run.
 - Generated code must be readable, commentable, and traceable line-by-line back to the Plan step that produced it — the same "generated code as a design-reviewed artifact" bar the existing exporters already meet (`Architecture.md` §12).
-- Apply may optionally execute the generated code immediately (for interactive/CLI convenience) or emit it for the user to run in their own environment/CI — both paths produce identical output; Featuresmith never holds transformation state that only its own runtime can interpret.
-- A failed Apply (e.g., a column referenced in the Plan no longer exists) must fail loudly with an actionable error, never partially apply.
+- **Controlled execution is a distinct, explicitly-opted-into capability, never the default.** A future, separately-flagged execution path (e.g., an explicit `--execute` flag or config setting) may run the generated code against the dataset the user is already working with, for interactive/CLI convenience — but only when the user has explicitly asked for that, never as what a bare `apply`/`export` call does on its own. Both the export-only path and the explicit-execution path must produce identical generated code; Featuresmith never holds transformation state that only its own runtime can interpret, and execution (when opted into) still runs the same real Polars/sklearn/dbt code a user could have run themselves.
+- A failed Apply/Export (e.g., a column referenced in the Plan no longer exists) must fail loudly with an actionable error, never partially apply.
 
 ### 7.3 Validation requirements
 
@@ -136,6 +150,8 @@ Per `Architecture.md` §20.1-20.2: `plan/` and `contract/` are the only genuinel
 
 ## 10. CLI / SDK Design
 
+**Naming note:** the examples below use `fs.export()`/`featuresmith export` as the illustrative name for this step, reflecting the resolved default semantics in §7.2 — generate real, readable code; don't silently mutate a dataset in place. This is a documentation-level naming decision for future implementation to confirm, not an API that exists yet (per this document's own status banner) and not a code change made by this revision.
+
 ### SDK
 
 ```python
@@ -147,10 +163,10 @@ result = fs.review("train.csv", target_column="churn")
 plan = fs.plan(result, accept=["leakage.identifier_shape.customer_id"])
 plan = fs.plan(result, instruct="drop columns over 50% missing, one-hot encode categoricals")
 
-print(plan.steps)          # inspect before applying — nothing has run yet
+print(plan.steps)          # inspect before anything is generated — nothing has run yet
 
-artifact = fs.apply(plan, target="sklearn")   # generates + optionally runs the code
-validation = fs.validate(artifact)            # re-review + diff, automatic
+artifact = fs.export(plan, target="sklearn")  # generates real, readable code; does not run it
+validation = fs.validate(artifact)            # re-review + diff, automatic, after the user runs the generated code
 
 if validation.passed:
     contract = fs.lock("train.csv")           # writes/updates featuresmith.lock
@@ -162,7 +178,7 @@ if validation.passed:
 featuresmith review train.csv
 featuresmith plan train.csv --accept leakage.identifier_shape.customer_id
 featuresmith plan train.csv --instruct "drop columns over 50% missing"
-featuresmith apply plan.json --target sklearn
+featuresmith export plan.json --target sklearn      # generates code; does not execute it
 featuresmith lock train.csv                # write/update featuresmith.lock
 featuresmith lock train.csv --check        # CI mode: exit non-zero on drift
 featuresmith contract diff old.lock new.lock
@@ -173,10 +189,10 @@ Default rendering mirrors the existing severity-sorted, evidence-first conventio
 
 ## 11. Design Decisions
 
-- **Plan and Apply are separate steps, never fused into one command**, mirroring Terraform's plan/apply split deliberately — the pause between them is the entire point, since it's what makes Apply reviewable rather than a silent side effect.
-- **The AI layer authors Plans, never executes them.** This extends the existing grounding contract (`Architecture.md` §7.2) to a new surface: an LLM producing a `Plan` object is exactly as safe as an LLM producing a narrative, because a `Plan` is inert data until a human accepts it and `apply` is called.
-- **Apply always targets a real, external ecosystem.** This is the single most load-bearing decision in this document (`Architecture.md` §20.3) — every alternative (a custom transformation DSL, an in-process execution engine) was rejected specifically because it would make Featuresmith responsible for correctness and performance of code execution, a category it has no advantage in and every reason to avoid.
-- **Validation is automatic and blocking for the Contract, not for Apply itself.** A user can always apply and inspect a plan that doesn't improve the score (useful for exploration); only the *Contract* — the artifact other tools and teammates will trust — requires a passed validation to update.
+- **Plan and Apply/Export are separate steps, never fused into one command**, mirroring Terraform's plan/apply split deliberately — the pause between them is the entire point, since it's what makes generating (and, if opted into, running) code reviewable rather than a silent side effect.
+- **The AI layer authors Plans, never executes them.** This extends the existing grounding contract (`Architecture.md` §7.2) to a new surface: an LLM producing a `Plan` object is exactly as safe as an LLM producing a narrative, because a `Plan` is inert data until a human accepts it and the export/apply step is called — and even then, the default output is code, not a mutation.
+- **Apply/Export always targets a real, external ecosystem, and defaults to generating code rather than running it.** This is the single most load-bearing decision in this document (`Architecture.md` §20.3) — every alternative (a custom transformation DSL, an in-process execution engine, or a default that silently mutates the user's dataset) was rejected specifically because it would make Featuresmith responsible for correctness and performance of code execution, or for owning the user's data in place — a category it has no advantage in and every reason to avoid. Controlled execution remains available as an explicit, separately-opted-into convenience (§7.2), never the default behavior of a bare `export`/`apply` call.
+- **Validation is automatic and blocking for the Contract, not for the export/apply step itself.** A user can always generate (or, if opted in, run) a plan that doesn't improve the score, useful for exploration; only the *Contract* — the artifact other tools and teammates will trust — requires a passed validation to update.
 - **The Contract's schema version is independent of `engine_version`/`scoring_version`**, following the same precedent `features/ML-Readiness-Score.md` §11 already set for `scoring_version` vs. `engine_version` — each artifact evolves on its own cadence.
 
 ## 12. Integration Points
@@ -200,7 +216,7 @@ Default rendering mirrors the existing severity-sorted, evidence-first conventio
 ## 14. Future Extensions
 
 - **`featuresmith-action` support for contract gating** — a GitHub Action mode that fails a PR specifically on contract drift, complementing the existing `review`-based gating (Phase 3).
-- **Dashboard Plan/Apply panel**: visualize a Plan's steps and let a user accept/reject per-step before Apply, reusing the existing accept/reject interaction pattern (`Design.md` §11).
+- **Dashboard Plan/Export panel**: visualize a Plan's steps and let a user accept/reject per-step before export, reusing the existing accept/reject interaction pattern (`Design.md` §11).
 - **Contract history view**, once Phase 5's `QualityHistory` exists — a timeline of every lock update for a dataset, not just the latest.
 - **Multi-file/team Contracts**: a project-level `featuresmith.lock` aggregating multiple datasets' contracts, for teams managing several training sets under one repo.
 - **Signed contracts**: cryptographic signing of a `featuresmith.lock` entry for regulated environments needing tamper-evidence beyond git history alone.
@@ -208,7 +224,7 @@ Default rendering mirrors the existing severity-sorted, evidence-first conventio
 ## 15. Open Questions
 
 - Should a `Plan`'s NL-authored steps that have no corresponding deterministic rule finding be allowed into the same Plan as rule-based steps, or should they always be segregated into a separately-labeled, extra-scrutiny section of the review-before-apply UI?
-- Where should the line sit between "Apply executes the code for the user" (convenience) and "Apply only ever emits code" (maximum safety/auditability) — should this be a global config default, a per-project `.featuresmith.yml` setting, or a per-Apply-call flag?
+- ~~Where should the line sit between "Apply executes the code for the user" (convenience) and "Apply only ever emits code" (maximum safety/auditability)~~ **Resolved by this revision:** emitting code is the default; execution is a distinct, explicitly-opted-into capability (§7.2). What remains open at implementation time is only the mechanism — a global config default, a per-project `.featuresmith.yml` setting, or a per-call flag — and the final public naming (`apply` vs. `export` vs. something else, §10's naming note).
 - Should `featuresmith.lock` be one file per dataset or one file for a whole project's datasets — and does the answer change once the multi-file/team Contract extension (§14) is considered?
 - How should a Contract behave when the underlying data source is inherently non-deterministic between reads (e.g., a live SQL view) — is a schema-level fingerprint sufficient, or does this require an explicit "snapshot required" warning before locking?
 - Should certification (§7.5) be extensible to third-party verifiers (e.g., a CI system independently re-running the review and confirming the score before trusting a badge), and if so, what's the minimal protocol for that without Featuresmith needing to host any verification service itself?

@@ -1,6 +1,6 @@
 # Dataset Diff & Intelligent Leakage Detection
 
-> **Status: Leakage Detection Fully Implemented (Sprint 4); Dataset Diff Fully Implemented as Standalone Engine (Sprint 5).** All 6 leakage pattern detectors, `LeakageReviewer`, and integration with ML Readiness Score are implemented. Dataset Diff ships as a standalone engine (`featuresmith.diff` package, `fs.diff()`, `featuresmith diff` CLI) with schema, structure, quality, distribution, and leakage comparisons — NOT as a `DiffReviewer` integrated into the Review Engine. The `DiffReviewer` and `ReviewResult.diff` field remain future work.
+> **Status: Leakage Detection Fully Implemented (Sprint 4); Dataset Diff Fully Implemented as Standalone Engine (Sprint 5) and as `DiffReviewer` (v0.3.0).** All 6 leakage pattern detectors, `LeakageReviewer`, and integration with ML Readiness Score are implemented. Dataset Diff ships as a standalone engine (`featuresmith.diff` package, `fs.diff()`, `featuresmith diff` CLI) with schema, structure, quality, distribution, and leakage comparisons, AND as a `DiffReviewer` (`review.diff`) integrated into the Review Engine since v0.3.0 — `fs.review(source, previous=...)` and `featuresmith review <source> --previous <snapshot>` produce a diff section and attach the `DatasetDiffResult` to `ReviewResult.diff`. The speculatively-designed `distribution_shifts`/`quality_regressions` fields remain future work.
 
 ## 1. Overview
 
@@ -297,14 +297,14 @@ All 6 detectors run and merge findings per column. The legacy `LeakageRuleTarget
 | Overall health verdict (regressed/improved/unchanged) | ✅ | |
 | Plain-language recommendation | ✅ | Engineering-focused summary |
 
-**Architectural Note:** Dataset Diff is implemented as a **standalone engine** (`featuresmith.diff` package), NOT as a `DiffReviewer` integrated into the Review Engine. This was a deliberate scope decision (Sprint 5): the Review Engine keeps its 8-reviewer `default_registry()`, `fs.review(previous=...)` raises `NotImplementedError`, and single-dataset review vs two-dataset diff remain separate workflows. `DiffReviewer` and `ReviewResult.diff` field are documented as future work.
+**Architectural Note:** Dataset Diff ships as a **standalone engine** (`featuresmith.diff` package) AND as a **`DiffReviewer`** integrated into the Review Engine (added v0.3.0). The standalone engine was the Sprint 5 scope decision; v0.3.0 closed the design gap (`Architecture.md` §21.4) by adding `DiffReviewer` (`review.diff`) to `default_registry()` (now 9 reviewers). `DiffReviewer` reuses the standalone engine via `compute_diff()` + `findings_from_diff()` — it does not re-profile the previous snapshot when a previous profile is available. `fs.review(source, previous=...)` profiles the previous snapshot once at the SDK boundary and passes `previous_profile` to the engine; the diff section is appended only when a previous snapshot is provided, so single-dataset review is unchanged (8 sections, `result.diff is None`).
 
 ### Not Implemented / Deferred
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `DiffReviewer` (Review Engine integration) | ❌ Not Implemented | Future work; diff ships standalone |
-| `ReviewResult.diff` field | ❌ Reserved, always `None` | |
+| `DiffReviewer` (Review Engine integration) | ✅ Implemented (v0.3.0) | `featuresmith/review/reviewers/diff.py`; reuses standalone engine |
+| `ReviewResult.diff` field | ✅ Implemented (v0.3.0) | Attaches `DatasetDiffResult` when a previous snapshot is provided; `None` otherwise |
 | `ProfileDiff` extension fields (`distribution_shifts`, `quality_regressions`) | ❌ Not Implemented | Standalone `DatasetDiffResult` used instead |
 | Configurable leakage sensitivity profiles | 🚧 Deferred | `.featuresmith.yml` config not yet built |
 | Cross-dataset leakage detection | 🚧 Deferred | Future extension |

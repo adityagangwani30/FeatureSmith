@@ -8,7 +8,7 @@
 
 An open-source, developer-first toolkit for understanding, validating, and improving structured data.
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue?style=flat-square)](https://github.com/adityagangwani30/FeatureSmith/releases)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue?style=flat-square)](https://github.com/adityagangwani30/FeatureSmith/releases)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green?style=flat-square)](./LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/adityagangwani30/FeatureSmith/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/adityagangwani30/FeatureSmith/actions)
@@ -53,13 +53,14 @@ An LLM is used solely to turn structured findings into plain-language explanatio
 
 ---
 
-## Current Capabilities (v0.2.0)
+## Current Capabilities (v0.3.0)
 
 - **Dataset Profiling**: Polars-driven deterministic profiling engine computing 23 numeric metrics, categorical frequencies, text lengths, datetime ranges, and Pearson correlation matrices.
 - **Rule-Based Validation**: Deterministic rule engine running 8 built-in seed quality and leakage rules (missing value thresholds, constant columns, duplicate rows, target leakage).
 - **Intelligent Leakage Detection**: 6 named pattern detectors (target correlation, identifier shape, timestamp, future info, duplicate target, suspicious correlation) with merged per-column findings.
 - **Dataset Diff**: Standalone diff engine comparing two dataset snapshots — schema, structure, quality, distribution, and leakage deltas with overall health verdict.
-- **Review Engine**: Orchestration layer with 8 built-in reviewers (schema health, types, missingness, duplicates, constants, cardinality, basic statistics, leakage), category filtering, and console rendering.
+- **Review Engine**: Orchestration layer with 9 built-in reviewers (schema health, types, missingness, duplicates, constants, cardinality, basic statistics, leakage, diff), category filtering, and console rendering.
+- **Diff-Aware Review**: `fs.review(source, previous=...)` and `featuresmith review <source> --previous <snapshot>` combine a full review with a dataset diff in one call, attaching the `DatasetDiffResult` to `ReviewResult.diff`.
 - **ML Readiness Score**: 8-dimension deterministic, explainable score (0-100) computed from review findings with per-dimension breakdown.
 - **Python SDK**: Clean, fully type-annotated public API (`fs.load()`, `fs.profile()`, `fs.analyze()`, `fs.diff()`, `fs.review()`, `fs.score()`).
 - **Command Line Interface (CLI)**: Thin wrapper client enabling terminal reports (styled Rich tables), JSON output, and exit-code gating for CI/CD integration (`featuresmith analyze`, `featuresmith diff`, `featuresmith review`).
@@ -145,6 +146,9 @@ featuresmith diff train_v1.csv train_v2.csv --target churn
 # Comprehensive dataset review with ML Readiness Score
 featuresmith review train.csv --target churn
 
+# Diff-aware review: full review + dataset diff in one call
+featuresmith review train_v2.csv --previous train_v1.csv --target churn
+
 # Review with category filter and CI gating
 featuresmith review train.csv --only leakage,schema --fail-on warning --no-score
 ```
@@ -163,13 +167,13 @@ All commands share a consistent exit-code convention:
 
 ---
 
-## Flagship Vision (v0.2.0 — Partially Delivered)
+## Flagship Vision (v0.3.0 — Partially Delivered)
 
-The following flagship capabilities are **partially delivered** in v0.2.0 and will continue maturing:
+The following flagship capabilities are **partially delivered** in v0.3.0 and will continue maturing:
 
-- **Dataset Review (`featuresmith review <dataset>`)**: ✅ Implemented with 8/11 review sections, ML Readiness Score, category filtering, and CLI/SDK. Missing: recommendations, duplicate columns, outliers, distribution, feature quality sections; diff-aware review (`--previous`) uses standalone `fs.diff()` instead.
+- **Dataset Review (`featuresmith review <dataset>`)**: ✅ Implemented with 9/11 review sections, ML Readiness Score, category filtering, and CLI/SDK. Missing: recommendations, duplicate columns, outliers, distribution, feature quality sections.
 - **ML Readiness Score**: ✅ Implemented with 8 dimensions, per-dimension breakdown, CLI/SDK access. Missing: Class Balance, Feature Quality, Distribution Health dimensions; CI score gating (`--fail-below`).
-- **Dataset Diff (`featuresmith diff <v1> <v2>`)**: ✅ Fully implemented as standalone engine with schema, structure, quality, distribution, and leakage deltas. Not integrated as a Review Engine reviewer (uses separate `fs.diff()` workflow).
+- **Dataset Diff (`featuresmith diff <v1> <v2>`)**: ✅ Fully implemented as standalone engine AND integrated into the Review Engine as `DiffReviewer` (v0.3.0) — `featuresmith review <v2> --previous <v1>` produces a diff section in the same review.
 - **Intelligent Leakage Detection**: ✅ Fully implemented with 6 pattern detectors, merged findings, and scoring integration.
 
 ---
@@ -186,6 +190,7 @@ Visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me) f
 - [`docs/Design.md`](./docs/Design.md) — Design system, typography, accessibility tokens
 - [`docs/Why-Featuresmith-Exists.md`](./docs/Why-Featuresmith-Exists.md) — Detailed philosophy rationale
 - [`docs/Flagship-Capabilities.md`](./docs/Flagship-Capabilities.md) — Deeper future capability specs
+- [`GOVERNANCE.md`](./GOVERNANCE.md) — Project governance, decision-making, and release responsibility
 
 ---
 
@@ -195,8 +200,8 @@ Visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me) f
 |:---:|:---:|---|:---:|
 | **Phase 0** | pre-release | Foundations: Core Library First | ✅ Shipped |
 | **Phase 1** | v0.1 | Foundation: SDK + CLI MVP, Profiling + Rule Engine | ✅ Shipped |
-| **Phase 2** | v0.2 | Dataset Review Platform: Review Engine, ML Readiness Score, Leakage Detection, Dataset Diff | ✅ Shipped, current |
-| **Phase 3** | v0.3 | Developer Experience: Dashboard, Connectors, CI/CD, Plugins | 🔜 Planned |
+| **Phase 2** | v0.2 | Dataset Review Platform: Review Engine, ML Readiness Score, Leakage Detection, Dataset Diff | ✅ Shipped |
+| **Phase 3** | v0.3 | Developer Experience: DiffReviewer, Governance, Dashboard, Connectors, CI/CD, Plugins | 🟡 In progress (DiffReviewer + GOVERNANCE shipped) |
 | **Phase 4** | v0.4 | Recommendation & Planning: Recommendation Engine, the Plan primitive | 🔜 Planned |
 | **Phase 5** | v0.5 | Dataset Contracts: Apply, Validation, `featuresmith.lock` | 🔜 Planned |
 | **Phase 6** | v0.6–v1.0 | Certification & Observability: badge, scheduled re-review, Quality History | 🔜 Planned |

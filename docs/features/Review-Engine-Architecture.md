@@ -1,6 +1,6 @@
 # Review Engine Architecture
 
-> **Status: Partially Implemented (Sprints 1-5, Sprint 4.1, Sprint 5).** The Review Engine core pipeline, registry, aggregator, 8 built-in reviewers, ML Readiness Score integration, and console rendering are implemented. The Recommendation Engine stage, DiffReviewer as a reviewer, plugin entry-point discovery, AI integration, and category registry remain future work. The standalone Dataset Diff Engine (Sprint 5) ships separately via `fs.diff()` and `featuresmith diff`, not as a registered reviewer.
+> **Status: Partially Implemented (Sprints 1-5, Sprint 4.1, Sprint 5, v0.3.0).** The Review Engine core pipeline, registry, aggregator, 9 built-in reviewers (including `DiffReviewer` since v0.3.0), ML Readiness Score integration, and console rendering are implemented. The Recommendation Engine stage, plugin entry-point discovery, AI integration, and category registry remain future work. The standalone Dataset Diff Engine (Sprint 5) ships separately via `fs.diff()` and `featuresmith diff`, and `DiffReviewer` (v0.3.0) reuses it as a registered reviewer.
 >
 > **Revision note:** this revision adds a centralized Recommendation Engine stage (§8.4) and formalizes Review Categories (§9), per design review. Everything else is unchanged from the prior revision.
 
@@ -43,7 +43,7 @@ None of the four are separate engines. Dataset Review is what the engine produce
 ## 3. Goals
 
 - Provide one orchestration entrypoint (`ReviewEngine.run()`, exposed as `fs.review()`) that produces a single, complete, structured result from a dataset.
-- Make every category of check — schema, data quality, statistics, distribution, feature quality, leakage, diff — a **reviewer**: a small, independently testable, independently pluggable unit, following the exact plugin pattern already established for connectors, rules, exporters, and AI providers (`Architecture.md` §6, §16).
+- Make every kind of check — schema, quality, feature quality, leakage, diff — a **reviewer**: a small, independently testable, independently pluggable unit, following the exact plugin pattern already established for connectors, rules, exporters, and AI providers (`Architecture.md` §6, §16). Outlier and distribution-shape checks are planned but deferred, and will be tagged under the shipped `quality` category when built (§9.2), not as separate categories.
 - Keep reviewers focused purely on **detection**. Turning a finding into a concrete, actionable recommendation is centralized in one Recommendation Engine stage (§8.4), never duplicated per reviewer.
 - Organize every reviewer under a stable **Review Category** (§9), so filtering, category-specific reports, and dashboard views are a property of the architecture from day one, even though no surface exposes them yet.
 - Keep the engine deterministic-first: it must produce a complete, trustworthy review with the AI layer switched off entirely (`Architecture.md` §7.4).
@@ -57,7 +57,7 @@ None of the four are separate engines. Dataset Review is what the engine produce
 - It does not decide *what* the ML Readiness Score weighting should be — that's `ML-Readiness-Score.md`'s concern; the engine only guarantees that scoring has a consistent, versioned set of findings to read from.
 - It does not introduce a second recommendation-ranking implementation. The Recommendation Engine stage (§8.4) reuses the existing core Recommendation Engine (`Architecture.md` §8) rather than defining a new one specific to reviews.
 - It is not, at this stage, a scheduler or monitoring system. Continuous/scheduled review is `Phases.md` Phase 5's Data Observability concern; the engine is designed so that phase can call it repeatedly without redesign (§15), but building the scheduler itself is out of scope for this document.
-- It does not ship any category-based CLI flags, category-specific report formats, or dashboard filtering UI. Review Categories (§9) are an architectural foundation for those; the flags and UI themselves are explicitly deferred to implementation time in `Dataset-Review-PRD.md` and beyond.
+- It does not ship `--skip`, category-specific report formats, or dashboard filtering UI. Review Categories (§9) are an architectural foundation for those; `--only` itself is shipped (`Dataset-Review-PRD.md` §13.1), while the remaining flags and UI are explicitly deferred to implementation time.
 
 ## 5. User Stories
 
@@ -66,7 +66,7 @@ None of the four are separate engines. Dataset Review is what the engine produce
 - As a maintainer, I want recommendation logic to live in exactly one place, so an improvement to how recommendations are ranked or worded benefits every reviewer category at once, not just the one a contributor happened to touch.
 - As a maintainer, I want the engine's output to be identical whether it's rendered by the CLI, the dashboard, or a GitHub Action, so "surface parity" (`PRD.md` §12) extends naturally to the new command.
 - As a plugin author, I want to register a community reviewer via the same `entry_points` mechanism I'd use for a rule or connector, declare which category it belongs to, and not have to learn a new extension pattern.
-- As a future contributor, I want the ability to eventually run `featuresmith review --only leakage` or filter the dashboard to just Schema findings, and I want today's architecture to already support that without a redesign.
+- As a contributor, I want to run `featuresmith review --only leakage` (shipped) or filter the dashboard to just Schema findings (future), and I want the architecture to support that without a redesign.
 - As a maintainer six phases from now, I want to add AI narration, scheduled re-review, and a dashboard "Review" tab without rewriting the engine that shipped today.
 
 ## 6. User Workflow
@@ -274,9 +274,7 @@ A `ReviewCategory` is a stable, namespaced string — the same design already us
 | Category id | Label | Example built-in reviewers |
 |---|---|---|
 | `schema` | Schema | `SchemaHealthReviewer`, `TypeReviewer` |
-| `data_quality` | Data Quality | `MissingValueReviewer`, `DuplicateRowReviewer`, `DuplicateColumnReviewer`, `ConstantColumnReviewer` |
-| `statistics` | Statistics | `CardinalityReviewer`, `OutlierReviewer` |
-| `distribution` | Distribution | `DistributionReviewer` |
+| `quality` | Quality | `MissingValueReviewer`, `DuplicateRowReviewer`, `DuplicateColumnReviewer`, `ConstantColumnReviewer`, `CardinalityReviewer`, `BasicStatisticsReviewer` |
 | `feature_quality` | Feature Quality | `FeatureQualityReviewer` |
 | `leakage` | Leakage | `LeakageReviewer` |
 | `diff` | Diff | `DiffReviewer` |
@@ -285,17 +283,19 @@ A `ReviewCategory` is a stable, namespaced string — the same design already us
 
 Every built-in reviewer declares exactly one category from this table (§7). A plugin author may declare an existing category or register a brand-new one via the `CategoryRegistry` (§10) without a core change — mirroring exactly how a new rule or connector is added today (`Architecture.md` §16).
 
-### 9.3 What categories enable, later
+The shipped `ReviewCategory` enum (`implementation/IMPLEMENTATION_STATUS.md`) contains exactly six categories — `schema`, `quality`, `leakage`, `diff`, `feature_quality`, and `custom`. `statistics` and `distribution` are not shipped categories; the deferred `OutlierReviewer`/`DistributionReviewer` will be tagged with a shipped category (e.g., `quality`) when implemented rather than introducing new enum values.
 
-Categories are attached to every `ReviewSection` and every `Recommendation` (via the section(s) it was distributed to, §8.4) from day one, which is what makes each of the following addable later purely as a filter or a view, with zero engine changes:
+### 9.3 What categories enable
 
-- **`featuresmith review --only leakage`** / **`--only schema`** — restrict reviewer dispatch (§8.2 stage 3) to reviewers whose category is in the requested set.
+Categories are attached to every `ReviewSection` and every `Recommendation` (via the section(s) it was distributed to, §8.4) from day one, which is what makes each of the following a pure filter or view, with zero engine changes. The first is shipped; the rest remain future:
+
+- **`featuresmith review --only leakage`** / **`--only schema`** (✅ shipped — `Dataset-Review-PRD.md` §13.1) — restrict reviewer dispatch (§8.2 stage 3) to reviewers whose category is in the requested set.
 - **`featuresmith review --skip outliers`** — the same filtering mechanism, generalized to also match against an individual reviewer's `id`, not only its category, so a user can exclude one specific reviewer (e.g., `OutlierReviewer`, id `review.statistics.outliers`) without skipping its whole category.
 - **Category-specific reports** — a renderer (§8.6) that only includes `ReviewSection`s (and their attached recommendations) matching a requested category set; no new renderer code path, just a pre-filter.
 - **Plugin categories** — a community reviewer package can introduce and register a wholly new category (e.g., `fairness`) via `CategoryRegistry`, and it appears in filtering and dashboard views the same way a core category does.
 - **Dashboard filtering** — a category filter-chip row in the Review tab (`Design.md` §3, §10), reusing the same `CategoryRegistry` labels the CLI and reports use, so category names never drift between surfaces.
 
-None of the above is implemented by this document. They are listed here specifically to demonstrate that the category design already supports them without a future architectural change — only a future filtering predicate and some UI.
+`--only` is shipped; `--skip`, category-specific reports, plugin categories, and dashboard filtering are not yet implemented. They are listed here specifically to demonstrate that the category design already supports them without a future architectural change — only a future filtering predicate and some UI.
 
 ### 9.4 The reserved `recommendations` category
 
@@ -347,7 +347,7 @@ featuresmith review train.csv --format json
 featuresmith review train.csv --fail-on critical       # CI-gating exit code, mirrors `analyze`
 ```
 
-The category-aware flags described conceptually in §9.3 (`--only <category|reviewer_id>`, `--skip <category|reviewer_id>`) are **not** part of this design's committed CLI surface — they are deferred to `Dataset-Review-PRD.md` and implementation time, and are mentioned here only to confirm the architecture already accommodates them.
+The category-aware flags described conceptually in §9.3 are partially shipped: `--only <category>` is implemented (`Dataset-Review-PRD.md` §13.1); `--skip <category|reviewer_id>` and reviewer-id-level `--only` matching are **not** part of the committed CLI surface — they are deferred to implementation time, and are mentioned here only to confirm the architecture already accommodates them.
 
 `featuresmith review` is a two-line Typer wrapper over `fs.review()`, exactly like every other CLI command (`Architecture.md` §13, `Rules.md` §10) — the SDK is the product; the CLI renders it. `fs.review()` internally reuses `fs.analyze()`, `fs.diff()` (when applicable), and the existing Recommendation Engine; it does not reimplement profiling, diffing, or recommendation logic.
 
@@ -359,7 +359,7 @@ The category-aware flags described conceptually in §9.3 (`--only <category|revi
 - **Recommendation generation is centralized, not per-reviewer.** Every reviewer detects; exactly one Recommendation Engine — the same one already defined in `Architecture.md` §8 — decides what to do about what's detected. This is the single biggest design change in this revision, and it is what keeps recommendation quality, ranking, and future AI enhancement consistent across every review category at once (§8.4).
 - **Diff is a reviewer, not a special case.** Rather than the engine having bespoke "if previous dataset given" branching logic, `DiffReviewer.applicable()` simply returns `True` only when a previous snapshot exists. This is what makes Dataset Diff "just another reviewer" architecturally, even though it's a flagship-level capability.
 - **Categories are open, namespaced strings, not a closed enum**, mirroring the existing convention for rule IDs and AI provider IDs (`Rules.md` §2) — a plugin author can introduce a genuinely new category without a core-team-owned enum change.
-- **Categories are designed for future filtering, not implemented as filtering.** This document deliberately stops at "every section and recommendation carries a category" and does not add `--only`/`--skip` flags or dashboard filter UI — that scope belongs to `Dataset-Review-PRD.md` and later implementation work.
+- **Categories are designed for future filtering, and `--only` is shipped; the rest are not implemented as filtering.** This document deliberately stops at "every section and recommendation carries a category"; `--only <category>` is implemented via `Dataset-Review-PRD.md` (§13.1), while `--skip` and dashboard filter UI belong to `Dataset-Review-PRD.md` and later implementation work.
 - **Scoring is computed from sections, never independently.** The Score Adapter reads the already-aggregated `ReviewSection[]`; it has no separate code path back into raw `RuleFinding[]` or the profile. This is the structural guarantee behind ML Readiness Score's "not a black box" requirement (`ML-Readiness-Score.md` §1).
 - **Rendering never touches findings or recommendations.** Keeping renderers as pure functions over a frozen `ReviewResult` is what makes "surface parity" (`PRD.md` §12) trivially true for the review command, the same way it's already true for `analyze`.
 
@@ -399,13 +399,13 @@ The following table reflects what has been implemented versus what remains futur
 | Reviewer Registry (`ReviewerRegistry`) | ✅ Implemented | Explicit registration in `featuresmith/review/registry.py` |
 | Result Aggregator (`ResultAggregator`) | ✅ Implemented | `featuresmith/review/aggregator.py` |
 | `BaseReviewer` interface | ✅ Implemented | `featuresmith/review/base.py` |
-| Built-in Reviewers | 🟡 8/12 Implemented | SchemaHealth, Type, MissingValue, Duplicate, ConstantColumn, Cardinality, BasicStatistics, Leakage |
+| Built-in Reviewers | 🟡 9/12 Implemented | SchemaHealth, Type, MissingValue, Duplicate, ConstantColumn, Cardinality, BasicStatistics, Leakage, Diff |
 | `DuplicateColumnReviewer` | ❌ Not Implemented | Deferred |
 | `OutlierReviewer` | ❌ Not Implemented | Deferred |
 | `DistributionReviewer` | ❌ Not Implemented | Deferred |
 | `FeatureQualityReviewer` | ❌ Not Implemented | Deferred (requires Phase 4) |
-| `DiffReviewer` | 🚧 Intentionally Deferred | Dataset Diff ships as standalone engine (`featuresmith.diff`), not as a registered reviewer |
-| Review Categories (`ReviewCategory` enum) | ✅ Implemented | 7 categories: schema, quality, leakage, diff, feature_quality, custom |
+| `DiffReviewer` | ✅ Implemented (v0.3.0) | `featuresmith/review/reviewers/diff.py`; reuses standalone `featuresmith.diff` engine; active only when a previous snapshot is provided |
+| Review Categories (`ReviewCategory` enum) | ✅ Implemented | 6 categories: schema, quality, leakage, diff, feature_quality, custom |
 | `CategoryRegistry` / entry-point discovery | 🚧 Intentionally Deferred | Explicit registration only for now |
 | Recommendation Engine / Adapter | ❌ Not Implemented | Centralized recommendation generation not yet built |
 | Score Adapter | ✅ Implemented | `featuresmith/review/scoring_adapter.py` bridges to `featuresmith.scoring` |
@@ -413,14 +413,14 @@ The following table reflects what has been implemented versus what remains futur
 | Plugin Architecture (entry_points) | 🚧 Intentionally Deferred | |
 | AI Integration | 🚧 Intentionally Deferred | |
 | Category-aware CLI flags (`--only`) | ✅ Implemented | `featuresmith review --only <category>` |
-| `fs.review(previous=...)` | ❌ Not Implemented | Raises `NotImplementedError`; use `fs.diff()` instead |
+| `fs.review(previous=...)` | ✅ Implemented (v0.3.0) | Loads + profiles the previous snapshot once at the SDK boundary; activates the `review.diff` section and attaches `DatasetDiffResult` to `ReviewResult.diff` |
 
 ## 15. Roadmap Placement
 
 This document intentionally does not renumber `Phases.md`. The Review Engine is designed to be buildable incrementally against whatever phases have already shipped:
 
-- It is fully usable today, against Phase 1 alone (schema/data-quality/statistics/leakage reviewers only — no diff, no feature-quality, no AI). Without Phase 4's Recommendation Engine yet shipped, the Recommendation Adapter falls back to a minimal, deterministic, severity-ranked formatter (§8.4) so the engine is not blocked on Phase 4's timeline.
-- `DiffReviewer` activates once Phase 2 (`fs.diff()`) exists.
+- It is fully usable today, against Phase 1 alone (schema/quality/leakage reviewers only — no diff, no feature-quality, no AI). Without Phase 4's Recommendation Engine yet shipped, the Recommendation Adapter falls back to a minimal, deterministic, severity-ranked formatter (§8.4) so the engine is not blocked on Phase 4's timeline.
+- `DiffReviewer` shipped in v0.3.0, once Phase 2 (`fs.diff()`) existed as its underlying engine.
 - Once Phase 4 ships, the Recommendation Adapter's fallback formatter is swapped for the real Recommendation Engine transparently — the `Recommendation` schema does not change, only the quality of ranking improves.
 - `FeatureQualityReviewer` activates once Phase 4 ships.
 - AI narration and AI-enhanced recommendation ranking activate once Phase 6 ships.
@@ -429,7 +429,7 @@ A future revision of `Phases.md` should formalize this as its own milestone once
 
 ## 16. Future Extensions
 
-- **`--only`/`--skip` CLI flags and dashboard category filtering**, enabled architecturally by §9 but explicitly not designed in CLI/UI detail here — left to `Dataset-Review-PRD.md` and implementation time.
+- **`--skip` and dashboard category filtering**, enabled architecturally by §9 but explicitly not designed in CLI/UI detail here (`--only` itself is shipped — §14.1) — left to `Dataset-Review-PRD.md` and implementation time.
 - **Category-specific report formats** (e.g., a leakage-only HTML report for a security/compliance audience), a pure pre-filter over `ReviewResult` per §8.6.
 - **Reviewer priority/ordering config** in `.featuresmith.yml`, so a team can promote leakage findings above data-quality findings in their default report view.
 - **Custom review "profiles"** (e.g., a `pre-training` review profile vs. a `production-monitoring` review profile) that select a named subset of categories — useful once Phase 5 needs a lighter, faster recurring check than a full review.
@@ -440,7 +440,7 @@ A future revision of `Phases.md` should formalize this as its own milestone once
 ## 17. Open Questions
 
 - Should reviewer execution be parallelized (thread pool) by default, or sequential-by-default with parallelism as an opt-in performance flag? Affects how strictly "no reviewer sees another's output" needs to be enforced.
-- Should `ReviewResult` support partial reviews (e.g., "leakage only") as a *first-class saved artifact*, or should partial runs always be presented as "a review with some sections skipped" rather than a different result type? This becomes more concrete once `--only`/`--skip` are actually designed.
+- Should `ReviewResult` support partial reviews (e.g., "leakage only") as a *first-class saved artifact*, or should partial runs always be presented as "a review with some sections skipped" rather than a different result type? This becomes more concrete once `--skip` and reviewer-id-level `--only` matching are actually designed (`--only <category>` is already shipped).
 - How much of the `ReviewResult` schema (including the new `recommendations` field and `ReviewCategory`) should be considered public API (stable, versioned, subject to `Rules.md` §9 deprecation rules) versus internal at this early stage?
 - Should the Recommendation Engine's ranking formula ever be allowed to weight recommendations differently by category (e.g., always surface a leakage recommendation above a distribution recommendation regardless of confidence), or should ranking remain strictly category-agnostic and rely purely on severity/confidence, leaving category purely as an organizing/filtering dimension?
 - Where should the line sit between "this belongs in a reviewer" and "this belongs in a new rule that a reviewer merely surfaces" — this document proposes a rule of thumb (§12) but expects real reviewer implementations to pressure-test it.

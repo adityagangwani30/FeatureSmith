@@ -7,6 +7,29 @@ This project adheres to [Semantic Versioning](https://semver.org/) and
 
 ---
 
+## [0.3.0] - 2026-08-15
+
+Closes the v0.2.0/design gap (`Architecture.md` §21.4): Dataset Diff is now integrated into the Review Engine as `DiffReviewer`, and the project governance baseline is published.
+
+### Added
+- **`DiffReviewer`** (`review.diff`) — diff-aware review integrated into the Review Engine:
+  - `fs.review(source, previous=...)` now succeeds instead of raising `NotImplementedError`; it loads and profiles the previous snapshot once at the SDK boundary and passes `previous_profile` to the engine
+  - `featuresmith review <source> --previous <snapshot>` activates the diff section; exit 3 on a missing/unparseable previous source, exit 2 on an unknown target column in either snapshot
+  - `ReviewResult.diff` attaches the `DatasetDiffResult` when a previous snapshot is provided; `None` otherwise
+  - `DiffReviewer` reuses the standalone diff engine (`compute_diff()` + `findings_from_diff()`) — no second diffing code path, no re-profiling of the previous snapshot when a previous profile is available
+  - Single-dataset review is unchanged: 8 sections, no diff section, `result.diff is None`
+- **`GOVERNANCE.md`** — project governance baseline (decision process, roadmap governance, contribution standards)
+
+### Changed
+- Version bumped to `0.3.0` across all packages (core, cli, workspace)
+- `REVIEW_ENGINE_VERSION` bumped to `"0.3.0"`; `default_registry()` now ships 9 built-in reviewers
+- `fs.review(previous=...)` no longer raises `NotImplementedError` (the standalone `fs.diff()`/`featuresmith diff` path remains unchanged)
+
+### Fixed
+- `featuresmith review --previous` previously errored; it now produces a diff-aware review
+
+---
+
 ## [0.2.0] - 2026-08-02
 
 Completes Phase 2 of the roadmap: Review Engine, ML Readiness Score, Dataset Diff, and Intelligent Leakage Detection.
@@ -43,7 +66,7 @@ Completes Phase 2 of the roadmap: Review Engine, ML Readiness Score, Dataset Dif
 
 ### Changed
 - Version bumped to `0.2.0` across all packages (core, cli, workspace)
-- `ReviewCategory` enum: 7 categories (schema, quality, leakage, diff, feature_quality, custom)
+- `ReviewCategory` enum: 6 categories (schema, quality, leakage, diff, feature_quality, custom)
 - `fs.review(previous=...)` raises `NotImplementedError` with guidance to use `fs.diff()`
 - Leakage Risk dimension integrated into ML Readiness Score (scoring version bumped)
 
