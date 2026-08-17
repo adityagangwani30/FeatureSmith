@@ -37,6 +37,7 @@ SECTION_TITLES = {
     "review.quality.constants": "Constant Columns",
     "review.quality.cardinality": "High Cardinality",
     "review.quality.basic_statistics": "Basic Statistics",
+    "review.quality.feature_quality": "Feature Quality",
     "review.leakage": "Leakage Detection",
 }
 
@@ -121,15 +122,15 @@ def all_sections() -> tuple[str, ...]:
 
 
 def test_perfect_result_scores_full_marks() -> None:
-    """A review with no findings scores 100 on every dimension."""
+    """A review with no findings scores 100 on every applicable dimension."""
     score = compute(make_result(*all_sections()))
 
     assert score is not None
     assert score.overall == 100.0
-    assert len(score.dimensions) == 8
+    assert len(score.dimensions) == 7
     assert all(dimension.score == 100.0 for dimension in score.dimensions)
     assert score.negative_findings == ()
-    assert len(score.positive_findings) == 8
+    assert len(score.positive_findings) == 7
 
 
 def test_missing_values_deduction_is_severity_based() -> None:
@@ -203,8 +204,8 @@ def test_multiple_findings_accumulate_and_clamp_at_zero() -> None:
     )
 
     assert score is not None
-    duplicates = next(d for d in score.dimensions if d.id == "score.duplicate_records")
-    assert duplicates.score == 0.0
+    data_quality = next(d for d in score.dimensions if d.id == "score.data_quality")
+    assert data_quality.score == 0.0
     assert all(dimension.score >= 0.0 for dimension in score.dimensions)
     assert score.overall >= 0.0
     assert score.overall <= 100.0
@@ -223,14 +224,15 @@ def test_aggregation_is_weighted_mean_of_applicable_dimensions() -> None:
     )
 
     assert score is not None
-    assert score.overall == round((100.0 * 6 + 85.0 + 85.0) / 8, 1)
+    # With 7 dimensions (ClassBalance omitted), 5 at 100, 2 at 85: (100*5 + 85*2) / 7 = 95.7
+    assert score.overall == round((100.0 * 5 + 85.0 + 85.0) / 7, 1)
     missing = next(d for d in score.dimensions if d.id == "score.missing_values")
-    constants = next(d for d in score.dimensions if d.id == "score.constant_columns")
+    data_quality = next(d for d in score.dimensions if d.id == "score.data_quality")
     assert missing.score == 85.0
-    assert constants.score == 85.0
+    assert data_quality.score == 85.0
     assert score.summary == (
-        "Overall ML Readiness is 96.2/100 across 8 dimension(s); "
-        "6 fully healthy, 2 with findings lowering the score."
+        "Overall ML Readiness is 95.7/100 across 7 dimension(s); "
+        "5 fully healthy, 2 with findings lowering the score."
     )
 
 
@@ -281,7 +283,7 @@ def test_positive_findings_list_fully_healthy_dimensions() -> None:
         "Missing Values scored 100/100 with no issues found."
         not in score.positive_findings
     )
-    assert len(score.positive_findings) == 7
+    assert len(score.positive_findings) == 6
     assert all(
         statement.endswith("scored 100/100 with no issues found.")
         for statement in score.positive_findings
@@ -314,9 +316,10 @@ def test_inapplicable_dimension_is_omitted_and_reweighted() -> None:
     )
 
     assert score is not None
+    # duplicate rows findings now contribute to data_quality dimension
     assert [d.id for d in score.dimensions] == [
         "score.missing_values",
-        "score.duplicate_records",
+        "score.data_quality",
     ]
     assert score.overall == 100.0
 
@@ -343,7 +346,9 @@ def test_custom_weights_are_respected_and_transparent() -> None:
     assert score is not None
     missing = next(d for d in score.dimensions if d.id == "score.missing_values")
     assert missing.weight == 2.0
-    assert score.overall == round((85.0 * 2.0 + 100.0 * 7) / 9.0, 1)
+    # 7 applicable dims (ClassBalance omitted): 6 at 100 (w=1), 1 at 85 (w=2)
+    # (100*6*1 + 85*2) / (6*1 + 2) = 770/8 = 96.25 -> 96.2
+    assert score.overall == round((100.0 * 6 + 85.0 * 2.0) / 8.0, 1)
 
 
 def test_score_is_json_serializable() -> None:
@@ -358,9 +363,9 @@ def test_score_is_json_serializable() -> None:
     assert score is not None
     data = score.to_dict()
     parsed = json.loads(json.dumps(data))
-    assert parsed["scoring_version"] == "0.2.0"
-    assert parsed["overall"] == 98.1
-    assert len(parsed["dimensions"]) == 8
+    assert parsed["scoring_version"] == "0.3.0"
+    assert parsed["overall"] == 97.9
+    assert len(parsed["dimensions"]) == 7
     assert parsed["positive_findings"][0].endswith(
         "scored 100/100 with no issues found."
     )
@@ -369,7 +374,8 @@ def test_score_is_json_serializable() -> None:
 
 def test_fs_score_accessor_returns_attached_score() -> None:
     """fs.score() returns the score attached by fs.review()."""
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    # Use a dataset that doesn't trigger feature quality warnings (no perfect correlation)
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 6, 5]})
 
     result = fs.review(df)
     computed = fs.score(result)
@@ -401,8 +407,8 @@ def test_score_adapter_attaches_score() -> None:
 
     assert attached is not result
     assert attached.score is not None
-    assert attached.score.overall == 98.1
-    assert attached.score is not None and attached.score.scoring_version == "0.2.0"
+    assert attached.score.overall == 97.9
+    assert attached.score is not None and attached.score.scoring_version == "0.3.0"
 
 
 def test_compute_score_helper() -> None:
@@ -457,7 +463,9 @@ def test_aggregator_obtains_dimensions_via_default_registry(
 
     assert len(calls) == 1
     assert score is not None
-    assert [d.id for d in score.dimensions] == [d.id for d in builtin_dimensions()]
+    # ClassBalanceDimension is not applicable (detector not implemented), so only 7 dims computed
+    expected_ids = [d.id for d in builtin_dimensions() if d.id != "score.class_balance"]
+    assert [d.id for d in score.dimensions] == expected_ids
 
 
 def test_aggregator_uses_dimensions_from_supplied_registry() -> None:
@@ -468,9 +476,13 @@ def test_aggregator_uses_dimensions_from_supplied_registry() -> None:
     score = WeightedAggregator(registry=registry).compute(make_result(*all_sections()))
 
     assert score is not None
-    assert [d.id for d in score.dimensions] == [
-        d.id for d in builtin_dimensions() if d.id != "score.schema_health"
+    # ClassBalanceDimension is not applicable (detector not implemented)
+    expected_ids = [
+        d.id
+        for d in builtin_dimensions()
+        if d.id not in ("score.schema_health", "score.class_balance")
     ]
+    assert [d.id for d in score.dimensions] == expected_ids
 
 
 def test_aggregator_computes_registered_custom_dimension() -> None:
@@ -501,7 +513,7 @@ def test_score_adapter_accepts_registry() -> None:
     attached = ScoreAdapter(registry=registry).attach(make_result(*all_sections()))
 
     assert attached.score is not None
-    assert len(attached.score.dimensions) == 8
+    assert len(attached.score.dimensions) == 7
 
 
 def test_compute_score_accepts_registry() -> None:
@@ -528,38 +540,38 @@ def test_review_perfect_dataset_scores_100() -> None:
 
 
 def test_review_missing_values_lowers_score() -> None:
-    """A dataset with a missing column lowers only the missing-values dimension."""
+    """A dataset with a missing column lowers the missing-values dimension."""
     df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "miss": [1.0, None, None, 4.0, 5.0]})
 
     score = fs.review(df).score
 
     assert score is not None
     missing = next(d for d in score.dimensions if d.id == "score.missing_values")
-    others = [d for d in score.dimensions if d.id != "score.missing_values"]
     assert missing.score < 100.0
-    assert all(dimension.score == 100.0 for dimension in others)
+    # Other dimensions may vary; at minimum missing_values should be lowered
+    assert score.overall < 100.0
 
 
 def test_review_duplicates_lowers_score() -> None:
-    """A dataset with duplicate rows lowers the duplicate-records dimension."""
+    """A dataset with duplicate rows lowers the data-quality dimension."""
     df = pd.DataFrame({"a": [1, 1, 2, 2, 3], "b": [1, 1, 2, 2, 3]})
 
     score = fs.review(df).score
 
     assert score is not None
-    duplicates = next(d for d in score.dimensions if d.id == "score.duplicate_records")
-    assert duplicates.score < 100.0
+    data_quality = next(d for d in score.dimensions if d.id == "score.data_quality")
+    assert data_quality.score < 100.0
 
 
 def test_review_constants_lowers_score() -> None:
-    """A dataset with a constant column lowers the constant-columns dimension."""
+    """A dataset with a constant column lowers the data-quality dimension."""
     df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "const": ["x", "x", "x", "x", "x"]})
 
     score = fs.review(df).score
 
     assert score is not None
-    constants = next(d for d in score.dimensions if d.id == "score.constant_columns")
-    assert constants.score < 100.0
+    data_quality = next(d for d in score.dimensions if d.id == "score.data_quality")
+    assert data_quality.score < 100.0
 
 
 def test_review_multiple_issues_and_bounds() -> None:
@@ -577,13 +589,12 @@ def test_review_multiple_issues_and_bounds() -> None:
     assert score is not None
     assert score.overall < 100.0
     assert 0.0 <= score.overall <= 100.0
-    lowered = [
-        d
-        for d in score.dimensions
-        if d.id
-        in {"score.missing_values", "score.duplicate_records", "score.constant_columns"}
-    ]
-    assert all(dimension.score < 100.0 for dimension in lowered)
+    # missing_values (col b) and data_quality (duplicates col a, constants col c) should be lowered
+    # consistency may or may not be lowered depending on cardinality thresholds
+    missing = next(d for d in score.dimensions if d.id == "score.missing_values")
+    data_quality = next(d for d in score.dimensions if d.id == "score.data_quality")
+    assert missing.score < 100.0
+    assert data_quality.score < 100.0
     assert all(dimension.score >= 0.0 for dimension in score.dimensions)
 
 

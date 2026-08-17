@@ -185,10 +185,10 @@ def test_console_renderer_includes_score_section() -> None:
     """ConsoleRenderer pairs the overall score with its full breakdown."""
     text = ConsoleRenderer().render(make_scored_result())
 
-    assert "ML Readiness Score (scoring v0.2.0)" in text
+    assert "ML Readiness Score (scoring v0.3.0)" in text
     assert "Overall: 92.5/100" in text
     assert "  Missing Values: 85/100 (1 finding(s))" in text
-    assert "  Duplicate Records: 100/100" in text
+    assert "  Data Quality: 100/100" in text
     assert "Summary: Overall ML Readiness is 92.5/100 across 2 dimension(s);" in text
     assert "What would improve this score:" in text
     assert (
@@ -196,7 +196,7 @@ def test_console_renderer_includes_score_section() -> None:
         in text
     )
     assert "Healthy dimensions:" in text
-    assert "  + Duplicate Records scored 100/100 with no issues found." in text
+    assert "  + Data Quality scored 100/100 with no issues found." in text
 
 
 def test_console_renderer_score_is_deterministic() -> None:

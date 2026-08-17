@@ -17,6 +17,7 @@ BUILTIN_REVIEWER_IDS = {
     "review.quality.constants",
     "review.quality.cardinality",
     "review.quality.basic_statistics",
+    "review.quality.feature_quality",
     "review.leakage",
 }
 
@@ -102,7 +103,7 @@ def test_review_clean_dataset_all_sections_pass() -> None:
     assert {section.id for section in result.sections} == BUILTIN_REVIEWER_IDS
     assert all(section.severity is Severity.PASSED for section in result.sections)
     assert result.overall_summary == (
-        "8 of 8 sections passed with 0 finding(s) identified across the review."
+        "9 of 9 sections passed with 0 finding(s) identified across the review."
     )
 
 
@@ -190,7 +191,7 @@ def test_review_result_json_serializable_with_findings() -> None:
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert len(parsed["sections"]) == 8
+    assert len(parsed["sections"]) == 9
     missingness = next(
         s for s in parsed["sections"] if s["id"] == "review.quality.missingness"
     )
@@ -202,7 +203,7 @@ def test_review_sections_never_absent() -> None:
     """Every built-in section renders even when it finds nothing."""
     result = fs.review(clean_df())
 
-    assert len(result.sections) == 8
+    assert len(result.sections) == 9
     assert all(section.severity is Severity.PASSED for section in result.sections)
 
 
@@ -244,7 +245,7 @@ def test_review_with_previous_json_serializable() -> None:
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert len(parsed["sections"]) == 9
+    assert len(parsed["sections"]) == 10
     assert parsed["diff"] is not None
     assert parsed["diff"]["schema"]["added_columns"] == ["c"]
     assert parsed["diff"]["summary"]["overall_health"] == "regressed"
@@ -258,4 +259,4 @@ def test_review_with_previous_keeps_score_dimensions() -> None:
     result = fs.review(new, previous=old)
 
     assert result.score is not None
-    assert len(result.score.dimensions) == 8
+    assert len(result.score.dimensions) == 7

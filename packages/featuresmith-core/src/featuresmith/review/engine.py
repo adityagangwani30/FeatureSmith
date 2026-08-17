@@ -10,6 +10,7 @@ from typing import Any
 from featuresmith.core.dataset import Dataset
 from featuresmith.core.profile_result import ProfileResult
 from featuresmith.core.rule_finding import RuleFinding
+from featuresmith.recommendation.engine import RecommendationEngine
 from featuresmith.review.aggregator import ResultAggregator
 from featuresmith.review.base import BaseReviewer
 from featuresmith.review.context import ReviewConfig, ReviewContext
@@ -17,7 +18,7 @@ from featuresmith.review.registry import ReviewerRegistry, default_registry
 from featuresmith.review.schema import ReviewCategory, ReviewResult, ReviewSection
 from featuresmith.review.scoring_adapter import ScoreAdapter
 
-REVIEW_ENGINE_VERSION = "0.3.0"
+REVIEW_ENGINE_VERSION = "0.4.0"
 
 
 class ReviewEngine:
@@ -29,8 +30,9 @@ class ReviewEngine:
     1. Resolve inputs (profile plus rule findings).
     2. Build the ReviewContext.
     3. Dispatch applicable reviewers in isolation.
-    4. Aggregate the produced sections into a ReviewResult.
-    5. Render (handled by the surface via ``featuresmith.review.render``).
+    4. Generate recommendations via the centralized Recommendation Engine.
+    5. Aggregate the produced sections and recommendations into a ReviewResult.
+    6. Render (handled by the surface via ``featuresmith.review.render``).
 
     A crashing reviewer degrades to a recorded failure and is skipped; it never
     aborts the whole review, matching the existing rule-execution isolation
@@ -42,6 +44,7 @@ class ReviewEngine:
         registry: ReviewerRegistry | None = None,
         aggregator: ResultAggregator | None = None,
         score_adapter: ScoreAdapter | None = None,
+        recommendation_engine: RecommendationEngine | None = None,
     ) -> None:
         """Initialize the engine with a registry and aggregator.
 
@@ -50,10 +53,14 @@ class ReviewEngine:
             aggregator: The result aggregator; defaults to a new aggregator.
             score_adapter: The score adapter that attaches the ML Readiness
                 Score; defaults to a new adapter over the built-in dimensions.
+            recommendation_engine: The recommendation engine that generates
+                ranked recommendations from review findings; defaults to a new
+                RecommendationEngine instance.
         """
         self.registry = registry or default_registry()
         self.aggregator = aggregator or ResultAggregator()
         self.score_adapter = score_adapter or ScoreAdapter()
+        self.recommendation_engine = recommendation_engine or RecommendationEngine()
 
     def run(
         self,
@@ -127,10 +134,14 @@ class ReviewEngine:
                     traceback.format_exception(type(error), error, error.__traceback__)
                 )
 
+        # Generate recommendations from all review sections
+        recommendations = self.recommendation_engine.generate(sections)
+
         result = self.aggregator.aggregate(
             engine_version=REVIEW_ENGINE_VERSION,
             dataset_summary=profile.dataset_summary,
             sections=sections,
+            recommendations=recommendations,
             failed_reviewers=failed,
         )
         if diff_result is not None:

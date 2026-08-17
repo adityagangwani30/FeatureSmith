@@ -18,15 +18,15 @@ def test_review_dataframe_returns_review_result() -> None:
     result = fs.review(df)
 
     assert isinstance(result, ReviewResult)
-    assert len(result.sections) == 8
+    assert len(result.sections) == 9
     assert result.overall_summary == (
-        "8 of 8 sections passed with 0 finding(s) identified across the review."
+        "9 of 9 sections passed with 0 finding(s) identified across the review."
     )
     assert result.dataset_summary.row_count == 5
     assert result.dataset_summary.column_count == 2
     assert result.score is not None
     assert result.score.overall == 100.0
-    assert len(result.score.dimensions) == 8
+    assert len(result.score.dimensions) == 7
 
 
 def test_review_polars_dataframe() -> None:
@@ -36,7 +36,7 @@ def test_review_polars_dataframe() -> None:
     result = fs.review(df)
 
     assert result.dataset_summary.row_count == 3
-    assert len(result.sections) == 8
+    assert len(result.sections) == 9
 
 
 def test_review_dataset_object() -> None:
@@ -51,18 +51,19 @@ def test_review_dataset_object() -> None:
 
 def test_review_result_is_json_serializable() -> None:
     """ReviewResult serializes to clean JSON through the SDK."""
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    # Use a dataset that doesn't trigger feature quality warnings (no perfect correlation)
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 6, 5]})
 
     data = fs.review(df).to_dict()
 
     serialized = json.dumps(data)
     parsed = json.loads(serialized)
-    assert parsed["engine_version"] == "0.3.0"
-    assert len(parsed["sections"]) == 8
+    assert parsed["engine_version"] == "0.4.0"
+    assert len(parsed["sections"]) == 9
     assert all(section["severity"] == "passed" for section in parsed["sections"])
     assert "overall_summary" in parsed
     assert parsed["score"]["overall"] == 100.0
-    assert len(parsed["score"]["dimensions"]) == 8
+    assert len(parsed["score"]["dimensions"]) == 7
 
 
 def test_review_previous_activates_diff_section() -> None:
@@ -73,7 +74,7 @@ def test_review_previous_activates_diff_section() -> None:
     result = fs.review(new_df, previous=old_df)
 
     assert isinstance(result, ReviewResult)
-    assert len(result.sections) == 9
+    assert len(result.sections) == 10
     diff_section = next(
         section for section in result.sections if section.category.value == "diff"
     )

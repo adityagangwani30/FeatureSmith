@@ -23,7 +23,15 @@ from featuresmith.core.profile_result import ProfileResult as ProfileResult
 from featuresmith.core.rule_result import RuleResult as RuleResult
 from featuresmith.diff.render import render_diff as render_diff
 from featuresmith.diff.schema import DatasetDiffResult as DatasetDiffResult
+from featuresmith.plan import PLAN_SCHEMA_VERSION as PLAN_SCHEMA_VERSION
+from featuresmith.plan import Plan as Plan
+from featuresmith.plan import PlanItem as PlanItem
+from featuresmith.plan.compiler import compile_plan as compile_plan
 from featuresmith.profiling import profile_dataset
+from featuresmith.recommendation.engine import (
+    RecommendationEngine as RecommendationEngine,
+)
+from featuresmith.recommendation.schema import Recommendation as Recommendation
 from featuresmith.review.render import render as render
 from featuresmith.review.schema import (
     ReviewCategory as ReviewCategory,
@@ -424,3 +432,41 @@ def score(result: ReviewResult) -> MLReadinessScore | None:
     from featuresmith.scoring.aggregator import compute_score
 
     return compute_score(result)
+
+
+def plan(
+    result: ReviewResult,
+    *,
+    accept: list[str] | None = None,
+) -> Plan:
+    """Compile a deterministic Plan from accepted recommendations in a ReviewResult.
+
+    The Plan is the central domain primitive of the Dataset Contract lifecycle.
+    It represents an ordered, inspectable set of steps derived from accepted
+    recommendations, with full traceability back to the originating findings
+    and reviewers.
+
+    Args:
+        result: An existing ReviewResult containing recommendations.
+        accept: List of recommendation IDs to include in the Plan. If None or
+            empty, returns an empty Plan.
+
+    Returns:
+        A deterministic Plan with items corresponding to the accepted recommendations.
+
+    Raises:
+        ValueError: If any accepted recommendation ID is not found in the review's recommendations.
+
+    Examples:
+        >>> import pandas as pd
+        >>> import featuresmith as fs
+        >>> df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        >>> result = fs.review(df)
+        >>> plan = fs.plan(result, accept=["rec.quality.missingness.age"])
+        >>> len(plan.items)
+        1
+    """
+    from featuresmith.plan.compiler import compile_plan
+
+    accepted = accept or []
+    return compile_plan(result, accepted)

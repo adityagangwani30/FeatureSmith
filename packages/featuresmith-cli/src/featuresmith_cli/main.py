@@ -6,6 +6,7 @@ import typer
 
 from featuresmith_cli.commands.analyze import analyze_command, version_callback
 from featuresmith_cli.commands.diff import diff_command
+from featuresmith_cli.commands.plan import plan_command
 from featuresmith_cli.commands.review import review_command
 
 # Create the Typer CLI application
@@ -23,6 +24,9 @@ app.command(name="review")(review_command)
 
 # Register diff command
 app.command(name="diff")(diff_command)
+
+# Register plan command
+app.command(name="plan")(plan_command)
 
 
 # Add a top-level version callback on the CLI itself (e.g. featuresmith --version)

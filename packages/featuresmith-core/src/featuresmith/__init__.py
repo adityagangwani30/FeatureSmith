@@ -1,10 +1,15 @@
 from featuresmith.api import (
+    PLAN_SCHEMA_VERSION,
     ConnectorError,
     Dataset,
     DatasetDiffResult,
     DimensionScore,
     MLReadinessScore,
+    Plan,
+    PlanItem,
     ProfileResult,
+    Recommendation,
+    RecommendationEngine,
     ReviewCategory,
     ReviewResult,
     ReviewSection,
@@ -14,9 +19,11 @@ from featuresmith.api import (
     SourceParseError,
     UnsupportedFormatError,
     analyze,
+    compile_plan,
     diff,
     diff_findings,
     load,
+    plan,
     profile,
     render,
     render_diff,
@@ -24,7 +31,7 @@ from featuresmith.api import (
     score,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "ConnectorError",
@@ -32,7 +39,12 @@ __all__ = [
     "DatasetDiffResult",
     "DimensionScore",
     "MLReadinessScore",
+    "PLAN_SCHEMA_VERSION",
+    "Plan",
+    "PlanItem",
     "ProfileResult",
+    "Recommendation",
+    "RecommendationEngine",
     "ReviewCategory",
     "ReviewResult",
     "ReviewSection",
@@ -42,9 +54,11 @@ __all__ = [
     "SourceParseError",
     "UnsupportedFormatError",
     "analyze",
+    "compile_plan",
     "diff",
     "diff_findings",
     "load",
+    "plan",
     "profile",
     "render",
     "render_diff",

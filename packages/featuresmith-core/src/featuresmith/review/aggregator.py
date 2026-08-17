@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 
 from featuresmith.core.profile_result import DatasetSummary
+from featuresmith.recommendation.schema import Recommendation
 from featuresmith.review.schema import ReviewResult, ReviewSection, Severity
 
 
@@ -24,6 +25,7 @@ class ResultAggregator:
         engine_version: str,
         dataset_summary: DatasetSummary,
         sections: Sequence[ReviewSection],
+        recommendations: Sequence[Recommendation] = (),
         generated_at: datetime | None = None,
         failed_reviewers: Mapping[str, str] | None = None,
     ) -> ReviewResult:
@@ -33,6 +35,7 @@ class ResultAggregator:
             engine_version: Version of the Review Engine result schema.
             dataset_summary: The dataset-level summary of the reviewed dataset.
             sections: The sections produced by the dispatched reviewers.
+            recommendations: Ranked recommendations from the Recommendation Engine.
             generated_at: Timestamp to record; defaults to the current UTC time.
             failed_reviewers: Optional mapping of reviewer ID to error message
                 for reviewers that failed during execution; when present, a
@@ -59,6 +62,7 @@ class ResultAggregator:
             dataset_summary=dataset_summary,
             generated_at=generated_at or _utc_now(),
             sections=sorted_sections,
+            recommendations=tuple(recommendations),
             overall_summary=overall_summary,
         )
 

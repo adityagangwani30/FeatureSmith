@@ -434,5 +434,5 @@ def test_leakage_section_integrated_via_sdk() -> None:
     assert section.category.value == "leakage"
     assert section.severity is Severity.PASSED
     assert result.overall_summary == (
-        "8 of 8 sections passed with 0 finding(s) identified across the review."
+        "9 of 9 sections passed with 0 finding(s) identified across the review."
     )

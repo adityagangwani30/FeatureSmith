@@ -10,11 +10,11 @@ from featuresmith.scoring.dimensions.base import (
     score_from_findings,
 )
 from featuresmith.scoring.dimensions.builtin import (
-    ConstantColumnsDimension,
-    DatasetStructureDimension,
-    DataTypesDimension,
-    DuplicateRecordsDimension,
-    HighCardinalityDimension,
+    ClassBalanceDimension,
+    ConsistencyDimension,
+    DataQualityDimension,
+    DistributionHealthDimension,
+    FeatureQualityDimension,
     LeakageRiskDimension,
     MissingValuesDimension,
     SchemaHealthDimension,
@@ -23,11 +23,11 @@ from featuresmith.scoring.dimensions.builtin import (
 
 __all__ = [
     "SEVERITY_DEDUCTIONS",
-    "ConstantColumnsDimension",
-    "DataTypesDimension",
-    "DatasetStructureDimension",
-    "DuplicateRecordsDimension",
-    "HighCardinalityDimension",
+    "ClassBalanceDimension",
+    "ConsistencyDimension",
+    "DataQualityDimension",
+    "DistributionHealthDimension",
+    "FeatureQualityDimension",
     "LeakageRiskDimension",
     "MissingValuesDimension",
     "SchemaHealthDimension",
