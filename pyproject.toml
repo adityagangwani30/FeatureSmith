@@ -1,6 +1,6 @@
 [project]
 name = "featuresmith-workspace"
-version = "0.3.0"
+version = "0.4.0"
 description = "Workspace for the Featuresmith core library and thin client surfaces."
 requires-python = ">=3.11"
 dependencies = [

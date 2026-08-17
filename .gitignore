@@ -25,3 +25,6 @@ FIXES.md
 fixes.txt
 tests/fixtures/processed/
 frontend/tsconfig.tsbuildinfo
+.tokencap
+tmp/
+benchmarks/*.json
