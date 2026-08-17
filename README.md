@@ -182,9 +182,9 @@ All commands share a consistent exit-code convention:
 
 ---
 
-## Flagship Vision (v0.4.0 — Delivered)
+## Flagship Capabilities
 
-The following flagship capabilities are **delivered** in v0.4.0:
+The following flagship capabilities are currently delivered in FeatureSmith:
 
 - **Dataset Review (`featuresmith review <dataset>`)**: ✅ Implemented with 10/11 review sections (schema health, types, missingness, duplicates, constants, cardinality, basic statistics, leakage, diff, feature quality), ML Readiness Score, category filtering, CLI/SDK. Missing: duplicate columns, outliers, distribution sections.
 - **Centralized Recommendation Engine**: ✅ Implemented — merges findings from all review sections into a single ranked, explainable list of recommendations with consistent confidence semantics and full traceability back to originating findings and reviewers.

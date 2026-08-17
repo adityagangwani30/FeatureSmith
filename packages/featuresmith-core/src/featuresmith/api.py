@@ -26,7 +26,12 @@ from featuresmith.diff.schema import DatasetDiffResult as DatasetDiffResult
 from featuresmith.plan import PLAN_SCHEMA_VERSION as PLAN_SCHEMA_VERSION
 from featuresmith.plan import Plan as Plan
 from featuresmith.plan import PlanItem as PlanItem
-from featuresmith.plan.compiler import compile_plan as compile_plan
+from featuresmith.plan.compiler import (
+    compile_plan as compile_plan,
+)
+from featuresmith.plan.compiler import (
+    compile_plan_from_recommendations as compile_plan_from_recommendations,
+)
 from featuresmith.profiling import profile_dataset
 from featuresmith.recommendation.engine import (
     RecommendationEngine as RecommendationEngine,

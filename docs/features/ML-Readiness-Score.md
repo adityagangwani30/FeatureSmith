@@ -152,7 +152,7 @@ class MLReadinessScore(BaseModel):
 | Component | Responsibility | Lives in |
 |---|---|---|
 | `ScoreDimension` | Extension-point interface for one scoring dimension | `featuresmith.scoring.base` |
-| Built-in dimensions (§7.1) | Default 8-dimension set | `featuresmith.scoring.dimensions.*` |
+| Built-in dimensions (§7.1) | 8 registered dimensions (7 effective — Class Balance omitted per §7.4) | `featuresmith.scoring.dimensions.*` |
 | `ScoreDimensionRegistry` | Entry-point discovery, mirrors reviewer/rule registries | `featuresmith.scoring.registry` |
 | `WeightedAggregator` | Applies weights, renormalizes for inapplicable dimensions, computes `overall` | `featuresmith.scoring.aggregator` |
 | `MLReadinessScore`, `DimensionScore` | Pydantic result schema | `featuresmith.scoring.schema` |
@@ -195,9 +195,9 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 - **Review Engine (`Review-Engine-Architecture.md`):** the Score Adapter is the sole integration point; scoring never bypasses the engine to read raw findings directly.
 - **Dataset Review (`Dataset-Review-PRD.md`):** the score is rendered inline as part of the default review output, per §7.1 of that document's coverage table.
 - **Leakage Detection (`Dataset-Diff-And-Leakage-Detection.md`):** the Leakage Risk dimension is the scoring-side consumer of that document's pattern-based leakage findings.
-- **Data Observability (Phase 5):** once `QualityHistory` exists, scores over time become the primary trend signal for scheduled re-review, with `scoring_version` making cross-time comparisons interpretable even across a formula change.
+- **Data Observability (Phase 6, v0.7):** once `QualityHistory` exists, scores over time become the primary trend signal for scheduled re-review, with `scoring_version` making cross-time comparisons interpretable even across a formula change.
 - **CI / GitHub Action (Phase 3):** `--fail-below` and `--fail-below-dimension` extend the existing CI-gating pattern already established for `analyze`/`review` severity thresholds.
-- **AI Layer (Phase 6):** may narrate a dimension's rationale in more natural language, but never alters the numeric score or which findings contributed to it.
+- **AI Layer (Phase 7):** may narrate a dimension's rationale in more natural language, but never alters the numeric score or which findings contributed to it.
 
 ## 13. Testing Strategy
 
