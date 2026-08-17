@@ -7,6 +7,48 @@ This project adheres to [Semantic Versioning](https://semver.org/) and
 
 ---
 
+## [0.4.0] - 2026-08-17
+
+Completes Phase 4 of the roadmap: the centralized Recommendation Engine, FeatureQualityReviewer, and the Plan primitive (`fs.plan()` / `featuresmith plan`), with ML Readiness Score dimension reconciliation.
+
+### Added
+- **Centralized Recommendation Engine** (`featuresmith.recommendation`):
+  - `RecommendationEngine.generate(sections)` merges findings from all review sections into a single ranked, explainable list of recommendations with consistent confidence semantics.
+  - `Recommendation` dataclass with stable ID (`rec.{rule_prefix}.{column}`), title, rationale, confidence (0–1), severity, affected columns, suggested action, `accepted` flag, and full traceability (`originating_findings`, `originating_reviewers`).
+  - Ranking by severity (desc) → confidence (desc) → affected column count (desc).
+  - Replaces the minimal severity-ranked fallback formatter previously used by the Review Engine; the fallback formatter is removed.
+- **FeatureQualityReviewer** (`review.quality.feature_quality`):
+  - Near-constant columns: numeric columns with variance below configurable threshold.
+  - Redundant column pairs: numeric column pairs with Pearson correlation exceeding threshold.
+  - Low-signal columns: high-cardinality categorical columns with low target correlation (requires `target_column`).
+- **Plan Primitive** (`featuresmith.plan` / `featuresmith plan`):
+  - `Plan` / `PlanItem` dataclasses with versioned schema (`PLAN_SCHEMA_VERSION = "0.1.0"`), deterministic item IDs (`plan.{rec_id}.{idx}`), full traceability back to originating findings and reviewers.
+  - `fs.plan(result, accept=[...])` SDK function and `featuresmith plan` CLI command.
+  - `compile_plan()` / `compile_plan_from_recommendations()` for programmatic Plan construction.
+  - Plan rendering via `PlanRenderer` (`plan_console` target) and `render()` dispatch.
+  - CLI: `featuresmith plan <source> --accept <rec_ids> [--target] [--previous] [--format table|json] [--fail-on] [--output] [--quiet]`.
+- **ML Readiness Score Dimension Reconciliation**:
+  - `DataQualityDimension` now reads only `review.quality.duplicates` and `review.quality.constants` (cardinality removed to eliminate double-count with `ConsistencyDimension`).
+  - `ConsistencyDimension` reads `review.schema.types` and `review.quality.cardinality` (cardinality only here, per spec §7.1).
+  - `ClassBalanceDimension` made never-applicable (minority-class detector not implemented); dimension omitted from aggregate per spec §7.4 ("an inapplicable dimension must never silently count as a perfect or zero score").
+  - Effective scored dimensions: 7 (Schema Health, Missing Values, Feature Quality, Distribution Health, Leakage Risk, Data Quality, Consistency).
+  - `SCORING_VERSION` bumped to `"0.3.0"`.
+- **New Tests**: 38 focused Plan tests (`tests/cli/test_cli_plan.py`, `tests/review/test_plan_render.py`).
+
+### Changed
+- Version bumped to `0.4.0` across all packages (core, cli, workspace).
+- `REVIEW_ENGINE_VERSION` bumped to `"0.4.0"`; `default_registry()` now ships 10 built-in reviewers (includes `FeatureQualityReviewer`).
+- `fs.review()` now attaches `Recommendation[]` to `ReviewResult.recommendations` and distributes them to originating `ReviewSection.recommendations`.
+- `SCORING_VERSION` bumped to `"0.3.0"`; effective scored dimensions reduced from 8 to 7 (Class Balance omitted).
+- `PLAN_SCHEMA_VERSION = "0.1.0"` introduced.
+
+### Fixed
+- Cardinality double-counting eliminated: `review.quality.cardinality` findings no longer lower both `score.data_quality` and `score.consistency`.
+- `ClassBalanceDimension` no longer silently inflates scores with a stub 100.0; dimension is now omitted from aggregate per spec §7.4.
+- `tests/cli/test_cli_review.py` reference to old dimension IDs (`score.duplicate_records`, `score.constant_columns`) updated to current IDs (`score.data_quality`, `score.consistency`).
+
+---
+
 ## [0.3.0] - 2026-08-15
 
 Closes the v0.2.0/design gap (`Architecture.md` §21.4): Dataset Diff is now integrated into the Review Engine as `DiffReviewer`, and the project governance baseline is published.

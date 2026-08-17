@@ -1,8 +1,8 @@
 # Review Engine Architecture
 
-> **Status: Partially Implemented (Sprints 1-5, Sprint 4.1, Sprint 5, v0.3.0).** The Review Engine core pipeline, registry, aggregator, 9 built-in reviewers (including `DiffReviewer` since v0.3.0), ML Readiness Score integration, and console rendering are implemented. The Recommendation Engine stage, plugin entry-point discovery, AI integration, and category registry remain future work. The standalone Dataset Diff Engine (Sprint 5) ships separately via `fs.diff()` and `featuresmith diff`, and `DiffReviewer` (v0.3.0) reuses it as a registered reviewer.
+> **Status: Implemented (v0.4.0).** The Review Engine core pipeline, registry, aggregator, 10 built-in reviewers (including `DiffReviewer` since v0.3.0 and `FeatureQualityReviewer` since v0.4.0), centralized Recommendation Engine (v0.4.0), ML Readiness Score integration, and console/Plan rendering are implemented. The plugin entry-point discovery, AI integration, and category registry remain future work. The standalone Dataset Diff Engine ships separately via `fs.diff()` and `featuresmith diff`, and `DiffReviewer` (v0.3.0) reuses it as a registered reviewer.
 >
-> **Revision note:** this revision adds a centralized Recommendation Engine stage (§8.4) and formalizes Review Categories (§9), per design review. Everything else is unchanged from the prior revision.
+> **Revision note:** this revision adds a centralized Recommendation Engine stage (§8.4) and formalizes Review Categories (§9), per design review. The centralized Recommendation Engine replaces the minimal severity-ranked fallback formatter; the fallback formatter is removed. Everything else is unchanged from the prior revision.
 
 ## 1. Overview
 
@@ -389,7 +389,7 @@ The category-aware flags described conceptually in §9.3 are partially shipped: 
 - **Golden-file rendering tests**: CLI table output, HTML report, and JSON output are diffed against checked-in fixtures per renderer, mirroring the exporter golden-file approach (`Rules.md` §5).
 - **Backward-compatibility tests**: `fs.analyze()`, `fs.diff()`, and the existing Recommendation Engine's export-context behavior must remain byte-for-byte unchanged after the Review Engine ships — it is purely additive.
 
-## 14.1 Implementation Status (as of v0.2.0)
+## 14.1 Implementation Status (as of v0.4.0)
 
 The following table reflects what has been implemented versus what remains future work:
 
@@ -399,30 +399,30 @@ The following table reflects what has been implemented versus what remains futur
 | Reviewer Registry (`ReviewerRegistry`) | ✅ Implemented | Explicit registration in `featuresmith/review/registry.py` |
 | Result Aggregator (`ResultAggregator`) | ✅ Implemented | `featuresmith/review/aggregator.py` |
 | `BaseReviewer` interface | ✅ Implemented | `featuresmith/review/base.py` |
-| Built-in Reviewers | 🟡 9/12 Implemented | SchemaHealth, Type, MissingValue, Duplicate, ConstantColumn, Cardinality, BasicStatistics, Leakage, Diff |
+| Built-in Reviewers | ✅ 10/12 Implemented | SchemaHealth, Type, MissingValue, Duplicate, ConstantColumn, Cardinality, BasicStatistics, Leakage, Diff, FeatureQuality |
 | `DuplicateColumnReviewer` | ❌ Not Implemented | Deferred |
 | `OutlierReviewer` | ❌ Not Implemented | Deferred |
 | `DistributionReviewer` | ❌ Not Implemented | Deferred |
-| `FeatureQualityReviewer` | ❌ Not Implemented | Deferred (requires Phase 4) |
+| `FeatureQualityReviewer` | ✅ Implemented (v0.4.0) | `featuresmith/review/reviewers/feature_quality.py` |
 | `DiffReviewer` | ✅ Implemented (v0.3.0) | `featuresmith/review/reviewers/diff.py`; reuses standalone `featuresmith.diff` engine; active only when a previous snapshot is provided |
 | Review Categories (`ReviewCategory` enum) | ✅ Implemented | 6 categories: schema, quality, leakage, diff, feature_quality, custom |
 | `CategoryRegistry` / entry-point discovery | 🚧 Intentionally Deferred | Explicit registration only for now |
-| Recommendation Engine / Adapter | ❌ Not Implemented | Centralized recommendation generation not yet built |
+| Centralized Recommendation Engine / Adapter | ✅ Implemented (v0.4.0) | `featuresmith.recommendation.RecommendationEngine` + `RecommendationAdapter`; fallback formatter removed |
 | Score Adapter | ✅ Implemented | `featuresmith/review/scoring_adapter.py` bridges to `featuresmith.scoring` |
-| Render Pipeline | 🟡 Partially | `ConsoleRenderer` + `RendererRegistry` implemented; dashboard/HTML/JSON renderers deferred |
+| Render Pipeline | 🟡 Partially | `ConsoleRenderer` + `PlanRenderer` + `RendererRegistry` implemented; dashboard/HTML/JSON renderers deferred |
 | Plugin Architecture (entry_points) | 🚧 Intentionally Deferred | |
 | AI Integration | 🚧 Intentionally Deferred | |
 | Category-aware CLI flags (`--only`) | ✅ Implemented | `featuresmith review --only <category>` |
 | `fs.review(previous=...)` | ✅ Implemented (v0.3.0) | Loads + profiles the previous snapshot once at the SDK boundary; activates the `review.diff` section and attaches `DatasetDiffResult` to `ReviewResult.diff` |
+| `fs.plan()` / `featuresmith plan` | ✅ Implemented (v0.4.0) | Plan primitive from accepted recommendations |
 
 ## 15. Roadmap Placement
 
 This document intentionally does not renumber `Phases.md`. The Review Engine is designed to be buildable incrementally against whatever phases have already shipped:
 
-- It is fully usable today, against Phase 1 alone (schema/quality/leakage reviewers only — no diff, no feature-quality, no AI). Without Phase 4's Recommendation Engine yet shipped, the Recommendation Adapter falls back to a minimal, deterministic, severity-ranked formatter (§8.4) so the engine is not blocked on Phase 4's timeline.
+- It is fully usable today, against Phase 1 alone (schema/quality/leakage reviewers only — no diff, no feature-quality, no AI).
 - `DiffReviewer` shipped in v0.3.0, once Phase 2 (`fs.diff()`) existed as its underlying engine.
-- Once Phase 4 ships, the Recommendation Adapter's fallback formatter is swapped for the real Recommendation Engine transparently — the `Recommendation` schema does not change, only the quality of ranking improves.
-- `FeatureQualityReviewer` activates once Phase 4 ships.
+- Phase 4 (Recommendation Engine, Plan primitive) is now shipped (v0.4.0). The Recommendation Adapter's fallback formatter has been removed; the centralized `RecommendationEngine` is used directly. `FeatureQualityReviewer` is active.
 - AI narration and AI-enhanced recommendation ranking activate once Phase 6 ships.
 
 A future revision of `Phases.md` should formalize this as its own milestone once implementation begins — this document is that implementation's blueprint, written first, per `Rules.md` §4.

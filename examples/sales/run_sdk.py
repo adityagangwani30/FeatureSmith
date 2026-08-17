@@ -1,5 +1,5 @@
 """Sales snapshot comparison: lower-level ``fs.diff()`` and the integrated
-diff-aware review (``fs.review(..., previous=...)``, v0.3.0).
+diff-aware review (``fs.review(..., previous=...)``, v0.3.0+).
 
 This example shows the two levels of dataset comparison:
 
@@ -47,12 +47,12 @@ def main():
     print(f"Missing Values Increased: {diff_res.summary.missing_values_increased}")
     print(f"Overall Summary        : {diff_res.overall_summary}")
 
-    # 4. Run the integrated diff-aware review (v0.3.0)
+    # 4. Run the integrated diff-aware review (v0.3.0+)
     review_res = fs.review(sales_v2, previous=sales_v1)
 
     print("\n=== fs.review(sales_v2, previous=sales_v1) - DiffReviewer workflow ===")
     print(
-        f"Review Sections        : {len(review_res.sections)} (8 built-in + review.diff)"
+        f"Review Sections        : {len(review_res.sections)} (10 built-in + review.diff)"
     )
 
     diff_section = next(
@@ -77,7 +77,7 @@ def main():
     if review_res.score:
         print(
             f"ML Readiness Score    : {review_res.score.overall:.1f}/100 "
-            f"(still 8 dimensions - diff is informational)"
+            f"(still 7 dimensions - diff is informational)"
         )
 
     print(f"\nOverall Review Summary: {review_res.overall_summary}")

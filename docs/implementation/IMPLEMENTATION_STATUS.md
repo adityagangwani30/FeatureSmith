@@ -1,8 +1,8 @@
 # Implementation Status Tracker
 
-> Authoritative implementation tracker for Featuresmith v0.3.0. This document records what is implemented, what is intentionally deferred, and what is planned future work. It does not duplicate architecture — it only records implementation status.
+> Authoritative implementation tracker for Featuresmith v0.4.0. This document records what is implemented, what is intentionally deferred, and what is planned future work. It does not duplicate architecture — it only records implementation status.
 
-Last Updated: 2026-08-15 (v0.3.0)
+Last Updated: 2026-08-17 (v0.4.0)
 
 ---
 
@@ -13,7 +13,7 @@ Last Updated: 2026-08-15 (v0.3.0)
 - **Reviewer Registry** (`ReviewerRegistry`) — explicit registration in `featuresmith/review/registry.py`
 - **Result Aggregator** (`ResultAggregator`) — `featuresmith/review/aggregator.py`
 - **BaseReviewer interface** — `featuresmith/review/base.py`
-- **Built-in Reviewers (9/12)**:
+- **Built-in Reviewers (10/12)**:
   - `SchemaHealthReviewer` (`review.schema.health`)
   - `TypeReviewer` (`review.schema.types`)
   - `MissingValueReviewer` (`review.quality.missingness`)
@@ -23,25 +23,30 @@ Last Updated: 2026-08-15 (v0.3.0)
   - `BasicStatisticsReviewer` (`review.quality.basic_statistics`)
   - `LeakageReviewer` (`review.leakage`) — 6 pattern detectors merged per column
   - `DiffReviewer` (`review.diff`) — diff-aware review, active only when a previous snapshot is provided (added v0.3.0)
+  - `FeatureQualityReviewer` (`review.quality.feature_quality`) — near-constant, redundant, and low-signal columns (added v0.4.0)
 - **Review Categories** (`ReviewCategory` enum) — 6 categories: `schema`, `quality`, `leakage`, `diff`, `feature_quality`, `custom`
+- **Centralized Recommendation Engine** (`featuresmith.recommendation`):
+  - `RecommendationEngine` — merges findings from all review sections into a single ranked, explainable list of `Recommendation` objects
+  - `Recommendation` dataclass with traceability (`originating_findings`, `originating_reviewers`)
+  - Replaces the minimal severity-ranked fallback formatter; fallback formatter removed
+- **Recommendation Adapter** — bridges Review Engine to centralized Recommendation Engine
 - **Score Adapter** — bridges Review Engine to `featuresmith.scoring` in `featuresmith/review/scoring_adapter.py`
 - **Console Renderer** (`ConsoleRenderer` + `RendererRegistry`) — `featuresmith/review/render.py`
-- **SDK Entrypoint** — `fs.review()` in `featuresmith/api.py`
-- **CLI Command** — `featuresmith review` with `--target`, `--format`, `--output`, `--fail-on`, `--only`, `--no-score`, `--quiet`, `--verbose`, `--version`
+- **Plan Renderer** (`PlanRenderer`) — `featuresmith/review/render.py`, renders `Plan` objects via `plan_console` target
+- **SDK Entrypoints** — `fs.review()`, `fs.plan()` in `featuresmith/api.py`
+- **CLI Commands** — `featuresmith review` and `featuresmith plan` with full flag sets
 - **CI Exit Codes** — 0 (clean), 1 (findings ≥ threshold), 2 (usage/unknown category), 3 (source missing/parse), 4 (unexpected error)
 
 ### Deferred (Intentionally Not Yet Implemented)
-- **Recommendation Engine / Adapter** — centralized recommendation generation; reviewers produce findings only
 - **CategoryRegistry** with entry-point discovery — explicit registration only for now
 - **Plugin Architecture** (entry_points for reviewers) — same pattern as rules/connectors, deferred
-- **Dashboard / HTML / JSON Renderers** — only `ConsoleRenderer` implemented
+- **Dashboard / HTML / JSON Renderers** — only `ConsoleRenderer` and `PlanRenderer` implemented
 - **AI Integration** (narration, AI-enhanced ranking) — Phase 6
 
 ### Future Work (Planned)
 - **DuplicateColumnReviewer** (`review.quality.duplicate_columns`)
 - **OutlierReviewer** (`review.statistics.outliers`)
 - **DistributionReviewer** (`review.distribution`)
-- **FeatureQualityReviewer** (`review.feature_quality`) — requires Phase 4 Feature Engineering Engine
 - **Reviewer priority/ordering config** in `.featuresmith.yml`
 - **Custom review profiles** (e.g., `--profile pre-training`)
 - **Cross-reviewer dependencies**
@@ -54,7 +59,7 @@ Last Updated: 2026-08-15 (v0.3.0)
 ### Implemented
 - **SDK**: `fs.review(source, target_column, enabled_reviewers, enabled_categories, reviewer_config)`
 - **CLI**: `featuresmith review <source>` with all flags above
-- **8 of 11 required sections** (§7.1 table):
+- **9 of 11 required sections** (§7.1 table):
   - Schema health ✅
   - Missing values ✅
   - Duplicate rows ✅
@@ -63,19 +68,20 @@ Last Updated: 2026-08-15 (v0.3.0)
   - High-cardinality columns ✅
   - Target leakage warnings ✅
   - Overall summary ✅
+  - Feature quality ✅ (added v0.4.0)
 - **ML Readiness Score** attached by default (`--no-score` to opt out)
 - **Category filtering** via `--only schema,leakage` etc.
 - **Severity-sorted output** (critical → warning → info → passed)
 - **Surface parity** — SDK and CLI produce identical `ReviewResult`
+- **Centralized Recommendation Engine** — `ReviewResult.recommendations` (flat, ranked list) and per-section `ReviewSection.recommendations` populated by `RecommendationAdapter` using `featuresmith.recommendation.RecommendationEngine`
 
 ### Deferred
-- **Centralized Recommendation Engine** — no recommendations generated; findings only
+- (None — centralized Recommendation Engine implemented in v0.4.0)
 
 ### Future Work
 - **Duplicate columns** section (`DuplicateColumnReviewer`)
 - **Outliers** section (`OutlierReviewer`)
 - **Distribution issues** section (`DistributionReviewer`)
-- **Feature quality** section (`FeatureQualityReviewer`) — Phase 4
 - **Dashboard "Review" tab**
 - **HTML static report**
 - **Named review profiles** (`--profile`)
@@ -91,28 +97,25 @@ Last Updated: 2026-08-15 (v0.3.0)
 - **WeightedAggregator** — `featuresmith/scoring/aggregator.py` (weighted mean, renormalizes for inapplicable dimensions)
 - **MLReadinessScore / DimensionScore schemas** — `featuresmith/scoring/schema.py`
 - **Score Adapter** — `featuresmith/review/scoring_adapter.py`
-- **8 Built-in Dimensions** (mapping to reviewers):
+- **7 Built-in Dimensions** (mapping to reviewers, per spec §7.1 with reconciliation):
   - `SchemaHealthDimension` → `review.schema.health`
   - `MissingValuesDimension` → `review.quality.missingness`
-  - `DuplicateRecordsDimension` → `review.quality.duplicates`
-  - `DataTypesDimension` → `review.schema.types`
-  - `ConstantColumnsDimension` → `review.quality.constants`
-  - `HighCardinalityDimension` → `review.quality.cardinality`
-  - `DatasetStructureDimension` → `review.quality.basic_statistics`
+  - `FeatureQualityDimension` → `review.quality.feature_quality` (added v0.4.0)
+  - `DistributionHealthDimension` → `review.quality.basic_statistics` (stub — reads `BasicStatisticsReviewer` output; `DistributionReviewer`/`OutlierReviewer` not yet implemented)
   - `LeakageRiskDimension` → `review.leakage` (added Sprint 4.1)
+  - `DataQualityDimension` → `review.quality.duplicates`, `review.quality.constants` (cardinality removed; no double-count with Consistency)
+  - `ConsistencyDimension` → `review.schema.types`, `review.quality.cardinality`
 - **fs.review()** automatically attaches score
 - **CLI `--no-score`** — omits score section from output
 - **`fs.score(result)`** convenience accessor — computes from existing result, never re-runs analysis
-- **`scoring_version = "0.2.0"`** — bumped from `0.1.0` when Leakage Risk added
+- **`scoring_version = "0.3.0"`** — bumped from `0.2.0` after dimension reconciliation (cardinality double-count fix, Class Balance omitted)
 
 ### Deferred
 - **`.featuresmith.yml` weight configuration** — config system not yet built
 
 ### Future Work
-- **FeatureQualityDimension** — requires `FeatureQualityReviewer` (Phase 4)
-- **DistributionHealthDimension** — requires `DistributionReviewer` / `OutlierReviewer`
-- **ClassBalanceDimension** — target column minority class detection
-- **ConsistencyDimension** (as single dimension) — currently split into `DataTypesDimension` + `HighCardinalityDimension`
+- **ClassBalanceDimension** — target column minority class detection (detector not implemented; dimension omitted per spec §7.4)
+- **DistributionHealthDimension** — replace `basic_statistics` stub with `DistributionReviewer` / `OutlierReviewer`
 - **CLI `--fail-below <score>`** — CI gate on overall score
 - **CLI `--fail-below-dimension <dim:id>`** — CI gate on per-dimension score
 - **Non-linear aggregation options** (hard floor on critical dimensions)
@@ -200,30 +203,40 @@ Dataset Diff ships as a **standalone engine** (`featuresmith.diff` package) AND 
 
 ## Dataset Contracts & Plan/Apply Lifecycle
 
-### Status: Not Started — Design Complete
+### Implemented (v0.4.0)
+- **Plan Primitive** (`featuresmith.plan`):
+  - `Plan` / `PlanItem` dataclasses with versioned schema (`PLAN_SCHEMA_VERSION = "0.1.0"`)
+  - `compile_plan()` / `compile_plan_from_recommendations()` — deterministic compilation from accepted recommendation IDs
+  - `PlanRenderer` (`plan_console` target) and `render()` dispatch for `Plan` objects
+  - `fs.plan(result, accept=[...])` SDK function
+  - `featuresmith plan` CLI command with `--accept`, `--target`, `--previous`, `--format table|json`, `--fail-on`, `--output`, `--quiet`
+  - Full traceability: `PlanItem` → `Recommendation` → `originating_findings` + `originating_reviewers`
 
-Full specification in `features/Dataset-Contracts-And-Planning.md`; no code exists yet. Roadmap placement: Phase 4 (Recommendation Engine, Plan), Phase 5 (Apply, Validation, `featuresmith.lock`), Phase 6 (Certification, Observability). Listed here so this tracker stays the single place implementation status is checked, rather than requiring a second lookup in `Phases.md` for "has this actually started."
+### Status: Plan Implemented — Design Complete for Contracts/Apply
+
+Full specification for Dataset Contracts (`featuresmith.lock`), Apply/Export, and Validation in `features/Dataset-Contracts-And-Planning.md`; no code exists yet for Contracts/Apply. Roadmap placement: Phase 5 (Apply, Validation, `featuresmith.lock`), Phase 6 (Certification, Observability).
 
 ---
 
-## Summary: v0.3.0 Release Readiness
+## Summary: v0.4.0 Release Readiness
 
 | Capability | Implementation % | Release Ready |
 |------------|------------------|---------------|
-| Review Engine Core | ~75% | ✅ Yes (usable with 9 reviewers) |
-| Dataset Review | ~80% | ✅ Yes (9/11 sections, score, CLI) |
-| ML Readiness Score | ~80% | ✅ Yes (8 dims, CLI, SDK) |
+| Review Engine Core | ~85% | ✅ Yes (usable with 10 reviewers + Recommendation Engine) |
+| Dataset Review | ~90% | ✅ Yes (10/11 sections, score, recommendations, CLI) |
+| ML Readiness Score | ~85% | ✅ Yes (7 dims, CLI, SDK, dimension reconciliation) |
 | Leakage Detection | 100% | ✅ Yes (6 detectors, reviewer, scoring) |
 | Dataset Diff | 100% | ✅ Yes (standalone engine + DiffReviewer, CLI, SDK) |
 | Connectors (CSV/Excel/Parquet/DataFrame) | 100% | ✅ Yes (static registry) |
-| Dataset Contracts / Plan / Apply | 0% | ⛔ Not started — design complete, see `features/Dataset-Contracts-And-Planning.md` |
+| Dataset Contracts / Plan / Apply | ~25% | ✅ Plan shipped; Contracts/Apply design complete |
 
-### Known Gaps for v0.3.0 (Documented, Not Blockers)
-1. No centralized Recommendation Engine — findings only, no actionable recommendations
-2. 2 of 11 Dataset Review sections missing (duplicate columns, outliers, distribution, feature quality)
-3. No `.featuresmith.yml` config system
-4. No dashboard, HTML report, or JSON renderer for review
-5. No CI score gating (`--fail-below`)
-6. No Plan/Apply/Contract lifecycle (`features/Dataset-Contracts-And-Planning.md`) — this is a Phase 4-6 addition, not a v0.3.0 gap; listed for completeness
+### Known Gaps for v0.4.0 (Documented, Not Blockers)
+1. 2 of 11 Dataset Review sections missing (duplicate columns, outliers, distribution — feature quality now implemented)
+2. No `.featuresmith.yml` config system
+3. No dashboard, HTML report, or JSON renderer for review
+4. No CI score gating (`--fail-below`, `--fail-below-dimension`)
+5. Class Balance dimension omitted (minority-class detector not implemented)
+6. DistributionHealthDimension uses `basic_statistics` stub (DistributionReviewer/OutlierReviewer not implemented)
+7. Dataset Contracts / Apply / `featuresmith.lock` not started — design complete, Phase 5-6
 
-All gaps are documented in the architecture documents as deferred/future work and do not block the v0.3.0 release.
+All gaps are documented in the architecture documents as deferred/future work and do not block the v0.4.0 release.

@@ -25,7 +25,20 @@ def main():
                 f"  - {dim.label:<20}: {dim.score:5.1f}/100 ({len(dim.contributing_findings)} findings)"
             )
 
-    # 4. Print findings
+    # 4. Print recommendations
+    print(f"\nTotal Recommendations: {len(review_result.recommendations)}")
+    for rec in review_result.recommendations:
+        print(f"[{rec.severity.upper()}] {rec.title} \u2014 {rec.suggested_action}")
+
+    # 5. Create a Plan from accepted recommendations
+    if review_result.recommendations:
+        accepted_ids = [review_result.recommendations[0].id]
+        plan = fs.plan(review_result, accept=accepted_ids)
+        print(f"\nPlan created with {len(plan.items)} item(s):")
+        for item in plan.items:
+            print(f"  {item.id}: {item.title}")
+
+    # 6. Print findings
     findings = [f for s in review_result.sections for f in s.findings]
     print(f"\nTotal Findings Identified: {len(findings)}")
     for finding in findings:

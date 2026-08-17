@@ -1,6 +1,6 @@
 # ML Readiness Score
 
-> **Status: Partially Implemented (Sprints 3-4.1).** The scoring framework (dimensions, registry, aggregator, schema), 8 built-in dimensions, Score Adapter integration with Review Engine, `fs.review()` score attachment, CLI `--no-score`, and `fs.score()` accessor are implemented. `FeatureQualityDimension`, `DistributionHealthDimension`, `ClassBalanceDimension`, `ConsistencyDimension` (as separate), CLI `--fail-below`/`--fail-below-dimension`, and `.featuresmith.yml` weight configuration remain future work. The scoring formula version is `0.2.0` (bumped from `0.1.0` when Leakage Risk dimension was added in Sprint 4.1).
+> **Status: Implemented (v0.4.0).** The scoring framework (dimensions, registry, aggregator, schema), 7 built-in dimensions, Score Adapter integration with Review Engine, `fs.review()` score attachment, CLI `--no-score`, and `fs.score()` accessor are implemented. `FeatureQualityDimension` implemented (v0.4.0). `DistributionHealthDimension` reads `basic_statistics` as a stub (DistributionReviewer/OutlierReviewer not yet implemented). `ClassBalanceDimension` omitted pending minority-class detector implementation. `ConsistencyDimension` and `DataQualityDimension` reconciled per spec §7.1 (cardinality double-count eliminated). CLI `--fail-below`/`--fail-below-dimension`, and `.featuresmith.yml` weight configuration remain future work. The scoring formula version is `0.3.0` (bumped from `0.2.0` after dimension reconciliation in v0.4.0).
 
 ## 1. Overview
 
@@ -63,13 +63,14 @@ The initial dimension set, each corresponding to specific reviewer sections:
 | Schema Health | `SchemaHealthReviewer` | No dtype mismatches, no unexpected schema drift from declared config |
 | Missing Values | `MissingValueReviewer` | No column above the configured missingness threshold |
 | Feature Quality | `FeatureQualityReviewer` | No near-constant, redundant, or low-signal columns flagged |
-| Distribution Health | `DistributionReviewer`, `OutlierReviewer` | No severe skew or outlier concentration beyond configured bounds |
-| Class Balance | New minority-class detector reading target column stats from `ProfileResult` | Target class proportions within a configurable acceptable range (classification tasks only; dimension is inapplicable and omitted for regression targets) |
+| Distribution Health | `BasicStatisticsReviewer` (stub) | No severe skew or outlier concentration beyond configured bounds; `DistributionReviewer`/`OutlierReviewer` not yet implemented |
 | Leakage Risk | `LeakageReviewer` | No target-leakage or identifier-leakage patterns detected (`Dataset-Diff-And-Leakage-Detection.md`) |
-| Data Quality | `DuplicateRowReviewer`, `DuplicateColumnReviewer`, `ConstantColumnReviewer` | No duplicate rows/columns, no constant columns |
+| Data Quality | `DuplicateRowReviewer`, `ConstantColumnReviewer` | No duplicate rows, no constant columns |
 | Consistency | `TypeReviewer`, `CardinalityReviewer` | Stable types across the dataset, no unexplained high-cardinality columns |
 
 Dimensions that don't apply to a given dataset (e.g., Class Balance on an unsupervised or regression dataset) are omitted from the aggregate rather than scored arbitrarily — an inapplicable dimension must never silently count as a perfect or zero score.
+
+**Note on dimension reconciliation (v0.4.0):** Per spec §7.1, Data Quality reads only `DuplicateRowReviewer` and `ConstantColumnReviewer` (cardinality moved to Consistency). Class Balance dimension is omitted pending minority-class detector implementation; per spec §7.4, an inapplicable dimension must never silently count as a perfect or zero score. Distribution Health reads `BasicStatisticsReviewer` as a stub until `DistributionReviewer`/`OutlierReviewer` are implemented. Effective scored dimensions: 7.
 
 ### 7.2 Explainability requirement
 
@@ -207,12 +208,12 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 - **Configuration tests**: custom weights in `.featuresmith.yml` are respected and reflected transparently in the rendered breakdown.
 - **CI-gating tests**: `--fail-below` and `--fail-below-dimension` produce documented exit codes across a matrix of injected scores.
 
-## 14.1 Implementation Status (as of v0.2.0)
+## 14.1 Implementation Status (as of v0.4.0)
 
 | Component | Status | Notes |
-|-----------|--------|-------|
+|---|---|---|
 | `ScoreDimension` interface | ✅ Implemented | `featuresmith/scoring/dimensions/base.py` |
-| Built-in Dimensions | 🟡 8/9 Implemented | See table below |
+| Built-in Dimensions | ✅ 7 Implemented | See table below |
 | `ScoreDimensionRegistry` | ✅ Implemented | `featuresmith/scoring/registry.py` |
 | `WeightedAggregator` | ✅ Implemented | `featuresmith/scoring/aggregator.py` |
 | `MLReadinessScore`, `DimensionScore` schemas | ✅ Implemented | `featuresmith/scoring/schema.py` |
@@ -223,7 +224,7 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 | CLI `--fail-below` | ❌ Not Implemented | Deferred |
 | CLI `--fail-below-dimension` | ❌ Not Implemented | Deferred |
 | `.featuresmith.yml` weight config | 🚧 Intentionally Deferred | Config system not yet built |
-| `scoring_version` | ✅ Implemented | Current: `0.2.0` (was `0.1.0` pre-Sprint 4.1) |
+| `scoring_version` | ✅ Implemented | Current: `0.3.0` (was `0.2.0` pre-v0.4.0) |
 
 ### Built-in Dimension Implementation Detail
 
@@ -231,12 +232,14 @@ featuresmith review train.csv --fail-below-dimension leakage_risk:90
 |----------------------|-------------|------------------|-------|
 | Schema Health | ✅ | `review.schema.health` | `SchemaHealthDimension` |
 | Missing Values | ✅ | `review.quality.missingness` | `MissingValuesDimension` |
-| Feature Quality | ❌ | `review.quality.feature_quality` | Requires `FeatureQualityReviewer` (Phase 4) |
-| Distribution Health | ❌ | `review.distribution` | Requires `DistributionReviewer` / `OutlierReviewer` |
-| Class Balance | ❌ | (target column stats) | Not yet implemented |
+| Feature Quality | ✅ | `review.quality.feature_quality` | `FeatureQualityDimension` (added v0.4.0) |
+| Distribution Health | ⚠️ Stub | `review.quality.basic_statistics` | Reads `BasicStatisticsReviewer`; `DistributionReviewer`/`OutlierReviewer` not yet implemented |
 | Leakage Risk | ✅ | `review.leakage` | `LeakageRiskDimension` (added Sprint 4.1) |
-| Data Quality | 🟡 Split | `review.quality.duplicates`, `review.quality.constants`, `review.quality.cardinality` | Implemented as 3 separate dimensions: `DuplicateRecordsDimension`, `ConstantColumnsDimension`, `HighCardinalityDimension` |
-| Consistency | 🟡 Split | `review.schema.types`, `review.quality.cardinality` | Implemented as 2 separate dimensions: `DataTypesDimension`, `HighCardinalityDimension` |
+| Data Quality | ✅ | `review.quality.duplicates`, `review.quality.constants` | Cardinality removed (no double-count with Consistency) |
+| Consistency | ✅ | `review.schema.types`, `review.quality.cardinality` | Cardinality only here |
+| Class Balance | ❌ | (target column stats) | Omitted — minority-class detector not implemented |
+
+**Note:** Effective scored dimensions = 7. Class Balance omitted per spec §7.4; Distribution Health reads `BasicStatisticsReviewer` as stub.
 
 ## 15. Future Extensions
 
