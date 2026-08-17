@@ -14,13 +14,13 @@ export const FEATURES: Feature[] = [
     icon: "ShieldCheck",
     title: "Dataset Code Review",
     description:
-      "Automate code reviews for your datasets before model training. 9 automated reviewers inspect schema, data types, missingness, duplicates, distributions, and snapshot deltas.",
+      "Automate code reviews for your datasets before model training. 10 automated reviewers inspect schema, data types, missingness, duplicates, distributions, feature quality, and snapshot deltas.",
   },
   {
     icon: "Sparkles",
     title: "ML Readiness Score",
     description:
-      "Know whether your dataset is actually ready for machine learning with an explainable 0–100 quality scorecard across 8 health dimensions.",
+      "Know whether your dataset is actually ready for machine learning with an explainable 0–100 quality scorecard across 7 effective health dimensions.",
   },
   {
     icon: "BarChart2",
@@ -86,39 +86,30 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     phase: "Phase 3",
-    title: "Diff-Aware Dataset Review (v0.3)",
+    title: "Developer Experience & Extensibility — Diff-Aware Review & Governance (v0.3)",
     status: "done",
     items: [
       "DiffReviewer: snapshot comparison integrated into the Review Engine as the 9th built-in reviewer",
       "fs.review(source, previous=...) SDK support attaching DatasetDiffResult to result.diff",
       "CLI: featuresmith review --previous for diff-aware reviews with exit-code CI gating",
       "GOVERNANCE.md baseline documenting release, versioning, and contribution governance",
+      "Candidates (not shipped): Streamlit dashboard, SQL connector, featuresmith-action GitHub Action, plugin entry-point autoloading, outlier & distribution reviewers",
     ],
   },
   {
     phase: "Phase 4",
-    title: "Developer Experience — Dashboard, Connectors, CI/CD, Plugins (v0.3+)",
-    status: "planned",
+    title: "Recommendation & Planning — Recommendation Engine & Plan primitive (v0.4)",
+    status: "done",
     items: [
-      "featuresmith dashboard (Streamlit) browser interface for browsing findings",
-      "SQL database connector (SQLAlchemy) & connector completion",
-      "featuresmith-action GitHub Action wrapping review gating",
-      "Pluggable extension registry via entry points for custom rules & connectors",
+      "Centralized Recommendation Engine merging findings into a ranked, explainable list",
+      "FeatureQualityReviewer completing coverage for near-constant, redundant, and low-signal features",
+      "featuresmith.plan module — fs.plan() and featuresmith plan producing inspectable Plan objects",
+      "Deterministic Plan step rendering and confidence ranking",
+      "Score dimension reconciliation: Consistency/Data Quality consolidation and Class Balance omission (7 effective dimensions)",
     ],
   },
   {
     phase: "Phase 5",
-    title: "Recommendation & Planning — Recommendation Engine & Plan primitive (v0.4)",
-    status: "planned",
-    items: [
-      "Centralized Recommendation Engine merging findings into a ranked, explainable list",
-      "FeatureQualityReviewer completing coverage for low-signal & redundant features",
-      "featuresmith.plan module — fs.plan() and featuresmith plan producing inspectable Plan objects",
-      "Deterministic Plan step rendering and confidence ranking",
-    ],
-  },
-  {
-    phase: "Phase 6",
     title: "Dataset Contracts — Apply, Validation, featuresmith.lock (v0.5)",
     status: "planned",
     items: [
@@ -128,7 +119,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 7",
+    phase: "Phase 6",
     title: "Certification & Observability — Badge, Scheduled Re-review, Quality History (v0.6-v1.0)",
     status: "planned",
     items: [
@@ -139,7 +130,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 8",
+    phase: "Phase 7",
     title: "AI-Assisted Planning — Provider Layer, Narration, Natural-Language Plan Authoring (v1.x)",
     status: "planned",
     items: [
@@ -150,7 +141,7 @@ export const ROADMAP: RoadmapItem[] = [
     ],
   },
   {
-    phase: "Phase 9",
+    phase: "Phase 8",
     title: "Ecosystem Integrations & Scale — Exporters, VS Code, Distributed Compute, Hosted Tier (v2.0+)",
     status: "planned",
     items: [
@@ -176,8 +167,8 @@ export const ARCHITECTURE_NODES: ArchitectureNode[] = [
   },
   {
     id: "review",
-    label: "Dataset Review Engine (v0.3.0)",
-    sublabel: "9 automated reviewers · 0–100 ML Readiness Score · 6 Leakage detectors · Diff-aware review",
+    label: "Dataset Review Engine (v0.4.0)",
+    sublabel: "10 automated reviewers · 0–100 ML Readiness Score · 6 Leakage detectors · Diff-aware review",
   },
   {
     id: "cli_sdk",
@@ -186,19 +177,18 @@ export const ARCHITECTURE_NODES: ArchitectureNode[] = [
   },
   {
     id: "plan",
-    label: "Recommendation & Plan Primitive (Phase 5+)",
-    sublabel: "Inspectable transformation steps and rationales before execution",
-    future: true,
+    label: "Recommendation & Plan Primitive (v0.4.0)",
+    sublabel: "Ranked recommendations compiled into inspectable transformation steps",
   },
   {
     id: "contract",
-    label: "Dataset Contracts & featuresmith.lock (Phase 6+)",
+    label: "Dataset Contracts & featuresmith.lock (Phase 5+)",
     sublabel: "Versioned lockfiles, post-apply validation, CI drift-gating",
     future: true,
   },
   {
     id: "ai",
-    label: "AI-Assisted Planning & Chat (Phase 8+)",
+    label: "AI-Assisted Planning & Chat (Phase 7+)",
     sublabel: "Natural-language plan authoring & narrative summaries over deterministic facts",
     future: true,
   },
@@ -248,6 +238,7 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "review()", href: "/docs/sdk/review" },
       { title: "diff()", href: "/docs/sdk/diff" },
       { title: "score()", href: "/docs/sdk/score" },
+      { title: "plan()", href: "/docs/sdk/plan" },
       { title: "Dataset", href: "/docs/sdk/dataset" },
       { title: "Data Models", href: "/docs/sdk/models" },
       { title: "Profile Models", href: "/docs/sdk/models/profile" },
@@ -268,6 +259,7 @@ export const DOC_SECTIONS: DocSection[] = [
       { title: "review", href: "/docs/cli/review" },
       { title: "diff", href: "/docs/cli/diff" },
       { title: "score", href: "/docs/cli/score" },
+      { title: "plan", href: "/docs/cli/plan" },
       { title: "Configuration", href: "/docs/cli/config" },
     ],
   },
@@ -298,7 +290,7 @@ export const PYTHON_EXAMPLE_CODE = `import featuresmith as fs
 dataset = fs.load("examples/data/processed/titanic.csv")
 print(f"Loaded {dataset.row_count} rows across {len(dataset.schema.names)} columns.")
 
-# 2. Run automated dataset code review with 9 reviewers
+# 2. Run automated dataset code review with 10 reviewers
 review_res = fs.review(dataset, target_column="survived")
 
 # 3. Extract 0-100 ML Readiness Scorecard
@@ -310,7 +302,12 @@ if scorecard:
 
 # 4. Compare dataset snapshots (Dataset Diff)
 diff_res = fs.diff("v1.csv", "v2.csv", target_column="survived")
-print(f"Health Verdict: {diff_res.summary.overall_health}")`
+print(f"Health Verdict: {diff_res.summary.overall_health}")
+
+# 5. Compile an inspectable remediation Plan from accepted recommendations
+plan = fs.plan(review_res, accept=["rec.quality.missingness.cabin"])
+for item in plan.items:
+    print(f"  - {item.title} (confidence {item.confidence})")`
 
 export const CLI_EXAMPLE_CODE = `# Install Featuresmith CLI
 pip install featuresmith-cli
@@ -323,6 +320,9 @@ featuresmith analyze examples/data/processed/titanic.csv --target survived
 
 # Compare two snapshot profiles (Dataset Diff Engine)
 featuresmith diff train_v1.csv train_v2.csv --target survived
+
+# Generate an inspectable remediation Plan from accepted recommendations
+featuresmith plan train.csv --target survived --accept rec.quality.missingness.cabin
 
 # Export report to JSON for CI/CD gating (0 = clean, 1 = findings)
 featuresmith review train.csv --target survived --format json --output report.json`

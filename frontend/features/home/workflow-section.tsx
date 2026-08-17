@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowRight, CheckCircle2, Database, FileDiff, ShieldAlert, Sparkles } from "lucide-react"
+import { ArrowRight, CheckCircle2, Database, FileDiff, ShieldAlert, Sparkles, ListChecks, ClipboardList } from "lucide-react"
 import { Section, SectionHeader, SectionLabel } from "@/components/ui/section"
 import { Container } from "@/components/ui/container"
 
@@ -18,14 +18,14 @@ const WORKFLOW_STEPS = [
     icon: CheckCircle2,
     title: "Dataset Review",
     subtitle: "fs.review() / featuresmith review",
-    description: "9 automated reviewers evaluate schema, data types, missingness, duplicates, cardinality, and snapshot deltas.",
+    description: "10 automated reviewers evaluate schema, data types, missingness, duplicates, cardinality, feature quality, and snapshot deltas.",
   },
   {
     step: "03",
     icon: Sparkles,
     title: "ML Readiness Score",
     subtitle: "Explainable 0–100 Scorecard",
-    description: "Get a clear 0-100 score across 8 health dimensions with actionable fix suggestions.",
+    description: "Get a clear 0-100 score across 7 effective health dimensions with actionable fix suggestions.",
   },
   {
     step: "04",
@@ -40,6 +40,20 @@ const WORKFLOW_STEPS = [
     title: "Dataset Diff",
     subtitle: "fs.diff() Snapshot Comparison",
     description: "Compare dataset versions to ensure schema, missingness, and health didn't regress.",
+  },
+  {
+    step: "06",
+    icon: ListChecks,
+    title: "Recommendations",
+    subtitle: "Ranked, Explainable Fixes",
+    description: "The Recommendation Engine merges findings into a ranked list with confidence and traceability.",
+  },
+  {
+    step: "07",
+    icon: ClipboardList,
+    title: "Plan",
+    subtitle: "fs.plan() / featuresmith plan",
+    description: "Compile accepted recommendations into an inspectable, deterministic Plan of transformation steps.",
   },
 ]
 
@@ -58,7 +72,7 @@ export function WorkflowSection() {
         </SectionHeader>
 
         {/* Horizontal / Grid workflow steps */}
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {WORKFLOW_STEPS.map((s, i) => (
             <motion.div
               key={s.step}

@@ -20,14 +20,18 @@ const QUICKSTART_CODE = `import featuresmith as fs
 dataset = fs.load("examples/data/processed/titanic.csv")
 print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 
-# 2. Perform automated dataset code review with 9 reviewers
+# 2. Perform automated dataset code review with 10 reviewers
 review_res = fs.review(dataset, target_column="survived")
 print(review_res.overall_summary)
 
 # 3. Extract 0–100 ML Readiness Scorecard
 scorecard = fs.score(review_res)
 if scorecard:
-    print(f"ML Readiness Score: {scorecard.overall:.1f}/100")`
+    print(f"ML Readiness Score: {scorecard.overall:.1f}/100")
+
+# 4. Compile an inspectable remediation Plan from accepted recommendations
+plan = fs.plan(review_res, accept=["rec.quality.missingness.cabin"])
+print(f"Plan: {len(plan.items)} step(s)")`
 
 const QUICK_LINKS = [
   {

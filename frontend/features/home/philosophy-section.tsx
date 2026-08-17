@@ -92,7 +92,7 @@ export function PhilosophySection() {
             </div>
             <div className="rounded-lg border border-border bg-background p-4">
               <span className="font-semibold text-foreground block mb-1">Not an Execution Engine</span>
-              No proprietary runtime. Recommendations compile to real Polars, pandas, and scikit-learn code.
+              No proprietary runtime. Plans compile accepted recommendations into inspectable steps today, with real Polars, pandas, and scikit-learn code generation planned for a future release.
             </div>
             <div className="rounded-lg border border-border bg-background p-4">
               <span className="font-semibold text-foreground block mb-1">Not a Feature Store</span>

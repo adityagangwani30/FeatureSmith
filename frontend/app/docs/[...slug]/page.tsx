@@ -97,7 +97,7 @@ export default async function DynamicDocPage({ params }: { params: Promise<{ slu
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {isPlannedGuide
                   ? "Plugin authoring and automatic plugin discovery are scheduled for the Plugin Ecosystem phase. The current release supports explicit in-repository rule registration."
-                  : "This API surface is planned and is not part of the supported v0.3.0 release."}
+                  : "This API surface is planned and is not part of the supported v0.4.0 release."}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link

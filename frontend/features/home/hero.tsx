@@ -18,8 +18,8 @@ import { AnimatedLogo } from "@/components/brand"
 const TERMINAL_LINES = [
   { text: "$ featuresmith review examples/data/processed/titanic.csv --target survived", type: "command" },
   { text: "", type: "blank" },
-  { text: "  Featuresmith Dataset Review (v0.3.0)", type: "output" },
-  { text: "  Rows: 891 | Columns: 12 | Engine: v0.3.0", type: "dim" },
+  { text: "  Featuresmith Dataset Review (v0.4.0)", type: "output" },
+  { text: "  Rows: 891 | Columns: 12 | Engine: v0.4.0", type: "dim" },
   { text: "", type: "blank" },
   { text: "  [CRITICAL] Missing Values in column 'cabin' (77.1% missing)", type: "output" },
   { text: "  [WARNING] High Skewness in column 'fare' (skewness 4.78)", type: "output" },
@@ -27,7 +27,8 @@ const TERMINAL_LINES = [
   { text: "  [PASSED] Leakage Detection: No target leakage found", type: "success" },
   { text: "", type: "blank" },
   { text: "  ML Readiness Score: 86.9 / 100", type: "success" },
-  { text: "  Summary: 5 of 8 dimensions healthy; 3 with findings", type: "dim" },
+  { text: "  Summary: 5 of 7 dimensions healthy; 2 with findings", type: "dim" },
+  { text: "  Recommendations: 3 ranked fix suggestions", type: "dim" },
   { text: "  ────────────────────────────────────────", type: "dim" },
 ]
 
@@ -88,7 +89,7 @@ export function Hero() {
           >
             <Badge variant="outline" className="gap-1.5 px-3 py-1 text-xs">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-              v0.3.0 &mdash; Diff-Aware Dataset Review
+              v0.4.0 &mdash; Recommendation &amp; Planning
             </Badge>
           </motion.div>
 
@@ -135,7 +136,7 @@ export function Hero() {
               <GithubIcon className="h-4 w-4" />
               View on GitHub
               <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                v0.3.0
+                v0.4.0
               </span>
             </Link>
           </motion.div>

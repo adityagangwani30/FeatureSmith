@@ -82,12 +82,12 @@ pre-commit install`} language="bash" showCopy />
         <section className="mb-8" aria-labelledby="qs-notebooks">
           <h3 id="qs-notebooks" className="mb-3 text-lg font-semibold text-foreground">Interactive Tutorial Notebooks (Recommended)</h3>
           <p className="mb-4 text-sm text-muted-foreground">
-            The fastest way to master Featuresmith v0.2.0 is through our official hands-on Jupyter notebook series in <code>examples/notebooks/</code>:
+            The fastest way to master Featuresmith v0.4.0 is through our official hands-on Jupyter notebook series in <code>examples/notebooks/</code>:
           </p>
           <div className="space-y-2.5 mb-6">
             {[
               { file: "01_getting_started.ipynb", title: "01. Getting Started", desc: "Dataset loading (fs.load), statistical profiling (fs.profile), automated review (fs.review), and readiness scoring (fs.score)." },
-              { file: "02_dataset_review.ipynb", title: "02. Complete Dataset Review", desc: "Deep dive into the 8 automated reviewers, finding severities, and section categories." },
+              { file: "02_dataset_review.ipynb", title: "02. Complete Dataset Review", desc: "Deep dive into the 10 automated reviewers, finding severities, and section categories." },
               { file: "03_ml_readiness_score.ipynb", title: "03. ML Readiness Score", desc: "Understanding 0–100 scorecards, mathematical dimension weights, and actionable remediation suggestions." },
               { file: "04_leakage_detection.ipynb", title: "04. Intelligent Leakage Detection", desc: "Catching target correlations, future timestamps, identifier shapes, and duplicate target copies." },
               { file: "05_dataset_diff.ipynb", title: "05. Dataset Diff Engine", desc: "Comparing dataset versions (fs.diff) to detect schema drift, missingness spikes, and quality regressions." },
@@ -122,7 +122,7 @@ print(f"Loaded {dataset.row_count} rows across {dataset.column_count} columns.")
 profile = fs.profile(dataset)
 print(f"Missingness: {profile.dataset_summary.missing_percentage:.2f}%")
 
-# 3. Perform automated dataset code review with 8 reviewers
+# 3. Perform automated dataset code review with 10 reviewers
 review_result = fs.review(dataset, target_column="survived")
 print(review_result.overall_summary)
 
@@ -730,14 +730,14 @@ profile = fs.profile("wide_table.csv", max_correlation_columns=50)`} language="p
     subtitle: "Automated code review discipline for tabular datasets",
     category: "Core Concepts",
     seoTitle: "Dataset Review Engine Concept",
-    seoDescription: "Learn how Featuresmith's Review Engine brings code review discipline to machine learning datasets across 8 automated reviewers.",
+    seoDescription: "Learn how Featuresmith's Review Engine brings code review discipline to machine learning datasets across 10 automated reviewers.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           In traditional software engineering, developers submit pull requests and run automated linters and code reviews before merging code to production. In data engineering and machine learning, datasets are frequently trained on without any formal review step — leading to silent model failures in production.
         </p>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith's <strong>Dataset Review Engine</strong> establishes code review discipline for tabular datasets by running 8 specialized reviewers to evaluate schema health, data types, missingness, duplicates, constant columns, cardinality, distributions, and target leakage.
+          Featuresmith's <strong>Dataset Review Engine</strong> establishes code review discipline for tabular datasets by running 10 specialized reviewers to evaluate schema health, data types, missingness, duplicates, constant columns, cardinality, distributions, feature quality, and target leakage.
         </p>
 
         <section className="mb-8" aria-labelledby="reviewers-vs-rules">
@@ -777,25 +777,27 @@ profile = fs.profile("wide_table.csv", max_correlation_columns=50)`} language="p
     subtitle: "Explainable 0–100 quality scorecard for tabular data",
     category: "Core Concepts",
     seoTitle: "ML Readiness Score Concept",
-    seoDescription: "Understand how Featuresmith computes an explainable 0–100 ML Readiness Score across 8 health dimensions.",
+    seoDescription: "Understand how Featuresmith computes an explainable 0–100 ML Readiness Score across 7 effective health dimensions.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          The <strong>ML Readiness Score</strong> answers a fundamental question: <em>"Is this dataset ready for model training?"</em> It translates complex statistical profiles and finding lists into a single, explainable 0–100 score supported by 8 weighted health dimensions.
+          The <strong>ML Readiness Score</strong> answers a fundamental question: <em>"Is this dataset ready for model training?"</em> It translates complex statistical profiles and finding lists into a single, explainable 0–100 score supported by 7 effective weighted health dimensions.
         </p>
 
         <section className="mb-8" aria-labelledby="score-dimensions">
-          <h3 id="score-dimensions" className="mb-3 text-lg font-semibold text-foreground">The 8 Scoring Dimensions</h3>
+          <h3 id="score-dimensions" className="mb-3 text-lg font-semibold text-foreground">The 7 Scoring Dimensions</h3>
           <ul className="space-y-2 text-sm text-muted-foreground" role="list">
             <li><strong>1. Schema Health:</strong> Evaluates structural validity and column naming.</li>
             <li><strong>2. Missing Values:</strong> Evaluates column null ratios and missingness spikes.</li>
-            <li><strong>3. Duplicate Records:</strong> Measures row-level duplicate counts and ratios.</li>
-            <li><strong>4. Data Types:</strong> Inspects data type choices, text fields, and numeric conversions.</li>
-            <li><strong>5. Constant Columns:</strong> Checks for zero-variance and empty features.</li>
-            <li><strong>6. High Cardinality:</strong> Evaluates high-ratio categorical columns.</li>
-            <li><strong>7. Dataset Structure:</strong> Analyzes distribution skewness and kurtosis anomalies.</li>
-            <li><strong>8. Leakage Risk:</strong> Evaluates target correlation, timestamp, and identifier leakage risk.</li>
+            <li><strong>3. Feature Quality:</strong> Flags near-constant, redundant, and low-signal columns.</li>
+            <li><strong>4. Distribution Health:</strong> Analyzes distribution skewness and kurtosis anomalies.</li>
+            <li><strong>5. Leakage Risk:</strong> Evaluates target correlation, timestamp, and identifier leakage risk.</li>
+            <li><strong>6. Data Quality:</strong> Consolidated dimension covering duplicate rows and constant columns.</li>
+            <li><strong>7. Consistency:</strong> Consolidated dimension covering data types and high cardinality.</li>
           </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            A registered <strong>Class Balance</strong> dimension exists but is never applicable until its minority-class detector ships, so it is omitted from the aggregate rather than silently counted as a perfect or zero score.
+          </p>
         </section>
 
         <section className="mb-8" aria-labelledby="score-math">
@@ -809,7 +811,7 @@ profile = fs.profile("wide_table.csv", max_correlation_columns=50)`} language="p
             <li><code>INFO finding</code>: -5.0 points</li>
           </ul>
           <p className="mt-3 text-sm text-muted-foreground">
-            In v0.2.0, all applicable dimensions carry equal default weight (<code>1.0</code>). The overall score is the weighted arithmetic mean of applicable dimension scores. Inapplicable dimensions are automatically omitted and weights renormalize so missing dimensions never silently penalize the score.
+            All applicable dimensions carry equal default weight (<code>1.0</code>). The overall score is the weighted arithmetic mean of applicable dimension scores. Inapplicable dimensions are automatically omitted and weights renormalize so missing dimensions never silently penalize the score.
           </p>
         </section>
 
@@ -989,7 +991,7 @@ fs.profile() fs.analyze() fs.review()
             </div>
             <div className="rounded-lg border border-border p-4 bg-card">
               <p className="font-semibold text-foreground">"How do I run a comprehensive automated dataset code review?"</p>
-              <p className="mt-1 text-xs">Use <code>rev = fs.review(ds, target_column=...)</code> to run 9 reviewers and get structured sections.</p>
+              <p className="mt-1 text-xs">Use <code>rev = fs.review(ds, target_column=...)</code> to run 10 reviewers and get structured sections.</p>
             </div>
             <div className="rounded-lg border border-border p-4 bg-card">
               <p className="font-semibold text-foreground">"How ready does the dataset appear for machine learning?"</p>
@@ -1100,7 +1102,7 @@ fs.profile() fs.analyze() fs.review()
           <div className="rounded-lg border border-border bg-card p-5">
             <h3 className="text-base font-semibold text-foreground mb-2">9. ML Readiness Score Interpretation</h3>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
-              <li><strong>WHAT DOES THIS MEAN?</strong> Translates overall review health into a single 0–100 quality scorecard across 8 dimensions.</li>
+              <li><strong>WHAT DOES THIS MEAN?</strong> Translates overall review health into a single 0–100 quality scorecard across 7 effective dimensions.</li>
               <li><strong>HOW TO READ SCORES:</strong>
                 <ul className="list-disc pl-4 mt-1 space-y-1">
                   <li><strong>100.0 / 100:</strong> Clean baseline; zero rule findings triggered (does not guarantee predictive accuracy).</li>
@@ -1164,7 +1166,7 @@ fs.profile() fs.analyze() fs.review()
                   <td className="px-4 py-3 font-mono text-xs">featuresmith analyze data.csv --target y</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 font-medium text-foreground">Run complete 9-reviewer dataset code review</td>
+                  <td className="px-4 py-3 font-medium text-foreground">Run complete 10-reviewer dataset code review</td>
                   <td className="px-4 py-3 font-mono text-xs text-primary">fs.review(ds, target_column="y")</td>
                   <td className="px-4 py-3 font-mono text-xs">featuresmith review data.csv --target y</td>
                 </tr>
@@ -1330,7 +1332,7 @@ fs.profile() fs.analyze() fs.review()
             {
               term: "Reviewer",
               meaning: "A domain-specific inspector inside the Review Engine that aggregates rule findings into a ReviewSection.",
-              matters: "9 built-in reviewers evaluate dataset health deterministically.",
+              matters: "10 built-in reviewers evaluate dataset health deterministically.",
               example: "LeakageReviewer evaluating target leakage risks."
             },
             {
@@ -1341,7 +1343,7 @@ fs.profile() fs.analyze() fs.review()
             },
             {
               term: "ML Readiness Score",
-              meaning: "An explainable 0–100 quality scorecard evaluating dataset health across 8 weighted dimensions.",
+              meaning: "An explainable 0–100 quality scorecard evaluating dataset health across 7 effective weighted dimensions.",
               matters: "Provides a single auditable metric to gate pre-training data pipelines.",
               example: "Score of 86.9/100 on Titanic dataset."
             },
@@ -1598,8 +1600,8 @@ for finding in result.findings:
           {[
             { href: "/docs/sdk/models/profile", title: "Profile Models", desc: "DatasetSummary, ColumnProfile, the four typed column profiles, the three aggregates, and both metadata records returned by fs.profile()." },
             { href: "/docs/sdk/models/rules", title: "Rule & Finding Models", desc: "RuleResult, RuleFinding, finding severities, and the eight built-in validation rules with their default thresholds." },
-            { href: "/docs/sdk/models/review", title: "Review Models", desc: "ReviewResult, ReviewSection, the six ReviewCategory values, the four Severity levels, and the eight built-in reviewers." },
-            { href: "/docs/sdk/models/score", title: "Score Models", desc: "MLReadinessScore, DimensionScore, the eight scoring dimensions, and the deduction formula behind the 0-100 scorecard." },
+            { href: "/docs/sdk/models/review", title: "Review Models", desc: "ReviewResult, ReviewSection, the six ReviewCategory values, the four Severity levels, and the ten built-in reviewers." },
+            { href: "/docs/sdk/models/score", title: "Score Models", desc: "MLReadinessScore, DimensionScore, the seven effective scoring dimensions, and the deduction formula behind the 0-100 scorecard." },
             { href: "/docs/sdk/models/leakage", title: "Leakage Models", desc: "LeakageFinding and the six pattern detectors that flag target leakage." },
             { href: "/docs/sdk/models/diff", title: "Diff Models", desc: "DatasetDiffResult and every nested delta model produced by fs.diff()." },
           ].map((link) => (
@@ -1978,7 +1980,7 @@ for finding in result.findings:
     subtitle: "SDK Reference: review engine output objects",
     category: "Python SDK",
     seoTitle: "SDK Review Models",
-    seoDescription: "Full field reference for ReviewResult, ReviewSection, categories, severities, and the eight built-in reviewers.",
+    seoDescription: "Full field reference for ReviewResult, ReviewSection, categories, severities, and the ten built-in reviewers.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
@@ -1989,10 +1991,11 @@ for finding in result.findings:
           <h3 id="review-result-model" className="mb-3 text-lg font-semibold text-foreground">ReviewResult</h3>
           <CodeBlock code={`@dataclass(frozen=True, slots=True)
 class ReviewResult:
-    engine_version: str                       # "0.3.0"
+    engine_version: str                       # "0.4.0"
     dataset_summary: DatasetSummary
     generated_at: datetime                    # UTC
     sections: Sequence[ReviewSection]
+    recommendations: Sequence[Recommendation] # ranked, cross-section fix list
     overall_summary: str
     score: MLReadinessScore | None
     diff: DatasetDiffResult | None = None                          # populated when previous snapshot provided
@@ -2038,14 +2041,14 @@ class Severity(Enum):
     INFO = "info"
     PASSED = "passed"`} language="python" showCopy={false} />
           <p className="mt-3 text-sm text-muted-foreground">
-            <code>DIFF</code>, <code>FEATURE_QUALITY</code>, and <code>CUSTOM</code> are reserved categories. The built-in reviewers currently emit <code>schema</code>, <code>quality</code>, <code>leakage</code>, and <code>diff</code> (when a previous snapshot is provided) sections.
+            <code>DIFF</code>, <code>FEATURE_QUALITY</code>, and <code>CUSTOM</code> are reserved categories. The built-in reviewers currently emit <code>schema</code>, <code>quality</code>, <code>leakage</code>, and <code>diff</code> (when a previous snapshot is provided) sections; the FeatureQualityReviewer emits its findings under the <code>quality</code> category.
           </p>
         </section>
 
         <section className="mb-8" aria-labelledby="review-builtins">
           <h3 id="review-builtins" className="mb-3 text-lg font-semibold text-foreground">Built-in Reviewers</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Nine reviewers ship out of the box. They are configurable via the <code>reviewer_config</code> argument of <code>fs.review()</code>, keyed by reviewer ID:
+            Ten reviewers ship out of the box. They are configurable via the <code>reviewer_config</code> argument of <code>fs.review()</code>, keyed by reviewer ID:
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="min-w-full divide-y divide-border text-left text-sm">
@@ -2112,11 +2115,17 @@ class Severity(Enum):
                   <td className="px-4 py-3">diff</td>
                   <td className="px-4 py-3 font-mono text-xs">requires previous snapshot</td>
                 </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-xs">review.quality.feature_quality</td>
+                  <td className="px-4 py-3">Feature Quality</td>
+                  <td className="px-4 py-3">quality</td>
+                  <td className="px-4 py-3 font-mono text-xs">variance_threshold=1e-10, correlation_threshold=0.95, min_target_correlation=0.05</td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            The schema health reviewer surfaces fully empty columns (via <code>FullyEmptyColumnsRule</code>) plus structural warnings for empty datasets. The missingness reviewer intentionally excludes fully empty columns so each issue is reported exactly once. The data types reviewer flags numeric columns where every non-null value is distinct (identifier-like) and columns classified as free text. The leakage reviewer dispatches the pattern detectors documented on the <a href="/docs/sdk/models/leakage" className="text-primary hover:underline">Leakage Models</a> page. The diff reviewer activates only when a previous snapshot is provided and compares the two profiles using the standalone Dataset Diff Engine.
+            The schema health reviewer surfaces fully empty columns (via <code>FullyEmptyColumnsRule</code>) plus structural warnings for empty datasets. The missingness reviewer intentionally excludes fully empty columns so each issue is reported exactly once. The data types reviewer flags numeric columns where every non-null value is distinct (identifier-like) and columns classified as free text. The feature quality reviewer flags near-constant numeric columns, highly correlated redundant column pairs, and low-signal high-cardinality columns. The leakage reviewer dispatches the pattern detectors documented on the <a href="/docs/sdk/models/leakage" className="text-primary hover:underline">Leakage Models</a> page. The diff reviewer activates only when a previous snapshot is provided and compares the two profiles using the standalone Dataset Diff Engine.
           </p>
         </section>
 
@@ -2144,7 +2153,7 @@ for section in result.sections:
     subtitle: "SDK Reference: ML Readiness Score objects",
     category: "Python SDK",
     seoTitle: "SDK Score Models",
-    seoDescription: "Full field reference for MLReadinessScore, DimensionScore, the eight scoring dimensions, and the deduction formula.",
+    seoDescription: "Full field reference for MLReadinessScore, DimensionScore, the seven effective scoring dimensions, and the deduction formula.",
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
@@ -2155,7 +2164,7 @@ for section in result.sections:
           <h3 id="score-ml-result" className="mb-3 text-lg font-semibold text-foreground">MLReadinessScore</h3>
           <CodeBlock code={`@dataclass(frozen=True, slots=True)
 class MLReadinessScore:
-    scoring_version: str                 # "0.2.0"
+    scoring_version: str                 # "0.3.0"
     overall: float                       # 0.0 to 100.0
     dimensions: tuple[DimensionScore, ...]
     summary: str
@@ -2181,9 +2190,9 @@ class DimensionScore:
         </section>
 
         <section className="mb-8" aria-labelledby="score-dimensions">
-          <h3 id="score-dimensions" className="mb-3 text-lg font-semibold text-foreground">The Eight Dimensions</h3>
+          <h3 id="score-dimensions" className="mb-3 text-lg font-semibold text-foreground">The Seven Effective Dimensions</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            Each dimension maps one-to-one onto a built-in reviewer section and carries a uniform default weight of <code>1.0</code>:
+            Each dimension carries a uniform default weight of <code>1.0</code>. Consolidated dimensions read from multiple review sections; the registered Class Balance dimension is never applicable until its minority-class detector ships:
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="min-w-full divide-y divide-border text-left text-sm">
@@ -2191,19 +2200,18 @@ class DimensionScore:
                 <tr>
                   <th className="px-4 py-3">Dimension ID</th>
                   <th className="px-4 py-3">Dimension</th>
-                  <th className="px-4 py-3">Backing Section</th>
+                  <th className="px-4 py-3">Backing Section(s)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-muted-foreground">
                 {[
                   ["score.schema_health", "Schema Health", "review.schema.health"],
                   ["score.missing_values", "Missing Values", "review.quality.missingness"],
-                  ["score.duplicate_records", "Duplicate Records", "review.quality.duplicates"],
-                  ["score.data_types", "Data Types", "review.schema.types"],
-                  ["score.constant_columns", "Constant Columns", "review.quality.constants"],
-                  ["score.high_cardinality", "High Cardinality", "review.quality.cardinality"],
-                  ["score.dataset_structure", "Dataset Structure", "review.quality.basic_statistics"],
+                  ["score.feature_quality", "Feature Quality", "review.quality.feature_quality"],
+                  ["score.distribution_health", "Distribution Health", "review.quality.basic_statistics"],
                   ["score.leakage_risk", "Leakage Risk", "review.leakage"],
+                  ["score.data_quality", "Data Quality", "review.quality.duplicates + review.quality.constants"],
+                  ["score.consistency", "Consistency", "review.schema.types + review.quality.cardinality"],
                 ].map(([id, label, section]) => (
                   <tr key={id}>
                     <td className="px-4 py-3 font-mono text-xs">{id}</td>
@@ -2214,6 +2222,9 @@ class DimensionScore:
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            <code>score.class_balance</code> (Class Balance) is registered but never applicable: the minority-class detector is not yet implemented, so it is omitted from the aggregate rather than silently counted as a perfect or zero score.
+          </p>
         </section>
 
         <section className="mb-8" aria-labelledby="score-formula">
@@ -2725,7 +2736,7 @@ except SourceNotFoundError:
     render: () => (
       <>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Featuresmith v0.3.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
+          Featuresmith v0.4.0 supports programmatic rule configurations in the Python SDK and command-line flags in the CLI. File-based configuration is not yet active.
         </p>
 
         <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex gap-3">
@@ -2735,7 +2746,7 @@ except SourceNotFoundError:
           <div>
             <p className="font-semibold text-foreground mb-1 text-xs">Roadmap Notice: File-Based Config (.featuresmith.yml)</p>
             <p className="text-xs">
-              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 4+. In the current release, configure rules directly in code or use CLI flags.
+              Layered file-based configuration (via a <code>.featuresmith.yml</code> file at the project root) is a planned enhancement scheduled for Phase 5+. In the current release, configure rules directly in code or use CLI flags.
             </p>
           </div>
         </div>
@@ -2966,7 +2977,7 @@ jobs:
         <section className="mb-8" aria-labelledby="cicd-customization">
           <h3 id="cicd-customization" className="mb-3 text-lg font-semibold text-foreground">Customizing Gates</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            In v0.3.0, file-based configuration via a local <code>.featuresmith.yml</code> file is not yet available (it is a planned enhancement for a future release). Customize the strictness of your CI gate by passing the <code>--severity</code> flag to the CLI.
+            In v0.4.0, file-based configuration via a local <code>.featuresmith.yml</code> file is not yet available (it is a planned enhancement for a future release). Customize the strictness of your CI gate by passing the <code>--severity</code> flag to the CLI.
           </p>
           <CodeBlock code={`# Only fail builds on critical violations (fully empty columns or target leakage)
 featuresmith analyze data/train.csv --target churn --severity critical`} language="bash" showCopy />
@@ -2985,6 +2996,21 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           Featuresmith release schedules and packaged capabilities are tracked below.
         </p>
+
+        <section className="mb-8" aria-labelledby="rel-v040">
+          <h3 id="rel-v040" className="mb-3 text-lg font-semibold text-foreground">Featuresmith v0.4.0</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Featuresmith v0.4.0 completes Phase 4 of the roadmap: Recommendation &amp; Planning. It adds a centralized Recommendation Engine, the FeatureQualityReviewer, and the Plan primitive.
+          </p>
+          <h4 className="mt-4 mb-2 text-sm font-semibold text-foreground">Highlights:</h4>
+          <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Recommendation Engine</strong>: Merges findings from every review section into a single ranked, explainable list with deterministic confidence scores and full traceability to originating findings and reviewers.</li>
+            <li><strong>FeatureQualityReviewer</strong>: 10th built-in reviewer detecting near-constant columns, redundant column pairs, and low-signal high-cardinality columns.</li>
+            <li><strong>Plan Primitive</strong>: <code>fs.plan(result, accept=[...])</code> and <code>featuresmith plan</code> compile accepted recommendations into an inspectable, deterministic Plan of transformation steps.</li>
+            <li><strong>Score Dimension Reconciliation</strong>: Consistency and Data Quality dimensions consolidated (cardinality double-count eliminated); Class Balance omitted until its detector ships — 7 effective scored dimensions.</li>
+            <li><strong>Diff-Aware Review Continues</strong>: The v0.3.0 DiffReviewer remains fully supported via <code>fs.review(source, previous=...)</code> and <code>featuresmith review --previous</code>.</li>
+          </ul>
+        </section>
 
         <section className="mb-8" aria-labelledby="rel-v030">
           <h3 id="rel-v030" className="mb-3 text-lg font-semibold text-foreground">Featuresmith v0.3.0</h3>
@@ -3032,14 +3058,14 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="rel-distribution">
           <h3 id="rel-distribution" className="mb-3 text-lg font-semibold text-foreground">Distribution Packages Scope</h3>
           <p className="mb-3 text-sm text-muted-foreground">
-            The following packages are officially published on PyPI for <code>v0.3.0</code>:
+            The following packages are officially published on PyPI for <code>v0.4.0</code>:
           </p>
           <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
             <li><code>featuresmith-core</code>: Core engine library.</li>
             <li><code>featuresmith-cli</code>: CLI thin wrapper client.</li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase (Phase 4) and is not published in <code>v0.3.0</code>.
+            Note: <code>featuresmith-dashboard</code> is deferred to a future roadmap phase and is not published in <code>v0.4.0</code>.
           </p>
         </section>
       </>
@@ -3056,7 +3082,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-privacy">
           <h3 id="faq-privacy" className="mb-2 text-base font-semibold text-foreground">Does Featuresmith send my dataset to third-party AI APIs?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <strong>No.</strong> Featuresmith v0.3.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 7+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
+            <strong>No.</strong> Featuresmith v0.4.0 does not contain active LLM integrations or run cloud requests. In future AI phases (Phase 7+), provider integration is strictly opt-in and configured entirely via API keys. Furthermore, the AI layer only receives computed, aggregated statistical summaries (never raw data table rows), ensuring high privacy constraints.
           </p>
         </section>
 
@@ -3070,7 +3096,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
         <section className="mb-8" aria-labelledby="faq-extend">
           <h3 id="faq-extend" className="mb-2 text-base font-semibold text-foreground">Can I add custom connectors and rules?</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Yes! Custom connectors can be registered in <code>featuresmith.connectors.registry</code> and custom rules can be registered in the rule engine directly. Dynamic plugin autoloading via packaging entry points is scheduled for Phase 4.
+            Yes! Custom connectors can be registered in <code>featuresmith.connectors.registry</code> and custom rules can be registered in the rule engine directly. Dynamic plugin autoloading via packaging entry points is scheduled for a future release.
           </p>
         </section>
       </>
@@ -3132,7 +3158,7 @@ uv run pytest`} language="bash" showCopy />
         <section className="mb-8 mt-6" aria-labelledby="review-overview">
           <h3 id="review-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Performs a comprehensive engineering review of a dataset. It orchestrates a multi-stage pipeline: resolving inputs, constructing context, executing registered built-in reviewers in isolation, and computing the deterministic ML Readiness Score. The review reuses computed rule findings and profiles under the hood so no raw data is re-read or re-profiled during reviewer dispatch.
+            Performs a comprehensive engineering review of a dataset. It orchestrates a multi-stage pipeline: resolving inputs, constructing context, executing registered built-in reviewers in isolation, generating ranked recommendations via the centralized Recommendation Engine, and computing the deterministic ML Readiness Score. The review reuses computed rule findings and profiles under the hood so no raw data is re-read or re-profiled during reviewer dispatch.
           </p>
         </section>
 
@@ -3163,10 +3189,11 @@ uv run pytest`} language="bash" showCopy />
             Returns a frozen <code>ReviewResult</code> dataclass containing:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.3.0"</code>).</li>
+            <li><code>engine_version</code>: <code>str</code> representing the Review Engine result schema version (currently <code>"0.4.0"</code>).</li>
             <li><code>dataset_summary</code>: <code>DatasetSummary</code> with row and column count descriptors.</li>
             <li><code>generated_at</code>: UTC timestamp.</li>
             <li><code>sections</code>: Sorted sequence of <code>ReviewSection</code> objects representing the active reviewers' sections (sorted from critical to passed).</li>
+            <li><code>recommendations</code>: Flat, ranked, cross-section list of <code>Recommendation</code> objects generated by the centralized Recommendation Engine.</li>
             <li><code>overall_summary</code>: Concise plain-text roll-up.</li>
             <li><code>score</code>: An optional <code>MLReadinessScore</code> containing overall rating and per-dimension breakdown.</li>
             <li><code>diff</code>: <code>DatasetDiffResult | None</code>. When <code>previous</code> is provided, the DiffReviewer attaches the computed diff result; otherwise <code>None</code>.</li>
@@ -3212,7 +3239,7 @@ print(report_text)`} language="python" showCopy />
         <section className="mb-8" aria-labelledby="review-output-ex">
           <h3 id="review-output-ex" className="mb-3 text-lg font-semibold text-foreground">Output Example</h3>
           <CodeBlock code={`# result.overall_summary
-'8 of 8 sections passed with 0 finding(s) identified across the review.'
+'10 of 10 sections passed with 0 finding(s) identified across the review.'
 
 # result.score.overall
 100.0`} showCopy={false} />
@@ -3233,7 +3260,7 @@ print(report_text)`} language="python" showCopy />
         <section className="mb-8" aria-labelledby="review-limitations">
           <h3 id="review-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
           <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
-            <li><strong>Deferred Features</strong>: Centralized recommendation generation is not implemented. Reviewers output findings only. Observability trend logs and HTML static reports are planned for future releases.</li>
+            <li><strong>Deterministic &amp; Advisory</strong>: Recommendations are generated deterministically from computed findings and are purely advisory — nothing is auto-applied unless coded into your caller logic. Observability trend logs and HTML static reports are planned for future releases.</li>
           </ul>
         </section>
 
@@ -3414,9 +3441,9 @@ report_text = fs.render_diff(result, target="console")`} language="python" showC
             Returns an <code>MLReadinessScore</code> dataclass (or <code>None</code> if no dimensions are applicable) containing:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-            <li><code>scoring_version</code>: <code>str</code> (currently <code>"0.2.0"</code>).</li>
+            <li><code>scoring_version</code>: <code>str</code> (currently <code>"0.3.0"</code>).</li>
             <li><code>overall</code>: <code>float</code> score scaled from 0.0 to 100.0, representing the weighted average of all applicable dimensions.</li>
-            <li><code>dimensions</code>: Sequence of <code>DimensionScore</code> objects carrying metrics for Schema Health, Missing Values, Duplicate Records, Data Types, Constant Columns, High Cardinality, Dataset Structure, and Leakage Risk.</li>
+            <li><code>dimensions</code>: Sequence of <code>DimensionScore</code> objects carrying metrics for Schema Health, Missing Values, Feature Quality, Distribution Health, Leakage Risk, Data Quality, and Consistency.</li>
           </ul>
           <p className="mt-3 text-sm text-muted-foreground">
             Each <code>DimensionScore</code> includes a <code>score</code>, <code>weight</code>, <code>rationale</code>, <code>contributing_findings</code>, and <code>suggested_actions</code>.
@@ -3471,6 +3498,99 @@ if score:
           <h3 id="score-cross-links" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
           <p className="text-sm text-muted-foreground">
             See the review SDK reference <a href="/docs/sdk/review" className="text-primary hover:underline">fs.review()</a> and the CLI scorecard overview <a href="/docs/cli/score" className="text-primary hover:underline">featuresmith score</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "sdk/plan": {
+    title: "fs.plan()",
+    subtitle: "SDK Reference: compile a deterministic Plan from accepted recommendations",
+    category: "Python SDK",
+    seoTitle: "fs.plan() API Reference",
+    seoDescription: "API documentation and parameter reference for featuresmith.plan(), the Plan primitive, and PlanItem.",
+    render: () => (
+      <>
+        <CodeBlock code={`def plan(result: ReviewResult, *, accept: list[str] | None = None) -> Plan:`} language="python" showCopy={false} />
+
+        <section className="mb-8 mt-6" aria-labelledby="plan-overview">
+          <h3 id="plan-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Compiles a deterministic <code>Plan</code> from the accepted recommendations in a <code>ReviewResult</code>. The Plan is the central domain primitive of the Dataset Contract lifecycle: an ordered, inspectable set of steps derived from accepted recommendations, with full traceability back to the originating findings and reviewers. It is deterministic (the same accepted recommendations always produce the same Plan), inspectable (every step is readable before anything runs), serializable (versioned schema), and AI-independent (a Plan from rules and a Plan from natural language are identical objects).
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-when-use">
+          <h3 id="plan-when-use" className="mb-3 text-lg font-semibold text-foreground">When to Use It</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Use after <code>fs.review()</code> to turn the ranked, explainable recommendations produced by the Recommendation Engine into an actionable, human-reviewable plan. Review the recommendation IDs first, then pass the ones you accept via <code>accept</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-params">
+          <h3 id="plan-params" className="mb-3 text-lg font-semibold text-foreground">Parameters</h3>
+          <ul className="space-y-3 text-sm text-muted-foreground" role="list">
+            <li><strong>result</strong>: <code>ReviewResult</code>. An existing result object produced by <code>fs.review()</code>.</li>
+            <li><strong>accept</strong>: <code>list[str] | None</code>. Recommendation IDs to include in the Plan. If <code>None</code> or empty, returns an empty Plan.</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Raises <code>ValueError</code> if any accepted recommendation ID is not found in the review's recommendations.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-returns">
+          <h3 id="plan-returns" className="mb-3 text-lg font-semibold text-foreground">Return Value</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Returns a <code>Plan</code> dataclass containing:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><code>plan_schema_version</code>: <code>str</code> (currently <code>"0.1.0"</code>).</li>
+            <li><code>items</code>: Ordered tuple of <code>PlanItem</code> objects, one per accepted recommendation.</li>
+            <li><code>source_review_id</code>: Optional identifier of the <code>ReviewResult</code> the Plan was derived from.</li>
+            <li><code>accepted_recommendation_ids</code>: The recommendation IDs that were accepted to create this Plan.</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Each <code>PlanItem</code> includes an <code>id</code>, <code>recommendation_id</code>, <code>title</code>, <code>rationale</code>, <code>confidence</code> (0.0 to 1.0), <code>severity</code> (<code>critical</code>, <code>warning</code>, or <code>info</code>), <code>affected_columns</code>, <code>suggested_action</code>, <code>originating_findings</code>, and <code>originating_reviewers</code>.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-example">
+          <h3 id="plan-example" className="mb-3 text-lg font-semibold text-foreground">SDK Example</h3>
+          <CodeBlock code={`import featuresmith as fs
+
+result = fs.review("data.csv", target_column="label")
+
+# Inspect the ranked recommendations first
+for rec in result.recommendations:
+    print(f"{rec.id} [{rec.severity}] {rec.title}")
+
+# Accept the ones you want in the plan
+plan = fs.plan(result, accept=["rec.quality.missingness.cabin"])
+
+for item in plan.items:
+    print(f"{item.id}: {item.title}")
+    print(f"  Action: {item.suggested_action}")`} language="python" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-recommendations">
+          <h3 id="plan-recommendations" className="mb-3 text-lg font-semibold text-foreground">How Recommendations Are Generated</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            The centralized Recommendation Engine merges findings from every review section into a single ranked, explainable list. Findings affecting the same column with the same rule category are grouped into one recommendation, and each recommendation is ranked by severity (descending), then confidence (descending), then number of affected columns (descending). Recommendation IDs follow the pattern <code>rec.&lt;rule_category&gt;.&lt;column&gt;</code> (for example, <code>rec.quality.missingness.cabin</code>).
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-limitations">
+          <h3 id="plan-limitations" className="mb-3 text-lg font-semibold text-foreground">Notes and Limitations</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground border-l-2 border-amber-500 bg-amber-500/5 p-4 rounded-r-lg">
+            <li><strong>Advisory Only</strong>: The Plan is purely advisory — nothing is auto-applied. Executing the steps (code generation, dataset mutation) is planned for a future release.</li>
+            <li><strong>Empty by Default</strong>: Calling <code>fs.plan()</code> without <code>accept</code> returns an empty Plan.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-cross-links">
+          <h3 id="plan-cross-links" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the review SDK reference <a href="/docs/sdk/review" className="text-primary hover:underline">fs.review()</a>, the review models reference <a href="/docs/sdk/models/review" className="text-primary hover:underline">Review Models</a>, and the CLI counterpart <a href="/docs/cli/plan" className="text-primary hover:underline">featuresmith plan</a>.
           </p>
         </section>
       </>
@@ -3799,19 +3919,18 @@ featuresmith diff train_v1.csv train_v2.csv --format json --output diff_report.j
           <p className="mb-3 text-sm text-muted-foreground">
             When computed, the CLI console renderer formats the score and displays contributing issues dynamically:
           </p>
-          <CodeBlock code={`ML Readiness Score (scoring v0.2.0)
+          <CodeBlock code={`ML Readiness Score (scoring v0.3.0)
 Overall: 98.1/100
 
   Schema Health: 100/100
   Missing Values: 85/100 (1 finding(s))
-  Duplicate Records: 100/100
-  Data Types: 100/100
-  Constant Columns: 100/100
-  High Cardinality: 100/100
-  Dataset Structure: 100/100
+  Feature Quality: 100/100
+  Distribution Health: 100/100
   Leakage Risk: 100/100
+  Data Quality: 100/100
+  Consistency: 100/100
 
-Summary: Overall ML Readiness is 98.1/100 across 8 dimension(s); 7 fully healthy, 1 with findings lowering the score.
+Summary: Overall ML Readiness is 98.1/100 across 7 dimension(s); 6 fully healthy, 1 with findings lowering the score.
 
 What would improve this score:
   - Address the flagged issue: High missing values in column 'age' (in column 'age').`} showCopy={false} />
@@ -3828,6 +3947,86 @@ What would improve this score:
           <h3 id="score-cli-cross" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
           <p className="text-sm text-muted-foreground">
             See the SDK equivalent <a href="/docs/sdk/score" className="text-primary hover:underline">fs.score()</a> and the review CLI reference <a href="/docs/cli/review" className="text-primary hover:underline">featuresmith review</a>.
+          </p>
+        </section>
+      </>
+    )
+  },
+  "cli/plan": {
+    title: "featuresmith plan",
+    subtitle: "CLI Reference: compile a deterministic Plan from accepted recommendations",
+    category: "CLI Reference",
+    seoTitle: "CLI Plan Reference",
+    seoDescription: "Learn how to use the featuresmith plan CLI command to compile a deterministic Plan from accepted recommendations.",
+    render: () => (
+      <>
+        <section className="mb-8" aria-labelledby="plan-cli-overview">
+          <h3 id="plan-cli-overview" className="mb-3 text-lg font-semibold text-foreground">Overview</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            The <code>featuresmith plan</code> command runs a full review of a dataset and then compiles a deterministic <code>Plan</code> from the recommendation IDs you accept via <code>--accept</code>. Run <code>featuresmith review</code> first to see the available recommendations and their IDs, then pass the ones you want in the plan.
+          </p>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-cli-usage">
+          <h3 id="plan-cli-usage" className="mb-3 text-lg font-semibold text-foreground">Usage</h3>
+          <CodeBlock code={`featuresmith plan <source> [--target COLUMN] [--previous SNAPSHOT] [--accept ID1,ID2] [--format table|json] [--output PATH] [--fail-on info|warning|critical] [--quiet] [--verbose]`} language="bash" showCopy={false} />
+          <div className="overflow-x-auto rounded-lg border border-border mt-4">
+            <table className="min-w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-foreground">
+                <tr>
+                  <th className="px-4 py-3">Flag</th>
+                  <th className="px-4 py-3">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                {[
+                  ["<source>", "Path to the local tabular dataset (CSV, Excel, or Parquet)."],
+                  ["--target", "Name of the target column in the dataset for leakage evaluation."],
+                  ["--previous", "Path to a prior snapshot for diff-aware review."],
+                  ["--accept", "Comma-separated recommendation IDs to accept into the plan."],
+                  ["--format", "Output format: table (default) or json."],
+                  ["--output", "Path to save the output report (txt or JSON depending on format)."],
+                  ["--fail-on", "Severity threshold for CI-gating exit codes, mirrors review (default: critical)."],
+                  ["--quiet", "Suppress all standard console report output."],
+                  ["--verbose", "Show full Python tracebacks on error instead of generic messages."],
+                ].map(([flag, desc]) => (
+                  <tr key={flag}>
+                    <td className="px-4 py-3 font-mono text-xs">{flag}</td>
+                    <td className="px-4 py-3">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-cli-example">
+          <h3 id="plan-cli-example" className="mb-3 text-lg font-semibold text-foreground">Examples</h3>
+          <CodeBlock code={`# Review first to see recommendation IDs
+featuresmith review train.csv --target survived
+
+# Compile a plan from accepted recommendations
+featuresmith plan train.csv --target survived --accept rec.quality.missingness.cabin
+
+# Output JSON plan report
+featuresmith plan train.csv --accept rec.quality.missingness.cabin --format json --output plan.json`} language="bash" showCopy />
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-cli-exit">
+          <h3 id="plan-cli-exit" className="mb-3 text-lg font-semibold text-foreground">Exit Codes</h3>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+            <li><strong>0</strong>: Success — no plan item meets or exceeds the <code>--fail-on</code> threshold.</li>
+            <li><strong>1</strong>: At least one plan item meets or exceeds the <code>--fail-on</code> threshold (CI gate).</li>
+            <li><strong>2</strong>: Validation or configuration error (for example, an unknown recommendation ID or a missing target column).</li>
+            <li><strong>3</strong>: Source file not found or failed to parse.</li>
+            <li><strong>4</strong>: Unexpected internal error.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8" aria-labelledby="plan-cli-cross">
+          <h3 id="plan-cli-cross" className="mb-3 text-lg font-semibold text-foreground">Related Documentation</h3>
+          <p className="text-sm text-muted-foreground">
+            See the SDK equivalent <a href="/docs/sdk/plan" className="text-primary hover:underline">fs.plan()</a> and the review CLI reference <a href="/docs/cli/review" className="text-primary hover:underline">featuresmith review</a>.
           </p>
         </section>
       </>
