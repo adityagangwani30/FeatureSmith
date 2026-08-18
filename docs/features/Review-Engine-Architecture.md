@@ -1,8 +1,8 @@
 # Review Engine Architecture
 
-> **Status: Implemented (v0.4.0).** The Review Engine core pipeline, registry, aggregator, 10 built-in reviewers (including `DiffReviewer` since v0.3.0 and `FeatureQualityReviewer` since v0.4.0), centralized Recommendation Engine (v0.4.0), ML Readiness Score integration, and console/Plan rendering are implemented. The plugin entry-point discovery, AI integration, and category registry remain future work. The standalone Dataset Diff Engine ships separately via `fs.diff()` and `featuresmith diff`, and `DiffReviewer` (v0.3.0) reuses it as a registered reviewer.
+> **Status: Implemented.** The Review Engine core pipeline, registry, aggregator, 10 built-in reviewers (including `DiffReviewer` and `FeatureQualityReviewer`), centralized Recommendation Engine, ML Readiness Score integration, and console/Plan rendering are implemented. Plugin entry-point discovery, AI integration, and category registry entrypoints remain future work. The standalone Dataset Diff Engine ships separately via `fs.diff()` and `featuresmith diff`, and `DiffReviewer` reuses it as a registered reviewer.
 >
-> **Revision note:** this revision adds a centralized Recommendation Engine stage (§8.4) and formalizes Review Categories (§9), per design review. The centralized Recommendation Engine replaces the minimal severity-ranked fallback formatter; the fallback formatter is removed. Everything else is unchanged from the prior revision.
+> **Revision note:** this revision formalizes the centralized Recommendation Engine stage (§8.4) and Review Categories (§9). The centralized Recommendation Engine merges review findings into ranked, traceable recommendations, replacing the fallback severity formatter.
 
 ## 1. Overview
 

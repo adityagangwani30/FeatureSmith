@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -10,10 +12,12 @@ import featuresmith as fs
 from featuresmith.core.dataset import Dataset
 from featuresmith.review.context import ReviewConfig, ReviewContext
 from featuresmith.review.reviewers import FeatureQualityReviewer
-from featuresmith.review.schema import ReviewCategory, Severity
+from featuresmith.review.schema import ReviewCategory, ReviewSection, Severity
 
 
-def run_reviewer(reviewer: FeatureQualityReviewer, df: pd.DataFrame, **config) -> tuple:
+def run_reviewer(
+    reviewer: FeatureQualityReviewer, df: pd.DataFrame, **config: Any
+) -> ReviewSection:
     """Run FeatureQualityReviewer against a dataframe with optional configuration."""
     dataset: Dataset = fs.load(df)
     profile = fs.profile(dataset)

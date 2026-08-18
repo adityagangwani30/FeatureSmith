@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "featuresmith-dashboard"
-version = "0.2.0"
+version = "0.4.0"
 description = "Thin dashboard surface for Featuresmith (Unreleased / Internal)."
 readme = "README.md"
 license = "Apache-2.0"
@@ -25,7 +25,7 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
-  "featuresmith-core>=0.2.0",
+  "featuresmith-core>=0.4.0",
 ]
 
 [project.urls]

@@ -186,12 +186,12 @@ All commands share a consistent exit-code convention:
 
 The following flagship capabilities are currently delivered in FeatureSmith:
 
-- **Dataset Review (`featuresmith review <dataset>`)**: ✅ Implemented with 10/11 review sections (schema health, types, missingness, duplicates, constants, cardinality, basic statistics, leakage, diff, feature quality), ML Readiness Score, category filtering, CLI/SDK. Missing: duplicate columns, outliers, distribution sections.
+- **Dataset Review (`featuresmith review <dataset>`)**: ✅ Implemented with 10/11 review sections (schema health, types, missingness, duplicates, constants, cardinality, basic statistics, leakage, diff, feature quality), ML Readiness Score, category filtering, CLI/SDK. Deferred: duplicate columns, outliers, distribution sections.
 - **Centralized Recommendation Engine**: ✅ Implemented — merges findings from all review sections into a single ranked, explainable list of recommendations with consistent confidence semantics and full traceability back to originating findings and reviewers.
 - **Feature Quality Review**: ✅ Implemented — detects near-constant columns, redundant column pairs, and low-signal high-cardinality columns.
 - **Plan Primitive**: ✅ Implemented — `fs.plan()` and `featuresmith plan` compile deterministic, inspectable plans from accepted recommendations with full traceability (PlanItem → Recommendation → Finding → Reviewer).
 - **ML Readiness Score**: ✅ Implemented with 7 effective dimensions (Schema Health, Missing Values, Feature Quality, Distribution Health, Leakage Risk, Data Quality, Consistency), per-dimension breakdown, CLI/SDK access. Class Balance dimension omitted pending minority-class detector implementation; CI score gating (`--fail-below`) deferred.
-- **Dataset Diff (`featuresmith diff <v1> <v2>`)**: ✅ Fully implemented as standalone engine AND integrated into the Review Engine as `DiffReviewer` (v0.3.0) — `featuresmith review <v2> --previous <v1>` produces a diff section in the same review.
+- **Dataset Diff (`featuresmith diff <v1> <v2>`)**: ✅ Fully implemented as standalone engine AND integrated into the Review Engine as `DiffReviewer` — `featuresmith review <v2> --previous <v1>` produces a diff section in the same review.
 - **Intelligent Leakage Detection**: ✅ Fully implemented with 6 pattern detectors, merged findings, and scoring integration.
 
 ---
@@ -219,11 +219,11 @@ Visit [featuresmith.adityagangwani.me](https://featuresmith.adityagangwani.me) f
 | **Phase 0** | pre-release | Foundations: Core Library First | ✅ Shipped |
 | **Phase 1** | v0.1 | Foundation: SDK + CLI MVP, Profiling + Rule Engine | ✅ Shipped |
 | **Phase 2** | v0.2 | Dataset Review Platform: Review Engine, ML Readiness Score, Leakage Detection, Dataset Diff | ✅ Shipped |
-| **Phase 3** | v0.3 | Developer Experience: DiffReviewer, Governance, Dashboard, Connectors, CI/CD, Plugins | ✅ Shipped (DiffReviewer + GOVERNANCE) |
-| **Phase 4** | v0.4 | Recommendation & Planning: Recommendation Engine, the Plan primitive | ✅ Shipped |
+| **Phase 3** | v0.3 | Developer Experience: DiffReviewer, Governance | ✅ Shipped |
+| **Phase 4** | v0.4 | Recommendation & Planning: Recommendation Engine, FeatureQualityReviewer, Plan primitive | ✅ Shipped |
 | **Phase 5** | v0.5 | Dataset Contracts: Apply, Validation, `featuresmith.lock` | 🔜 Planned |
 | **Phase 6** | v0.6–v1.0 | Certification & Observability: badge, scheduled re-review, Quality History | 🔜 Planned |
-| **Phase 7** | v1.x | AI-Assisted Planning: Provider layer, narration, natural-language Plan authoring | 🔜 Planned |
+| **Phase 7** | v1.1+ | AI-Assisted Planning: Provider layer, narration, natural-language Plan authoring | 🔜 Planned |
 | **Phase 8** | v2.0+ | Ecosystem Integrations & Scale: dbt/Feast/MLflow/W&B exporters, VS Code, distributed compute, hosted tier | 🔜 Planned |
 
 See [`docs/Phases.md`](./docs/Phases.md) for the authoritative roadmap.

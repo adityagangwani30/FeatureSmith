@@ -3034,7 +3034,7 @@ featuresmith analyze data/train.csv --target churn --severity critical`} languag
           <h4 className="mt-4 mb-2 text-sm font-semibold text-foreground">Highlights:</h4>
           <ul className="list-disc pl-5 mb-4 space-y-1 text-sm text-muted-foreground">
             <li><strong>Review Engine</strong>: Orchestrates multiple parallel dataset reviewers in a 5-stage pipeline, outputting structured reports.</li>
-            <li><strong>ML Readiness Score</strong>: Calculates a deterministic 0–100 score across 8 dimensions (Missing Values, Duplicates, Leakage, etc.) with actionable feedback.</li>
+            <li><strong>ML Readiness Score</strong>: Calculates a deterministic 0–100 score across 7 effective health dimensions (Missing Values, Duplicates, Leakage, etc.) with actionable feedback.</li>
             <li><strong>Dataset Diff Engine</strong>: Compares two snapshot profiles to identify schema changes, distribution shifts, and quality regressions.</li>
             <li><strong>Intelligent Leakage Detection</strong>: Features 6 pattern-matching detectors to catch target leakage, duplicate targets, and future information leaks.</li>
             <li><strong>CLI Expansion</strong>: Introduces <code>featuresmith review</code> and <code>featuresmith diff</code> subcommands for terminal validation and CI/CD gating.</li>

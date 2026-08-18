@@ -41,7 +41,7 @@ Last Updated: 2026-08-17 (v0.4.0)
 - **CategoryRegistry** with entry-point discovery — explicit registration only for now
 - **Plugin Architecture** (entry_points for reviewers) — same pattern as rules/connectors, deferred
 - **Dashboard / HTML / JSON Renderers** — only `ConsoleRenderer` and `PlanRenderer` implemented
-- **AI Integration** (narration, AI-enhanced ranking) — Phase 6
+- **AI Integration** (narration, AI-enhanced ranking) — Phase 7 (v1.1.0+)
 
 ### Future Work (Planned)
 - **DuplicateColumnReviewer** (`review.quality.duplicate_columns`)
@@ -214,7 +214,7 @@ Dataset Diff ships as a **standalone engine** (`featuresmith.diff` package) AND 
 
 ### Status: Plan Implemented — Design Complete for Contracts/Apply
 
-Full specification for Dataset Contracts (`featuresmith.lock`), Apply/Export, and Validation in `features/Dataset-Contracts-And-Planning.md`; no code exists yet for Contracts/Apply. Roadmap placement: Phase 5 (Apply, Validation, `featuresmith.lock`), Phase 6 (Certification, Observability).
+Full specification for Dataset Contracts (`featuresmith.lock`), Apply/Export, and Validation in `features/Dataset-Contracts-And-Planning.md`; no code exists yet for Contracts/Apply. Roadmap placement: Phase 5 (v0.5.0: Apply, Validation, `featuresmith.lock`), Phase 6 (v0.6.0–v1.0.0: Certification, Observability, Platform Stability).
 
 ---
 
@@ -237,6 +237,6 @@ Full specification for Dataset Contracts (`featuresmith.lock`), Apply/Export, an
 4. No CI score gating (`--fail-below`, `--fail-below-dimension`)
 5. Class Balance dimension omitted (minority-class detector not implemented)
 6. DistributionHealthDimension uses `basic_statistics` stub (DistributionReviewer/OutlierReviewer not implemented)
-7. Dataset Contracts / Apply / `featuresmith.lock` not started — design complete, Phase 5-6
+7. Dataset Contracts / Apply / `featuresmith.lock` not started — design complete, v0.5.0 (Phase 5)
 
 All gaps are documented in the architecture documents as deferred/future work and do not block the v0.4.0 release.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from typer.testing import CliRunner
@@ -429,7 +430,7 @@ def test_cli_plan_sdk_parity(tmp_path: Path) -> None:
         assert cli_item["suggested_action"] == sdk_item["suggested_action"]
 
         # originating_findings have volatile IDs; compare without IDs
-        def strip_finding_ids(findings):
+        def strip_finding_ids(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return [{k: v for k, v in f.items() if k != "id"} for f in findings]
 
         assert strip_finding_ids(cli_item["originating_findings"]) == strip_finding_ids(

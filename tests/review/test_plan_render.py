@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 import featuresmith as fs
+from featuresmith.core.profile_result import DatasetSummary
 from featuresmith.core.rule_finding import RuleFinding
 from featuresmith.plan import (
     PLAN_SCHEMA_VERSION,
@@ -65,7 +66,7 @@ def make_review_result_with_recommendations(
     *recs: Recommendation,
 ) -> ReviewResult:
     """Create a ReviewResult with the given recommendations."""
-    summary = fs.core.profile_result.DatasetSummary(
+    summary = DatasetSummary(
         row_count=10,
         column_count=2,
         size_in_bytes=None,

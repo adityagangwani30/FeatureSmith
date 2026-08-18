@@ -42,7 +42,7 @@ const typeColors: Record<string, string> = {
 
 const STATS = [
   { icon: Scale, label: "License", value: "Apache 2.0" },
-  { icon: Star, label: "Unit Tests", value: "311 Passing" },
+  { icon: Star, label: "Unit Tests", value: "375 Passing" },
   { icon: Code2, label: "Type Safety", value: "Strict MyPy" },
   { icon: Package, label: "Linter", value: "Ruff & Import Linter" },
 ]
