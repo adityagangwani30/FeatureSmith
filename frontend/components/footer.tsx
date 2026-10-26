@@ -105,7 +105,7 @@ export function Footer() {
             <p className="text-xs text-muted-foreground">
               Built by{" "}
               <Link
-                href="https://adityagangwani.me"
+                href="https://adityagangwani.me/hire"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-4 hover:text-foreground font-medium"

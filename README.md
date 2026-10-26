@@ -245,3 +245,7 @@ We welcome community contributions. The best entry points are custom rules and c
 ## License
 
 Featuresmith is licensed under the Apache 2.0 License. See [`LICENSE`](./LICENSE) for details.
+
+---
+
+Built by [Aditya Gangwani](https://adityagangwani.me/hire)
